@@ -132,8 +132,31 @@ export default function StaffRosterCard({ locale }: { locale: Locale }) {
   const [approvalScope, setApprovalScope] = useState('صلاحية كاملة وإيقاف خطوط');
   const [emergencyExtension, setEmergencyExtension] = useState('EXT-105');
 
-  // Listen for custom AI events from the chatbot
+  // Listen for custom AI events from the chatbot & load onboarded setup if present
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem('wrdya_onboarded_setup');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.employees && parsed.employees.length > 0) {
+          setStaffList(parsed.employees.map((item: any, idx: number) => ({
+            id: `st-ai-init-${idx + 1}`,
+            name: item.name,
+            role: item.role || 'operator',
+            line: item.line || 'EXT-01',
+            shift: item.shift || 'morning',
+            stationTask: item.stationTask || (item.role === 'operator' ? 'تشغيل عام ومراقبة خط' : undefined),
+            targetQuota: item.targetQuota || '1,200 وحدة',
+            ppeApproved: true,
+            supervisedSector: item.supervisedSector || (item.role === 'supervisor' ? 'صالة الإنتاج' : undefined),
+            radioChannel: item.radioChannel || 'CH-01',
+            technicalSpecialty: item.technicalSpecialty || (item.role === 'maintenance' ? 'ميكانيكا وكهرباء' : undefined),
+            operationalDivision: item.operationalDivision || (item.role === 'admin' ? 'إدارة الإنتاج' : undefined),
+          })));
+        }
+      }
+    } catch {}
+
     const handleAiUpdate = (e: any) => {
       if (e.detail && Array.isArray(e.detail)) {
         const formatted = e.detail.map((item: any, idx: number) => ({

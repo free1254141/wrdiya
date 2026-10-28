@@ -11,6 +11,7 @@ import {
 } from '@/lib/supabase';
 import { 
   Machine, 
+  MachineStatus,
   ShiftNote, 
   DowntimeLog, 
   ProductionLog, 
@@ -37,7 +38,7 @@ function MainAppContent() {
   const searchParams = useSearchParams();
   const machineParam = searchParams ? searchParams.get('machine_id') : null;
 
-  const { user, activeRole } = useAuth();
+  const { user, factory, activeRole } = useAuth();
   const { locale, t } = useLanguage();
 
   const [machines, setMachines] = useState<Machine[]>(initialMachines);
@@ -50,6 +51,29 @@ function MainAppContent() {
     }
     return initialMachines[1].id; // Default to INJ-02 (currently has active demo downtime)
   });
+
+  // Load AI onboarded machines if present
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem('wrdya_onboarded_setup');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.machines && parsed.machines.length > 0) {
+          const generatedMachines: Machine[] = parsed.machines.map((m: any, idx: number) => ({
+            id: m.id || `mach-ai-${idx + 1}`,
+            factory_id: factory?.id || 'fac-01',
+            name: m.name,
+            code: m.code,
+            line_name: m.line,
+            current_status: (m.status as MachineStatus) || 'running',
+            last_status_change: new Date().toISOString(),
+          }));
+          setMachines(generatedMachines);
+          setSelectedMachineId(generatedMachines[0].id);
+        }
+      }
+    } catch {}
+  }, [factory]);
 
   const [shiftNotes, setShiftNotes] = useState<ShiftNote[]>(initialShiftNotes);
   const [downtimeLogs, setDowntimeLogs] = useState<DowntimeLog[]>(initialDowntimeLogs);

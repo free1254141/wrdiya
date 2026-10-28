@@ -8,17 +8,70 @@ export type ShiftName = 'morning' | 'evening' | 'night';
 
 export type NoteCategory = 'material_issue' | 'worker_absence' | 'handover_alert' | 'general';
 
+export interface FactoryProfile {
+  id: string;
+  name: string;
+  industry: string;
+  code: string;
+  adminName: string;
+  adminEmail: string;
+  shiftModel: string;
+  linesCount: number;
+  machinesCount: number;
+  staffCount: number;
+  createdAt: string;
+}
+
+export interface NewFactoryRegistration {
+  factoryName: string;
+  industry: string;
+  adminName: string;
+  email: string;
+  password: string;
+  shiftModel: string;
+  estimatedLines?: number;
+  estimatedMachines?: number;
+}
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  role: UserRole;
+  line: string;
+  shift: ShiftName;
+  // Operator dynamic fields
+  stationTask?: string;
+  targetQuota?: string;
+  ppeApproved?: boolean;
+  // Supervisor dynamic fields
+  supervisedSector?: string;
+  radioChannel?: string;
+  targetOee?: string;
+  handoverProtocol?: string;
+  // Maintenance dynamic fields
+  technicalSpecialty?: string;
+  responseLine?: string;
+  toolboxId?: string;
+  onCallStatus?: string;
+  // Admin dynamic fields
+  operationalDivision?: string;
+  approvalScope?: string;
+  emergencyExtension?: string;
+}
+
 export interface Machine {
   id: string;
   factory_id: string;
   name: string;
   code: string;
+  line_name?: string;
   qr_url?: string;
   current_status: MachineStatus;
   last_status_change: string;
   active_downtime_start?: string;
   active_downtime_reason?: DowntimeCategory;
   active_downtime_note?: string;
+  target_hourly_rate?: number;
 }
 
 export interface DowntimeLog {
@@ -79,3 +132,4 @@ export interface ChatMessage {
   content?: string;
   meta?: any;
 }
+

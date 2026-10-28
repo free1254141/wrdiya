@@ -2,18 +2,149 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, messages = [], locale = 'ar', image } = await req.json();
+    const { prompt, messages = [], locale = 'ar', image, sheetData, isFactoryOnboarding, industry } = await req.json();
 
     const userQuery = prompt || (messages.length > 0 ? messages[messages.length - 1].content : '');
 
-    if (!userQuery && !image) {
-      return NextResponse.json({ error: locale === 'en' ? 'Prompt or image is required' : 'الرسالة أو الصورة مطلوبة' }, { status: 400 });
+    if (!userQuery && !image && !sheetData) {
+      return NextResponse.json({ error: locale === 'en' ? 'Prompt, sheet, or image is required' : 'الرسالة أو الملف أو الصورة مطلوبة' }, { status: 400 });
     }
 
     const lower = (userQuery || '').toLowerCase();
     const isEn = locale === 'en';
 
-    // Check if user uploaded an image of staff / roster
+    // 1. Factory / Company Comprehensive AI Onboarding (Sheet or Natural Language or Image)
+    if (isFactoryOnboarding || sheetData || lower.includes('تهيئة') || lower.includes('onboarding') || (lower.includes('مصنع') && (lower.includes('خط') || lower.includes('ماكينة') || lower.includes('عمال')))) {
+      // Determine industry context
+      const ind = (industry || lower).toLowerCase();
+      
+      let lines = [
+        { id: 'L-01', name: isEn ? 'Line 1: Raw Material & Feeding' : 'خط 1: تجهيز وتغذية الخامات', code: 'EXT-LINE' },
+        { id: 'L-02', name: isEn ? 'Line 2: Primary Forming & Production' : 'خط 2: التشكيل والإنتاج الرئيسي', code: 'INJ-LINE' },
+        { id: 'L-03', name: isEn ? 'Line 3: Quality & Packaging' : 'خط 3: الفحص والجودة والتعبئة', code: 'PKG-LINE' },
+      ];
+
+      let machines = [
+        { id: 'm-101', name: isEn ? 'Main Extruder Unit 01' : 'وحدة البثق الرئيسية 01', code: 'EXT-01', line: 'EXT-LINE', status: 'running', target: '1,400 u/h' },
+        { id: 'm-102', name: isEn ? 'Hydraulic Injection Press 02' : 'مكبس الحقن الهيدروليكي 02', code: 'INJ-02', line: 'INJ-LINE', status: 'running', target: '950 u/h' },
+        { id: 'm-103', name: isEn ? 'Thermal Former Unit 03' : 'وحدة التشكيل الحراري 03', code: 'THF-03', line: 'INJ-LINE', status: 'running', target: '1,100 u/h' },
+        { id: 'm-104', name: isEn ? 'Automated High-Speed Packaging' : 'خط التعبئة والتغليف الآلي', code: 'PKG-04', line: 'PKG-LINE', status: 'running', target: '2,200 u/h' },
+      ];
+
+      if (ind.includes('غزل') || ind.includes('نسيج') || ind.includes('textile')) {
+        lines = [
+          { id: 'L-01', name: isEn ? 'Line 1: Spinning & Winding' : 'خط 1: الغزل والتدوير', code: 'SPIN-LINE' },
+          { id: 'L-02', name: isEn ? 'Line 2: Weaving & Looms' : 'خط 2: النسيج والأنوال الآلية', code: 'WEAV-LINE' },
+          { id: 'L-03', name: isEn ? 'Line 3: Dyeing & Finishing' : 'خط 3: الصباغة والتجهيز النهائي', code: 'FIN-LINE' },
+        ];
+        machines = [
+          { id: 'm-201', name: isEn ? 'Ring Spinning Frame 01' : 'ماكينة الغزل الحلقي 01', code: 'RNG-01', line: 'SPIN-LINE', status: 'running', target: '800 kg/shift' },
+          { id: 'm-202', name: isEn ? 'High Speed Air Jet Loom 02' : 'نول النسيج النفاث للهواء 02', code: 'LOM-02', line: 'WEAV-LINE', status: 'running', target: '1,200 m/shift' },
+          { id: 'm-203', name: isEn ? 'Automated Coner & Winder' : 'ماكينة التدوير الأوتوماتيكية', code: 'WND-03', line: 'SPIN-LINE', status: 'running', target: '900 kg/shift' },
+          { id: 'm-204', name: isEn ? 'Stenter Drying & Finishing' : 'ماكينة الرام والتجفيف النهائي', code: 'STN-04', line: 'FIN-LINE', status: 'running', target: '3,000 m/shift' },
+        ];
+      } else if (ind.includes('غذائ') || ind.includes('food') || ind.includes('مشروبات')) {
+        lines = [
+          { id: 'L-01', name: isEn ? 'Line 1: Processing & Mixing' : 'خط 1: التحضير والخلط المركزي', code: 'MIX-LINE' },
+          { id: 'L-02', name: isEn ? 'Line 2: Filling & Capping' : 'خط 2: التعبئة والتغطية المعقمة', code: 'FILL-LINE' },
+          { id: 'L-03', name: isEn ? 'Line 3: Labelling & Shrink' : 'خط 3: وضع الليبل والتغليف النهائي', code: 'SHRK-LINE' },
+        ];
+        machines = [
+          { id: 'm-301', name: isEn ? 'Industrial Batch Mixer 01' : 'خلاط ومجنس دفعات 01', code: 'MIX-01', line: 'MIX-LINE', status: 'running', target: '2,500 L/h' },
+          { id: 'm-302', name: isEn ? 'Rotary Aseptic Filler 02' : 'وحدة التعبئة المعقمة الدوارة', code: 'FIL-02', line: 'FILL-LINE', status: 'running', target: '4,000 bottle/h' },
+          { id: 'm-303', name: isEn ? 'Ultra-Clean Capper Unit' : 'ماكينة الغلق والتتويج المحكمة', code: 'CAP-03', line: 'FILL-LINE', status: 'running', target: '4,000 bottle/h' },
+          { id: 'm-304', name: isEn ? 'Automatic Shrink Packer' : 'ماكينة شرينك وتغليف كراتين', code: 'SHR-04', line: 'SHRK-LINE', status: 'running', target: '1,500 box/h' },
+        ];
+      }
+
+      // Generate staff roster for these lines
+      const employees = [
+        {
+          name: isEn ? 'Eng. Tamer Radwan' : 'م. تامر رضوان',
+          role: 'supervisor',
+          line: lines[0].name,
+          shift: 'morning',
+          supervisedSector: isEn ? 'All Production Lines' : 'كامل صالة الإنتاج',
+          radioChannel: 'CH-01',
+          targetOee: '88%',
+          handoverProtocol: isEn ? 'Standard Digital Protocol' : 'تسليم رقمي سحابي معتمد'
+        },
+        {
+          name: isEn ? 'Eng. Sameh Mostafa' : 'م. سامح مصطفى',
+          role: 'maintenance',
+          line: isEn ? 'Emergency Standby Team' : 'فريق صيانة الطوارئ والـ PLC',
+          shift: 'morning',
+          technicalSpecialty: isEn ? 'Automation, Sensors & PLC' : 'أوتوميشن، حساسات وتحكم PLC',
+          responseLine: 'Lines 1 & 2',
+          toolboxId: 'WRD-CAL-99',
+          onCallStatus: isEn ? 'Active On-Site' : 'متواجد بالصالة'
+        },
+        {
+          name: isEn ? 'Ibrahim Hassan' : 'إبراهيم حسن',
+          role: 'operator',
+          line: machines[0].code,
+          shift: 'morning',
+          stationTask: isEn ? 'Setup, Calibration & Feed Rate' : 'معايرة سرعة التغذية وفحص الحساسات',
+          targetQuota: machines[0].target,
+          ppeApproved: true
+        },
+        {
+          name: isEn ? 'Khaled Mansour' : 'خالد منصور',
+          role: 'operator',
+          line: machines[1].code,
+          shift: 'morning',
+          stationTask: isEn ? 'Tooling Inspection & Pressure Cycling' : 'فحص القوالب ودورات الضغط الهيدروليكي',
+          targetQuota: machines[1].target,
+          ppeApproved: true
+        },
+        {
+          name: isEn ? 'Adel Fikry' : 'عادل فكري',
+          role: 'operator',
+          line: machines[2].code,
+          shift: 'morning',
+          stationTask: isEn ? 'Output Quality & Tolerance Check' : 'مراقبة التفاوتات والإنتاجية الاسمية',
+          targetQuota: machines[2].target,
+          ppeApproved: true
+        },
+        {
+          name: isEn ? 'Youssef El-Sayed' : 'يوسف السيد',
+          role: 'operator',
+          line: machines[3].code,
+          shift: 'morning',
+          stationTask: isEn ? 'Packaging Integrity & Palletizing' : 'تغليف نهائي ورص الطبالي للتحميل',
+          targetQuota: machines[3].target,
+          ppeApproved: true
+        },
+      ];
+
+      return NextResponse.json({
+        success: true,
+        provider: 'local-intelligent-engine',
+        category: 'factory_onboarded',
+        reply: isEn ? `### 🏭 Factory Digital Setup Generated Successfully!
+
+I have automatically structured and generated your plant floor:
+- 🛠️ **${lines.length} Production Lines:** ${lines.map(l => l.name).join(' • ')}
+- ⚙️ **${machines.length} Operational Machines:** ${machines.map(m => `[${m.code}] ${m.name}`).join(', ')}
+- 👥 **${employees.length} Staff Members & Supervisors Assigned** across lines with dynamic quotas.
+
+Click **"Confirm & Launch Factory"** below to load your complete factory setup into the dashboard!` : `### 🏭 تم بناء هيكل المنشأة الصناعية بالكامل بنجاح!
+
+قام الذكاء الاصطناعي باستخراج وتهيئة صالة الإنتاج تلقائياً:
+- 🛠️ **${lines.length} خطوط إنتاج:** ${lines.map(l => l.name).join(' • ')}
+- ⚙️ **${machines.length} ماكينات ومعدات رئيسية:** ${machines.map(m => `[${m.code}] ${m.name}`).join('، ')}
+- 👥 **${employees.length} موظفين وفنيين ومشرفين** تم تسكينهم بالمهام والمستهدفات على خطوط الإنتاج.
+
+💡 **اضغط على زر "اعتماد وتشغيل المصنع فوراً" بالأسفل للانتقال لصالة الإنتاج ببياناتك الجديدة.**`,
+        factorySetup: {
+          lines,
+          machines,
+          employees,
+        },
+      });
+    }
+
+    // 2. Check if user uploaded an image of staff / roster
     if (image) {
       const parsedEmployees = [
         { 
@@ -95,7 +226,7 @@ Click **"Confirm & Apply Roster"** below to assign all staff instantly.` : `### 
       });
     }
 
-    // Check for employee assignment / roster input
+    // 3. Check for employee assignment / roster input
     if (
       lower.includes('staff') ||
       lower.includes('roster') ||
@@ -191,27 +322,10 @@ ${extracted
             source: 'text_nlp',
           },
         });
-      } else {
-        return NextResponse.json({
-          success: true,
-          provider: 'local-intelligent-engine',
-          category: 'roster_clarification',
-          reply: isEn ? `### 📋 Easy Staff Roster Assignment:
-You can:
-1. 📸 **Upload a photo or spreadsheet screenshot** using the camera icon.
-2. ✍️ **Type the staff names directly**, for example:
-   *"Assign Hossam Kamal on line EXT-01, Mahmoud Saqr for emergency maintenance, and Ahmed Adel as morning supervisor"*
-3. 📝 **Or click "Manual Form"** to enter custom fields directly.` : `### 📋 لتسكين الموظفين والورديات بسهولة:
-يمكنك:
-1. 📸 **رفع صورة كشف الحضور أو جدول الشيفتات** من أيقونة الصورة.
-2. ✍️ **أو كتابة الأسماء مباشرة هنا**، مثال:
-   *"سكن حسام كمال على خط البثق EXT-01، ومحمود صقر صيانة طوارئ، وأحمد عادل مشرف وردية صباحية"*
-3. 📝 **أو الضغط على "ملء يدوي"** لإدخال البيانات بنفسك في الفورم مباشرة.`,
-        });
       }
     }
 
-    // Factory Intelligence queries
+    // 4. Factory Intelligence queries
     if (lower.includes('inj-02') || lower.includes('حقن') || lower.includes('حرارة') || lower.includes('هيتر')) {
       return NextResponse.json({
         success: true,
@@ -290,16 +404,18 @@ You can:
       reply: isEn ? `Hello! I am **Wrdya AI Industrial Copilot** 🤖
 
 I am ready to assist with factory operations:
-1. 👥 **Staff Roster Assignment:** Upload roster photo or type names to auto-populate assignments.
-2. 🔴 **Breakdown Diagnostics:** Ask about machine stoppages (e.g. INJ-02).
-3. 📊 **OEE Analytics:** Real-time Availability, Performance, and Quality metrics.
-4. 📋 **Shift Handover:** Generate clean shift transfer reports.` : `أهلاً بك في **مساعد وردية الذكي** 🤖
+1. 🏭 **Factory Onboarding:** Upload excel/csv or photo of machines and employees to configure your plant.
+2. 👥 **Staff Roster Assignment:** Upload roster photo or type names to auto-populate assignments.
+3. 🔴 **Breakdown Diagnostics:** Ask about machine stoppages (e.g. INJ-02).
+4. 📊 **OEE Analytics:** Real-time Availability, Performance, and Quality metrics.
+5. 📋 **Shift Handover:** Generate clean shift transfer reports.` : `أهلاً بك في **مساعد وردية الذكي** 🤖
 
-أنا جاهز لمساعدتك في كل ما يخص صالة الإنتاج:
-1. 👥 **تسكين كشوف الموظفين والعمال:** ارفع صورة الكشف أو اكتب الأسماء وأنا سأملأ الفورم فوراً.
-2. 🔴 **تشخيص الأعطال:** اسأل عن أي ماكينة متوقفة (مثل INJ-02).
-3. 📊 **تقارير OEE:** حساب معدلات الإنتاج والتوفر والهدر.
-4. 📋 **مسودة تسليم الوردية:** صياغة تقرير تسليم جاهز للمشرف التالي.`,
+أنا جاهز لمساعدتك في كل ما يخص صالة الإنتاج والمنشأة الصناعية:
+1. 🏭 **تهيئة المصنع الجديد:** ارفع شيت إكسيل أو صورة كشف الماكينات والعمال لتسجيلهم آلياً.
+2. 👥 **تسكين كشوف الموظفين والعمال:** ارفع صورة الكشف أو اكتب الأسماء وأنا سأملأ الفورم فوراً.
+3. 🔴 **تشخيص الأعطال:** اسأل عن أي ماكينة متوقفة (مثل INJ-02).
+4. 📊 **تقارير OEE:** حساب معدلات الإنتاج والتوفر والهدر.
+5. 📋 **مسودة تسليم الوردية:** صياغة تقرير تسليم جاهز للمشرف التالي.`,
     });
   } catch (error: any) {
     return NextResponse.json(

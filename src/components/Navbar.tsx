@@ -29,7 +29,7 @@ interface NavbarProps {
 
 export default function Navbar({ locale: propLocale, setLocale: propSetLocale }: NavbarProps = {}) {
   const router = useRouter();
-  const { user, activeRole, setActiveRole, signOut } = useAuth();
+  const { user, factory, activeRole, setActiveRole, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { locale: ctxLocale, setLocale: ctxSetLocale } = useLanguage();
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
@@ -84,11 +84,11 @@ export default function Navbar({ locale: propLocale, setLocale: propSetLocale }:
                 </span>
                 <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-emerald" />
-                  {locale === 'ar' ? 'المصنع نشط' : 'Active Plant'}
+                  {factory?.name ? factory.name : (locale === 'ar' ? 'المصنع نشط' : 'Active Plant')}
                 </span>
               </div>
               <p className="text-[11px] text-zinc-400 hidden md:block">
-                {locale === 'ar' ? 'تتبع أوقات التوقف • تسليم الورديات • مؤشرات OEE' : 'Downtime Tracking • Shift Handover • OEE'}
+                {factory?.industry ? factory.industry : (locale === 'ar' ? 'تتبع أوقات التوقف • تسليم الورديات • مؤشرات OEE' : 'Downtime Tracking • Shift Handover • OEE')}
               </p>
             </div>
           </Link>
