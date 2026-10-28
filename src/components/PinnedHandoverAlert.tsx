@@ -2,13 +2,13 @@
 
 import React from 'react';
 import { ShiftNote } from '@/lib/types';
-import { Locale, translations } from '@/lib/i18n';
-import { Pin, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Locale } from '@/lib/i18n';
+import { Pin, Check, AlertCircle, Clock } from 'lucide-react';
 
 interface PinnedHandoverAlertProps {
-  note?: ShiftNote | null;
+  note?: ShiftNote;
   locale: Locale;
-  onAcknowledge?: () => void;
+  onAcknowledge: () => void;
 }
 
 export default function PinnedHandoverAlert({
@@ -16,53 +16,47 @@ export default function PinnedHandoverAlert({
   locale,
   onAcknowledge,
 }: PinnedHandoverAlertProps) {
-  const t = translations[locale];
-
-  if (!note) return null;
+  if (!note || !note.is_pinned_for_next_shift) return null;
+  const isAr = locale === 'ar';
 
   return (
-    <div className="bg-gradient-to-r from-amber-950/80 via-orange-950/50 to-amber-900/40 border border-amber-500/40 rounded-2xl p-4 shadow-xl backdrop-blur-sm relative overflow-hidden mb-4">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
-
-      <div className="flex items-start gap-3 relative z-10">
-        <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
-          <Pin className="w-5 h-5 rotate-45" />
-        </div>
-
-        <div className="flex-1">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                {t.supervisor.pinned_handover}
+    <div className="mb-6 p-4 sm:p-5 rounded-2xl neobrutal-card border-2 border-amber-500/80 bg-gradient-to-r from-[#1c1407] via-[#161007] to-[#0d121c] text-white shadow-xl animate-in fade-in slide-in-from-top-3">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+            <Pin className="w-5 h-5 rotate-45" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-black uppercase tracking-wider text-amber-400">
+                {isAr ? 'تنبيه تسليم معلق من الوردية السابقة (Handover Alert)' : 'Pending Shift Handover Priority Alert'}
               </span>
-              <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30">
-                {t.note_categories[note.category]}
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                {isAr ? 'عاجل للمتابعة' : 'Priority Action'}
               </span>
             </div>
-            <div className="flex items-center gap-1 text-[11px] text-amber-300/80">
-              <Clock className="w-3 h-3" />
-              <span>{new Date(note.created_at).toLocaleTimeString(locale === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+            <p className="text-sm font-semibold text-zinc-100 leading-relaxed max-w-3xl">
+              {note.note_text}
+            </p>
+            <div className="flex items-center gap-2 mt-2 text-xs text-zinc-400">
+              <span className="font-bold text-zinc-300">{note.supervisor_name || (isAr ? 'مشرف الوردية' : 'Supervisor')}</span>
+              <span>•</span>
+              <span className="flex items-center gap-1 font-mono text-[11px]" suppressHydrationWarning>
+                <Clock className="w-3 h-3 text-zinc-500" />
+                {new Date(note.created_at).toLocaleTimeString(isAr ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
+              </span>
             </div>
           </div>
-
-          <p className="text-sm font-medium text-amber-100 leading-relaxed mb-2">
-            {note.note_text}
-          </p>
-
-          <div className="flex items-center justify-between text-xs text-amber-400/80 pt-2 border-t border-amber-500/20">
-            <span className="font-semibold">{note.supervisor_name || 'مشرف الوردية'}</span>
-            {onAcknowledge && (
-              <button
-                onClick={onAcknowledge}
-                className="flex items-center gap-1 px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-lg text-xs font-medium border border-amber-500/30 transition"
-              >
-                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                <span>تم الاطلاع (Acknowledge)</span>
-              </button>
-            )}
-          </div>
         </div>
+
+        <button
+          type="button"
+          onClick={onAcknowledge}
+          className="neobrutal-btn px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs flex items-center gap-1.5 shrink-0 transition"
+        >
+          <Check className="w-4 h-4" />
+          <span>{isAr ? 'تم الاطلاع والموافقة' : 'Acknowledge & Signoff'}</span>
+        </button>
       </div>
     </div>
   );

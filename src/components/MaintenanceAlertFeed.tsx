@@ -2,14 +2,15 @@
 
 import React, { useEffect, useState } from 'react';
 import { DowntimeLog, Machine } from '@/lib/types';
-import { Locale, translations } from '@/lib/i18n';
-import { Wrench, AlertCircle, Clock, Check, BellRing, Navigation } from 'lucide-react';
+import { Locale } from '@/lib/i18n';
+import { Wrench, AlertTriangle, Clock, Check, BellRing, Navigation, Package, CheckCircle2 } from 'lucide-react';
 
 interface MaintenanceAlertFeedProps {
   downtimeLogs: DowntimeLog[];
   machines: Machine[];
   locale: Locale;
   onAcknowledgeAlert?: (logId: string) => void;
+  onResolveAlert?: (logId: string) => void;
 }
 
 export default function MaintenanceAlertFeed({
@@ -17,11 +18,19 @@ export default function MaintenanceAlertFeed({
   machines,
   locale,
   onAcknowledgeAlert,
+  onResolveAlert,
 }: MaintenanceAlertFeedProps) {
-  const t = translations[locale];
+  const isAr = locale === 'ar';
   const [acknowledged, setAcknowledged] = useState<Record<string, boolean>>({});
+  const [inProgress, setInProgress] = useState<Record<string, boolean>>({});
+  const [requestedPart, setRequestedPart] = useState<Record<string, string>>({});
+  const [tick, setTick] = useState(0);
 
-  // Filter only unresolved downtime logs
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const activeBreakdowns = downtimeLogs.filter((log) => !log.ended_at);
 
   const formatElapsed = (startedAt: string) => {
@@ -31,113 +40,172 @@ export default function MaintenanceAlertFeed({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (activeBreakdowns.length === 0) {
-    return (
-      <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-2xl p-4 text-center mb-4">
-        <div className="w-10 h-10 mx-auto rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-2">
-          <Check className="w-5 h-5" />
-        </div>
-        <h4 className="text-sm font-bold text-emerald-300">
-          لا توجد بلاغات أعطال نشطة حالياً
-        </h4>
-        <p className="text-xs text-slate-400 mt-0.5">
-          جميع خطوط وماكينات المصنع تعمل بكفاءة مستقرة
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-3 mb-4">
-      {activeBreakdowns.map((log) => {
-        const machine = machines.find((m) => m.id === log.machine_id);
-        const isAck = acknowledged[log.id];
-
-        return (
-          <div
-            key={log.id}
-            className="bg-gradient-to-r from-red-950/80 via-rose-950/60 to-slate-900 border border-red-500/40 rounded-2xl p-4 shadow-xl backdrop-blur-md relative overflow-hidden animate-pulse-subtle"
-          >
-            {/* Header */}
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30">
-                  <BellRing className="w-4 h-4 animate-bounce" />
-                </span>
-                <span className="text-xs font-bold uppercase tracking-wider text-red-300">
-                  {t.maintenance.active_alert}
-                </span>
-              </div>
-
-              {/* Stopwatch */}
-              <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg border border-red-500/30 text-xs font-mono font-bold text-red-200">
-                <Clock className="w-3.5 h-3.5 text-red-400 animate-spin" />
-                <span>{formatElapsed(log.started_at)}</span>
-              </div>
+    <div className="space-y-4">
+      {/* Maintenance Header Summary */}
+      <div className="neobrutal-card rounded-2xl p-5 border-2 border-zinc-700 bg-[#0d121c]">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center">
+              <Wrench className="w-5 h-5" />
             </div>
-
-            {/* Machine & Problem Details */}
-            <div className="mb-3">
-              <div className="text-sm font-black text-white flex items-center gap-2">
-                <span>{machine?.name || log.machine_name || 'ماكينة غير محددة'}</span>
-                <span className="text-xs font-mono font-normal bg-red-500/20 text-red-300 px-2 py-0.5 rounded">
-                  {machine?.code || log.machine_code}
-                </span>
-              </div>
-
-              <div className="mt-1 flex items-center gap-2 text-xs">
-                <span className="text-slate-400">التصنيف:</span>
-                <span className="font-semibold text-amber-300">
-                  {t.breakdown_categories[log.reason_category]}
-                </span>
-              </div>
-
-              {log.voice_note_text && (
-                <div className="mt-2 text-xs bg-slate-950/70 border border-slate-800 rounded-lg p-2.5 text-slate-200 italic">
-                  &ldquo;{log.voice_note_text}&rdquo;
-                </div>
-              )}
-            </div>
-
-            {/* Action dispatch */}
-            <div className="flex items-center justify-between pt-2 border-t border-red-500/20">
-              <span className="text-[11px] text-slate-400">
-                {t.maintenance.technician_assigned} م. فراس (الصيانة الميكانيكية)
-              </span>
-
-              <button
-                onClick={() => {
-                  setAcknowledged((prev) => ({ ...prev, [log.id]: true }));
-                  if (onAcknowledgeAlert) onAcknowledgeAlert(log.id);
-                }}
-                className={`py-1.5 px-3.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
-                  isAck
-                    ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30'
-                    : 'bg-red-600 hover:bg-red-500 text-white shadow-md shadow-red-600/30'
-                }`}
-              >
-                {isAck ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>تم الاستلام والتوجه للماكينة</span>
-                  </>
-                ) : (
-                  <>
-                    <Navigation className="w-3.5 h-3.5" />
-                    <span>{t.maintenance.action_acknowledge}</span>
-                  </>
-                )}
-              </button>
+            <div>
+              <h3 className="text-sm font-black text-white">
+                {isAr ? 'لوحة طوارئ وبلاغات الصيانة المباشرة' : 'Emergency Maintenance & MTTR Response'}
+              </h3>
+              <p className="text-xs text-zinc-400">
+                {isAr ? 'متابعة زمن الاستجابة (MTTR) وسرعة استئناف تشغيل الخطوط' : 'Live MTTR response tracking and line stoppage resolution'}
+              </p>
             </div>
           </div>
-        );
-      })}
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-rose-500 pulse-rose" />
+              {activeBreakdowns.length} {isAr ? 'أعطال مفتوحة' : 'Open Stoppages'}
+            </span>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300">
+              {isAr ? 'متوسط وقت الإصلاح: 28 دقيقة' : 'Avg MTTR: 28m'}
+            </span>
+          </div>
+        </div>
+
+        {activeBreakdowns.length === 0 ? (
+          <div className="p-6 rounded-xl bg-emerald-950/20 border border-emerald-500/20 text-center">
+            <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+            <h4 className="text-sm font-bold text-emerald-300">
+              {isAr ? 'صالة الإنتاج خالية من الأعطال الحالية' : 'Plant Floor Clear • Zero Active Breakdowns'}
+            </h4>
+            <p className="text-xs text-zinc-400 mt-1">
+              {isAr ? 'جميع الماكينات الأربعة تعمل أو في الصيانة المجدولة' : 'All 4 production machines running normally or under scheduled PM'}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {activeBreakdowns.map((log) => {
+              const machine = machines.find((m) => m.id === log.machine_id);
+              const isAck = acknowledged[log.id];
+              const isWorking = inProgress[log.id];
+
+              return (
+                <div
+                  key={log.id}
+                  className="p-4 rounded-xl border-2 border-rose-500/50 bg-[#160a0d] space-y-3"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-black px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-white">
+                        {log.machine_code || machine?.code}
+                      </span>
+                      <h4 className="text-sm font-black text-white">{log.machine_name || machine?.name}</h4>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 font-bold border border-rose-500/30">
+                        {isAr ? 'عطل طارئ' : 'Emergency'}
+                      </span>
+                    </div>
+
+                    {/* Live Ticking MTTR Stopwatch */}
+                    <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-zinc-950 border border-zinc-800">
+                      <Clock className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+                      <span className="text-[10px] text-zinc-400 font-bold">{isAr ? 'زمن التوقف:' : 'Downtime:'}</span>
+                      <span className="font-mono text-xs font-black text-rose-400">
+                        {formatElapsed(log.started_at)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Breakdown details */}
+                  <div className="text-xs text-zinc-300 bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-800">
+                    <span className="font-bold text-zinc-400 block mb-0.5">
+                      {isAr ? 'تفاصيل المشكلة المبلغ عنها:' : 'Reported Breakdown Details:'}
+                    </span>
+                    <p>{log.voice_note_text || (isAr ? 'توقف مفاجئ في الماكينة' : 'Unplanned machine stoppage')}</p>
+                    <div className="mt-2 flex items-center gap-3 text-[11px] text-zinc-400">
+                      <span>{isAr ? 'المبلّغ:' : 'Reported By:'} {log.reported_by || (isAr ? 'فني التشغيل' : 'Operator')}</span>
+                      <span>•</span>
+                      <span>{isAr ? 'التصنيف:' : 'Category:'} {log.reason_category}</span>
+                    </div>
+                  </div>
+
+                  {/* Maintenance Action Buttons */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {!isAck ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAcknowledged((prev) => ({ ...prev, [log.id]: true }));
+                          onAcknowledgeAlert?.(log.id);
+                        }}
+                        className="neobrutal-btn px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs flex items-center gap-1.5 transition"
+                      >
+                        <BellRing className="w-3.5 h-3.5" />
+                        <span>{isAr ? 'استلام البلاغ والتوجه للموقع' : 'Acknowledge & Dispatch to Floor'}</span>
+                      </button>
+                    ) : !isWorking ? (
+                      <button
+                        type="button"
+                        onClick={() => setInProgress((prev) => ({ ...prev, [log.id]: true }))}
+                        className="neobrutal-btn px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs flex items-center gap-1.5 transition"
+                      >
+                        <Wrench className="w-3.5 h-3.5" />
+                        <span>{isAr ? 'بدء أعمال الفحص والإصلاح' : 'Start Repair Procedures'}</span>
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-emerald-400 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-1.5">
+                          <Check className="w-3.5 h-3.5" />
+                          {isAr ? 'أعمال الإصلاح جارية حالياً' : 'Repair In Progress'}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Spare Part Quick Request */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const part = prompt(isAr ? 'اكتب اسم قطعة الغيار المطلوبة من المخزن (مثال: حساس ثرموكبل E-402):' : 'Enter requested spare part name:');
+                        if (part) {
+                          setRequestedPart((prev) => ({ ...prev, [log.id]: part }));
+                          alert(isAr ? `تم إرسال طلب صرف قطعة الغيار: ${part} إلى أمين المخزن.` : `Spare part requisition for ${part} dispatched.`);
+                        }
+                      }}
+                      className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-bold flex items-center gap-1.5 transition"
+                    >
+                      <Package className="w-3.5 h-3.5 text-amber-400" />
+                      <span>{requestedPart[log.id] ? `${isAr ? 'تم طلب:' : 'Requested:'} ${requestedPart[log.id]}` : (isAr ? 'طلب قطعة غيار' : 'Request Spare Part')}</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Preventative Maintenance Checklist */}
+      <div className="neobrutal-card rounded-2xl p-5 border-2 border-zinc-700 bg-[#0d121c]">
+        <h4 className="text-sm font-black text-white mb-2 flex items-center gap-2">
+          <Wrench className="w-4 h-4 text-emerald-400" />
+          {isAr ? 'جدول الفحص الوقائي اليومي (Preventive Checklist)' : 'Daily Preventive Maintenance (PM) Checklist'}
+        </h4>
+        <div className="space-y-2 text-xs">
+          <div className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-between">
+            <span className="text-zinc-300">
+              {isAr ? 'فحص ضغط زيت الهيدروليك لماكينة الحقن INJ-02 (المعيار 140 بار)' : 'Verify INJ-02 hydraulic oil pressure (Spec: 140 bar)'}
+            </span>
+            <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
+              {isAr ? 'مطابق 142 بار' : 'Pass 142 bar'}
+            </span>
+          </div>
+          <div className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-between">
+            <span className="text-zinc-300">
+              {isAr ? 'تنظيف فلاتر سحب الهواء لخط البثق EXT-01' : 'Clean air intake filters for Extrusion line EXT-01'}
+            </span>
+            <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
+              {isAr ? 'تم الاستبدال' : 'Replaced'}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Machine } from '@/lib/types';
 import { Locale, translations } from '@/lib/i18n';
-import { QrCode, AlertOctagon, CheckCircle2, Wrench, Clock, Activity } from 'lucide-react';
+import { AlertOctagon, CheckCircle2, Wrench, Clock, Activity, Cpu } from 'lucide-react';
 
 interface MachineStatusHeaderProps {
   machine: Machine;
@@ -18,6 +18,7 @@ export default function MachineStatusHeader({
   onSelectMachine,
   allMachines,
 }: MachineStatusHeaderProps) {
+  const isAr = locale === 'ar';
   const t = translations[locale];
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
 
@@ -47,108 +48,127 @@ export default function MachineStatusHeader({
   const isMaintenance = machine.current_status === 'maintenance';
 
   return (
-    <div className={`rounded-2xl p-4 transition-all duration-300 border shadow-xl relative overflow-hidden mb-4 ${
-      isDown 
-        ? 'bg-gradient-to-r from-red-950/90 via-rose-950/70 to-red-900/50 border-red-500/50 text-white' 
-        : isMaintenance
-        ? 'bg-gradient-to-r from-amber-950/80 via-yellow-950/60 to-amber-900/40 border-amber-500/50 text-white'
-        : 'bg-gradient-to-r from-slate-900 via-emerald-950/30 to-slate-900 border-emerald-500/30 text-white'
-    }`}>
-      {/* Background status accent glow */}
-      {isDown && (
-        <div className="absolute -right-10 -bottom-10 w-44 h-44 bg-red-600/20 rounded-full blur-3xl pointer-events-none animate-pulse" />
-      )}
-
-      <div className="flex flex-wrap items-center justify-between gap-4 relative z-10">
-        {/* Machine Selector & Info */}
-        <div className="flex items-center gap-3">
-          <div className={`p-3 rounded-2xl flex items-center justify-center shrink-0 border shadow-lg ${
-            isDown
-              ? 'bg-red-500/20 border-red-500/40 text-red-400 animate-pulse'
-              : isMaintenance
-              ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
-              : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-          }`}>
-            {isDown ? (
-              <AlertOctagon className="w-7 h-7" />
-            ) : isMaintenance ? (
-              <Wrench className="w-7 h-7" />
-            ) : (
-              <CheckCircle2 className="w-7 h-7" />
-            )}
-          </div>
-
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <label htmlFor="machineSelect" className="text-xs text-slate-400 font-medium">
-                {t.machines.select_machine}
-              </label>
-              <select
-                id="machineSelect"
-                value={machine.id}
-                onChange={(e) => onSelectMachine(e.target.value)}
-                className="bg-slate-800/90 text-white font-semibold text-sm rounded-lg px-2.5 py-1 border border-slate-700 focus:outline-none focus:border-amber-400 cursor-pointer"
-              >
-                {allMachines.map((m) => (
-                  <option key={m.id} value={m.id} className="bg-slate-900 text-white">
-                    {m.name} [{m.code}] {m.current_status === 'down' ? '🔴' : m.current_status === 'maintenance' ? '🟡' : '🟢'}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-full border ${
-                isDown
-                  ? 'bg-red-500/20 text-red-300 border-red-500/40 animate-pulse'
-                  : isMaintenance
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-              }`}>
-                <Activity className="w-3 h-3" />
-                {isDown
-                  ? t.machines.status_down
-                  : isMaintenance
-                  ? t.machines.status_maintenance
-                  : t.machines.status_running}
-              </span>
-
-              <span className="text-xs text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded border border-slate-700/60 font-mono">
-                {machine.code}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Live Stopwatch Timer / QR Deep-link indicator */}
-        <div className="flex items-center gap-3">
-          {(isDown || isMaintenance) ? (
-            <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-xl border border-red-500/30 flex items-center gap-3">
-              <Clock className="w-5 h-5 text-red-400 animate-spin" />
+    <div className="mb-6 space-y-3">
+      {/* Machines Quick Selection Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        {allMachines.map((m) => {
+          const isSelected = m.id === machine.id;
+          const status = m.current_status;
+          return (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => onSelectMachine(m.id)}
+              className={`p-3 rounded-xl border text-right rtl:text-right ltr:text-left transition flex items-center justify-between ${
+                isSelected
+                  ? 'border-amber-400 bg-[#121927] shadow-[3px_3px_0px_rgba(245,158,11,0.4)]'
+                  : 'border-zinc-800 bg-[#0d121c] hover:border-zinc-700 hover:bg-zinc-900/60'
+              }`}
+            >
               <div>
-                <span className="block text-[10px] uppercase tracking-wider text-red-300 font-semibold">
-                  {t.machines.live_timer}
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono text-xs font-black text-white">{m.code}</span>
+                  {isSelected && (
+                    <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold">
+                      {isAr ? 'محددة' : 'Active'}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-zinc-400 truncate max-w-[120px] mt-0.5">
+                  {isAr ? m.name.split('(')[0] : m.code + ' ' + (m.code.startsWith('EXT') ? 'Extrusion' : m.code.startsWith('INJ') ? 'Injection' : m.code.startsWith('THF') ? 'Forming' : 'Packaging')}
+                </p>
+              </div>
+
+              {/* Status Indicator */}
+              <div className="shrink-0">
+                {status === 'running' && (
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 block pulse-emerald" title={isAr ? 'تعمل' : 'Running'} />
+                )}
+                {status === 'down' && (
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 block pulse-rose" title={isAr ? 'متوقفة' : 'Down'} />
+                )}
+                {status === 'maintenance' && (
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 block pulse-amber" title={isAr ? 'صيانة' : 'Maintenance'} />
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Selected Machine Detail Banner */}
+      <div
+        className={`neobrutal-card rounded-2xl p-4 sm:p-5 border-2 transition-all relative overflow-hidden ${
+          isDown
+            ? 'border-rose-500/80 bg-gradient-to-r from-[#1e0a0d] via-[#150a0e] to-[#0d121c]'
+            : isMaintenance
+            ? 'border-amber-500/80 bg-gradient-to-r from-[#1e150a] via-[#14100a] to-[#0d121c]'
+            : 'border-emerald-500/50 bg-gradient-to-r from-[#0a1811] via-[#09140f] to-[#0d121c]'
+        }`}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-4 relative z-10">
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-12 h-12 rounded-xl border flex items-center justify-center shrink-0 ${
+                isDown
+                  ? 'border-rose-500/50 bg-rose-500/20 text-rose-400'
+                  : isMaintenance
+                  ? 'border-amber-500/50 bg-amber-500/20 text-amber-400'
+                  : 'border-emerald-500/50 bg-emerald-500/20 text-emerald-400'
+              }`}
+            >
+              {isDown ? (
+                <AlertOctagon className="w-6 h-6 animate-bounce" />
+              ) : isMaintenance ? (
+                <Wrench className="w-6 h-6" />
+              ) : (
+                <CheckCircle2 className="w-6 h-6" />
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs font-black px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-white">
+                  {machine.code}
                 </span>
-                <span className="font-mono text-xl sm:text-2xl font-black text-red-100 tracking-wider">
+                <h2 className="text-base sm:text-lg font-black text-white">{machine.name}</h2>
+              </div>
+              <p className="text-xs text-zinc-400 mt-1 flex items-center gap-2">
+                <Activity className="w-3.5 h-3.5 text-zinc-500" />
+                <span>
+                  {isDown
+                    ? (isAr ? '⚠️ عطل طارئ مسجل في صالة الإنتاج' : '⚠️ Emergency Breakdown Recorded on Floor')
+                    : isMaintenance
+                    ? (isAr ? '🛠️ صيانة دورية مجدولة وتغيير قطع استهلاكية' : '🛠️ Scheduled PM & Consumables Replacement')
+                    : (isAr ? '🟢 تعمل بكفاءة تشغيلية مستقرة 98.4%' : '🟢 Operating normally at 98.4% efficiency')}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          {/* Live Downtime Stopwatch if down */}
+          {(isDown || isMaintenance) && (
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/80 border border-zinc-700/80">
+              <Clock className="w-5 h-5 text-rose-400 animate-pulse" />
+              <div>
+                <span className="block text-[10px] font-bold text-zinc-400">
+                  {isAr ? 'عداد التوقف الحي (Downtime):' : 'Live Downtime Timer:'}
+                </span>
+                <span className="font-mono text-xl sm:text-2xl font-black text-rose-400 tracking-wider">
                   {formatTimer(elapsedSeconds)}
                 </span>
               </div>
             </div>
-          ) : (
-            <div className="bg-emerald-950/40 px-3.5 py-2 rounded-xl border border-emerald-500/30 flex items-center gap-2 text-emerald-300 text-xs font-semibold">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-              <span>{t.machines.status_running}</span>
-            </div>
           )}
-
-          {/* Quick QR link badge */}
-          <div 
-            title={`QR Deep-link: ?machine_id=${machine.code}`}
-            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center cursor-pointer transition"
-          >
-            <QrCode className="w-5 h-5 text-amber-400" />
-          </div>
         </div>
+
+        {/* Active Downtime Reason Banner if down */}
+        {isDown && machine.active_downtime_note && (
+          <div className="mt-3 pt-3 border-t border-rose-500/20 flex items-center gap-2 text-xs text-rose-200">
+            <span className="font-bold text-rose-400">{isAr ? 'سبب العطل المسجل:' : 'Reported Reason:'}</span>
+            <span>{machine.active_downtime_note}</span>
+          </div>
+        )}
       </div>
     </div>
   );

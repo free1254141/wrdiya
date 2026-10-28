@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Machine, ShiftName } from '@/lib/types';
 import { Locale, translations } from '@/lib/i18n';
-import { Layers, Save, CheckCircle, Percent, BarChart3 } from 'lucide-react';
+import { Layers, Save, CheckCircle, Percent, BarChart3, Clock, Sparkles } from 'lucide-react';
 
 interface SupervisorProductionCardProps {
   machines: Machine[];
@@ -16,13 +16,17 @@ export default function SupervisorProductionCard({
   locale,
   onSaveProduction,
 }: SupervisorProductionCardProps) {
+  const isAr = locale === 'ar';
   const t = translations[locale];
   const [selectedShift, setSelectedShift] = useState<ShiftName>('morning');
   const [productionData, setProductionData] = useState<Record<string, { good: number; scrap: number }>>(
     () => {
       const initial: Record<string, { good: number; scrap: number }> = {};
-      machines.forEach((m) => {
-        initial[m.id] = { good: 1500, scrap: 35 };
+      machines.forEach((m, idx) => {
+        initial[m.id] = { 
+          good: idx === 0 ? 1420 : idx === 1 ? 840 : idx === 2 ? 2150 : 1200, 
+          scrap: idx === 0 ? 18 : idx === 1 ? 42 : idx === 2 ? 12 : 25 
+        };
       });
       return initial;
     }
@@ -51,103 +55,117 @@ export default function SupervisorProductionCard({
     setTimeout(() => setSavedSuccess(false), 3000);
   };
 
-  // Compute total good and scrap
   const totalGood = Object.values(productionData).reduce((sum, item) => sum + (item.good || 0), 0);
   const totalScrap = Object.values(productionData).reduce((sum, item) => sum + (item.scrap || 0), 0);
   const scrapRate = totalGood + totalScrap > 0 ? ((totalScrap / (totalGood + totalScrap)) * 100).toFixed(1) : '0';
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl backdrop-blur-md mb-4">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-4 pb-2 border-b border-slate-800">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30">
-            <BarChart3 className="w-5 h-5" />
+    <div className="neobrutal-card rounded-2xl p-5 border-2 border-zinc-700 bg-[#0d121c]">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center">
+            <Layers className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white">
-              {t.supervisor.action_production}
+            <h3 className="text-sm font-black text-white">
+              {isAr ? 'اعتماد إنتاج الورديات ومعدل OEE' : 'Shift Output Signoff & OEE Verification'}
             </h3>
-            <span className="text-[11px] text-slate-400">
-              تسجيل مخرجات جميع الماكينات لحساب مؤشر الجودة و OEE
-            </span>
+            <p className="text-xs text-zinc-400">
+              {isAr ? 'إدخال أرقام نهاية الوردية لحساب الكفاءة وتحديث الداشبورد' : 'Finalize shift production numbers to compute plant efficiency'}
+            </p>
           </div>
         </div>
 
-        {/* Shift selector */}
-        <div className="flex items-center gap-1 bg-slate-950/80 px-2 py-1 rounded-lg border border-slate-700 text-xs text-white">
-          <Layers className="w-3.5 h-3.5 text-blue-400" />
-          <select
-            value={selectedShift}
-            onChange={(e) => setSelectedShift(e.target.value as ShiftName)}
-            className="bg-transparent font-medium focus:outline-none cursor-pointer text-slate-200"
+        {/* Shift selector pills */}
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => setSelectedShift('morning')}
+            className={`px-3 py-1.5 rounded-lg transition ${
+              selectedShift === 'morning'
+                ? 'bg-amber-500 text-black shadow-sm font-bold'
+                : 'text-zinc-400 hover:text-white'
+            }`}
           >
-            <option value="morning" className="bg-slate-900 text-white">{t.shifts.morning}</option>
-            <option value="evening" className="bg-slate-900 text-white">{t.shifts.evening}</option>
-            <option value="night" className="bg-slate-900 text-white">{t.shifts.night}</option>
-          </select>
+            {isAr ? 'صباحية (07-15)' : 'Morning'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedShift('evening')}
+            className={`px-3 py-1.5 rounded-lg transition ${
+              selectedShift === 'evening'
+                ? 'bg-amber-500 text-black shadow-sm font-bold'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            {isAr ? 'مسائية (15-23)' : 'Evening'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedShift('night')}
+            className={`px-3 py-1.5 rounded-lg transition ${
+              selectedShift === 'night'
+                ? 'bg-amber-500 text-black shadow-sm font-bold'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            {isAr ? 'ليلية (23-07)' : 'Night'}
+          </button>
         </div>
       </div>
 
-      {/* Machine Production Table */}
+      {/* Real-time KPI summary bar */}
+      <div className="grid grid-cols-3 gap-3 mb-4 p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-center">
+        <div>
+          <span className="block text-[10px] text-zinc-400 font-bold">{isAr ? 'إجمالي المطابق' : 'Total Conforming'}</span>
+          <span className="font-mono text-lg font-black text-emerald-400">{totalGood.toLocaleString()}</span>
+        </div>
+        <div>
+          <span className="block text-[10px] text-zinc-400 font-bold">{isAr ? 'إجمالي الهدر (Scrap)' : 'Total Scrap'}</span>
+          <span className="font-mono text-lg font-black text-rose-400">{totalScrap.toLocaleString()}</span>
+        </div>
+        <div>
+          <span className="block text-[10px] text-zinc-400 font-bold">{isAr ? 'معدل الهدر العام' : 'Scrap Rate'}</span>
+          <span className="font-mono text-lg font-black text-amber-400">{scrapRate}%</span>
+        </div>
+      </div>
+
+      {/* Machine-by-Machine Grid Inputs */}
       <div className="space-y-2.5 mb-4">
         {machines.map((m) => {
-          const good = productionData[m.id]?.good || 0;
-          const scrap = productionData[m.id]?.scrap || 0;
-          const machineScrapPercent = good + scrap > 0 ? ((scrap / (good + scrap)) * 100).toFixed(1) : '0';
-
+          const goodVal = productionData[m.id]?.good || 0;
+          const scrapVal = productionData[m.id]?.scrap || 0;
           return (
             <div
               key={m.id}
-              className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 hover:border-slate-700 transition"
+              className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 flex flex-wrap items-center justify-between gap-3"
             >
-              <div className="flex items-center gap-2 min-w-[160px]">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-400" />
-                <div>
-                  <span className="text-xs font-bold text-slate-200 block truncate max-w-[180px]">
-                    {m.name}
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-mono">
-                    {m.code}
-                  </span>
-                </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-white">
+                  {m.code}
+                </span>
+                <span className="text-xs font-bold text-zinc-200">{m.name.split('(')[0]}</span>
               </div>
 
               <div className="flex items-center gap-3">
-                {/* Good count input */}
-                <div>
-                  <label className="block text-[10px] text-slate-400 mb-0.5">
-                    {t.supervisor.good_units}
-                  </label>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-zinc-400">{isAr ? 'مطابق:' : 'Good:'}</span>
                   <input
                     type="number"
-                    min="0"
-                    value={good}
-                    onChange={(e) => handleInputChange(m.id, 'good', parseInt(e.target.value) || 0)}
-                    className="w-24 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-blue-400"
+                    value={goodVal}
+                    onChange={(e) => handleInputChange(m.id, 'good', parseInt(e.target.value))}
+                    className="w-20 px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-700 text-emerald-400 font-mono font-bold text-xs text-center focus:border-amber-400"
                   />
                 </div>
 
-                {/* Scrap count input */}
-                <div>
-                  <label className="block text-[10px] text-slate-400 mb-0.5">
-                    {t.supervisor.scrap_units}
-                  </label>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-zinc-400">{isAr ? 'هدر:' : 'Scrap:'}</span>
                   <input
                     type="number"
-                    min="0"
-                    value={scrap}
-                    onChange={(e) => handleInputChange(m.id, 'scrap', parseInt(e.target.value) || 0)}
-                    className="w-20 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-red-300 font-mono focus:outline-none focus:border-red-400"
+                    value={scrapVal}
+                    onChange={(e) => handleInputChange(m.id, 'scrap', parseInt(e.target.value))}
+                    className="w-16 px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-700 text-rose-400 font-mono font-bold text-xs text-center focus:border-amber-400"
                   />
-                </div>
-
-                {/* Scrap % badge */}
-                <div className="text-right min-w-[50px]">
-                  <span className="block text-[10px] text-slate-400">الهدر:</span>
-                  <span className="text-xs font-mono font-bold text-amber-400">
-                    {machineScrapPercent}%
-                  </span>
                 </div>
               </div>
             </div>
@@ -155,45 +173,23 @@ export default function SupervisorProductionCard({
         })}
       </div>
 
-      {/* Summary & Save Button */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800">
-        <div className="flex items-center gap-4 text-xs">
-          <div>
-            <span className="text-slate-400">إجمالي السليم: </span>
-            <span className="font-mono font-bold text-emerald-400">{totalGood.toLocaleString()}</span>
-          </div>
-          <div>
-            <span className="text-slate-400">إجمالي الهدر: </span>
-            <span className="font-mono font-bold text-red-400">{totalScrap.toLocaleString()}</span>
-          </div>
-          <div>
-            <span className="text-slate-400">نسبة الهدر: </span>
-            <span className="font-mono font-bold text-amber-400">{scrapRate}%</span>
-          </div>
-        </div>
-
-        <button
-          onClick={handleSaveAll}
-          disabled={savedSuccess}
-          className={`py-2 px-5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-lg transition ${
-            savedSuccess
-              ? 'bg-emerald-600 text-white'
-              : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30 active:scale-95'
-          }`}
-        >
-          {savedSuccess ? (
-            <>
-              <CheckCircle className="w-4 h-4" />
-              <span>تم الحفظ بنجاح!</span>
-            </>
-          ) : (
-            <>
-              <Save className="w-4 h-4" />
-              <span>{t.supervisor.save_production}</span>
-            </>
-          )}
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={handleSaveAll}
+        className="w-full neobrutal-btn py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs flex items-center justify-center gap-2 transition"
+      >
+        {savedSuccess ? (
+          <>
+            <CheckCircle className="w-4 h-4 text-emerald-300" />
+            <span>{isAr ? 'تم حفظ واعتماد إنتاج الوردية بنجاح!' : 'Shift Production Approved Successfully!'}</span>
+          </>
+        ) : (
+          <>
+            <Save className="w-4 h-4" />
+            <span>{isAr ? 'اعتماد وتوثيق بيانات الإنتاج الرسمية للوردية' : 'Authorize Official Shift Production Signoff'}</span>
+          </>
+        )}
+      </button>
     </div>
   );
 }
