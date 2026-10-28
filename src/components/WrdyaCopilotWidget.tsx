@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -58,10 +59,16 @@ interface ChatItem {
 }
 
 export default function WrdyaCopilotWidget() {
+  const pathname = usePathname();
   const { user, activeRole } = useAuth();
   const { locale } = useLanguage();
   const { theme } = useTheme();
   const isAr = locale === 'ar';
+
+  // Do not show floating widget on the dedicated unified signup page
+  if (pathname === '/signup') {
+    return null;
+  }
 
   // Auto-open on initial load as requested: "عايز الشات بوت يظهر من اول لحظه"
   const [isOpen, setIsOpen] = useState(true);
