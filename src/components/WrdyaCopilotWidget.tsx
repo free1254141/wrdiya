@@ -65,8 +65,8 @@ export default function WrdyaCopilotWidget() {
   const { theme } = useTheme();
   const isAr = locale === 'ar';
 
-  // Do not show floating widget on the dedicated unified signup page
-  if (pathname === '/signup') {
+  // Do not show floating widget on the dedicated unified signup page or dedicated copilot workstation
+  if (pathname === '/signup' || pathname === '/copilot') {
     return null;
   }
 
