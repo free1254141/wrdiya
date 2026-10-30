@@ -9,8 +9,8 @@ const siteUrl = "https://skanybot.vercel.app";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Skanybot | مستشارك وبروكر العقارات الذكي - مصر ودولياً",
-    template: "%s | Skanybot",
+    default: "sakanybot | سكنى بوت",
+    template: "%s | sakanybot",
   },
   description:
     "مستشارك العقاري الذكي بالذكاء الاصطناعي. ابحث عن شقق وفيلات للبيع بالتقسيط في التجمع الخامس، الشيخ زايد، العاصمة الإدارية، دبي، إسبانيا، وتركيا مع خطط سداد موثقة وحجز معاينات ميدانية.",
@@ -57,7 +57,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Skanybot | مستشارك وبروكر العقارات الذكي",
+    title: "sakanybot | سكنى بوت",
     description:
       "تصفح أكثر من 980 عقار حقيقي موثق بالصور والأسعار في مصر، دبي، إسبانيا، وتركيا مع حساب الأقساط وحجز المعاينات مجاناً.",
     url: siteUrl,
@@ -75,7 +75,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Skanybot | مستشارك وبروكر العقارات الذكي",
+    title: "sakanybot | سكنى بوت",
     description:
       "شات بوت الذكاء الاصطناعي الأقوى للاستشارات العقارية، مقارنة الأسعار وحساب الأقساط في مصر ودولياً.",
     images: ["/web-app-manifest-512x512.png"],
@@ -138,7 +138,7 @@ const jsonLdData = {
     {
       "@type": ["RealEstateAgent", "LocalBusiness"],
       "@id": `${siteUrl}/#agent`,
-      name: "Skanybot | مستشارك وبروكر العقارات الذكي",
+      name: "sakanybot | سكنى بوت",
       alternateName: "Skanybot AI",
       url: siteUrl,
       logo: `${siteUrl}/logo.png`,
@@ -204,7 +204,7 @@ const jsonLdData = {
           name: "ما هو Skanybot وكيف يساعدني في اختيار وشراء العقارات؟",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Skanybot هو مستشارك وبروكر العقارات الذكي بالذكاء الاصطناعي لمساعدتك في العثور على أفضل الشقق والفيلات والوحدات الاستثمارية في مصر (التجمع، زايد، العاصمة) ودولياً (دبي، إسبانيا، تركيا) مع حساب دقيق للأقساط وحجز معاينات ميدانية مجانية.",
+            text: "Skanybot هو سكنى بوت بالذكاء الاصطناعي لمساعدتك في العثور على أفضل الشقق والفيلات والوحدات الاستثمارية في مصر (التجمع، زايد، العاصمة) ودولياً (دبي، إسبانيا، تركيا) مع حساب دقيق للأقساط وحجز معاينات ميدانية مجانية.",
           },
         },
         {

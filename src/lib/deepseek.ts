@@ -1,86 +1,187 @@
 /**
- * DeepSeek AI Integration for Skanybot
+ * DeepSeek AI Agentic Integration for Sakanybot (سكنى بوت)
  * Endpoint: https://api.deepseek.com/chat/completions
- * Model: deepseek-chat
- * 
- * System Prompt: Grounded, Concise Real Estate Advisor persona for Egypt & International.
+ * Model: deepseek-chat (OpenAI-compatible Function Calling)
+ *
+ * Architecture inspired by pure LLM-driven Agentic Pipeline (like stokscan_AI):
+ * 1. Model dynamically decides whether tools are needed (zero rigid regex blockers).
+ * 2. Parallel tool execution for accurate database searches and math.
+ * 3. 100% grounded responses strictly referencing real property records.
  */
 
-import { Property } from './types';
+import { Property } from '@/lib/types';
+import { 
+  AGENTIC_TOOLS_SCHEMA, 
+  executePropertySearch, 
+  executeInstallmentCalculation, 
+  executeLeadRecording 
+} from './ai/agentic-tools';
 
 export interface DeepSeekChatMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
+  tool_call_id?: string;
+  name?: string;
+  tool_calls?: any[];
+}
+
+export interface AgenticChatResult {
+  content: string;
+  properties: Property[];
+  toolCallsCount: number;
 }
 
 export function isDeepSeekConfigured(): boolean {
   const key = process.env.DEEPSEEK_API_KEY;
-  return Boolean(key && key.trim().length > 5 && !key.includes('placeholder'));
+  return Boolean(key && key.trim().length > 10 && !key.includes('placeholder'));
 }
 
 /**
- * Generate a concise, conversational broker response using DeepSeek Chat
+ * Run pure Agentic Chat with DeepSeek Function Calling
  */
-export async function generateDeepSeekBrokerReply(
+export async function runDeepSeekAgenticChat(
   userPrompt: string,
-  matchedProperties: Property[],
   locale: string = 'ar',
-  conversationHistory: DeepSeekChatMessage[] = []
-): Promise<string | null> {
+  conversationHistory: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = []
+): Promise<AgenticChatResult | null> {
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!isDeepSeekConfigured() || !apiKey) {
-    return null; // Signals fallback to deterministic engine
+    return null;
   }
-
-  // Limit to top 4 units to keep context focused and avoid prompt bloat
-  const topUnits = matchedProperties.slice(0, 4);
-
-  // Format retrieved properties as verifiable grounding context
-  const propertyContext = topUnits.map((p, idx) => {
-    return `[الوحدة ${idx + 1}]:
-- الاسم: ${p.title}
-- النوع: ${p.unit_type}
-- المشروع/الكمبوند: ${p.compound?.name || 'كمبوند معتمد'}
-- السعر الإجمالي: ${p.total_price.toLocaleString()} ${p.currency}
-- المقدم: ${p.down_payment_pct}% (${(p.down_payment_amount || p.total_price * 0.1).toLocaleString()} ${p.currency})
-- مدة التقسيط: ${p.installment_years || 7} سنوات
-- القسط الشهري: ${(p.monthly_installment || Math.round(p.total_price * 0.9 / ((p.installment_years || 7) * 12))).toLocaleString()} ${p.currency}
-- المساحة: ${p.area_sqm || 'غير محدد'} م²
-- الغرف: ${p.bedrooms || 'غير محدد'} | الاستلام: ${p.delivery_date || 'استلام فوري / 2026'}`;
-  }).join('\n\n');
 
   const isAr = locale === 'ar';
 
-  const systemPrompt = `أنت "Skanybot" - مستشار عقاري ذكي وسريع ومباشر في مصر ودولياً (دبي، إسبانيا، تركيا).
-شعارك وهدفك الأساسي:
-"مساعدتك في الوصول لفرصتك العقارية المناسبة وتوصيلك مباشرة بصاحب الوحدة أو إدارة المشروع للمعاينة والتعاقد — بدون مكالمات سيلز مزعجة."
+  const systemPrompt = `أنت "سكنى بوت" (sakanybot) — مستشارك العقاري الذكي والبروكر المعتمد في مصر (التجمع الخامس، الشيخ زايد، العاصمة الإدارية، 6 أكتوبر، مدينتي) ودولياً (دبي، إسبانيا، تركيا).
 
-القواعد الأساسية للرد:
-1. الإيجاز والذكاء: ردك يجب أن يكون قصيراً ومركزاً ومريحاً للقراءة (فقرتين إلى 3 فقرات قصيرة فقط، بحد أقصى 100-130 كلمة).
-2. عدم تكرار القوائم الطويلة: لا تسرد كل الوحدات وتفاصيلها في النص كقائمة طويلة، لأن واجهة التطبيق تعرض بالفعل كروت العقارات التفاعلية الكاملة بالصور والأسعار وزر المعاينة تحت ردك مباشرة.
-3. التوصيل بالمطور وطلب البيانات (Lead Generation):
-   - أنت شات بوت ذكي هدفك تسهيل وصول العميل لصاحب العقار أو المطور.
-   - إذا استقر العميل على وحدة أو سأل عن تفاصيل الحجز أو طلب معاينة: شجعه واطلب منه اسمه ورقم هاتفه (أو الواتساب) لتنسيق المعاينة الرسمية فوراً بدون إزعاج.
-   - إذا أرسل العميل رقمه: أكد له فوراً أنه تم تسجيل طلبه ورقم هاتفه وسيتم توصيله بإدارة المشروع/صاحب الوحدة مباشرة.
-4. هيكل الإجابة عند البحث:
-   - تأكيد العثور على الوحدات المطلوبة في المنطقة/المشروع.
-   - ملخص سريع للأسعار ونظام السداد (مثال: تبدأ الأسعار من كذا، بمقدم يبدأ من كذا، وقسط شهري من كذا حتى كذا سنوات).
-   - توجيه العميل بلطف للاطلاع على كروت الوحدات بالأسفل لحجز معاينة مجانية أو إضافتها للمفضلة.
-   - سؤال استيضاحي واحد ذكي (مثل: هل تفضل استلام فوري أم تقسيط أطول؟ أو اترك رقمك لتنسيق معاينة).
-5. لغة الرد: أجب بلغة المستخدم (${isAr ? 'العربية' : locale}) بأسلوب ودود ومهني وبدون إلحاح بيعي.
+مهامك وصلاحياتك:
+1. لديك أداة "search_properties" للبحث في قاعدة بيانات العقارات الحقيقية والمحدثة.
+   - إذا سأل العميل عن أي ميزانية (مثال: "في حدود 20 مليون"، "بـ 3 مليون"، "أقل من 5 مليون") أو نوع عقار (شقة، فيلا، استوديو، دوبلكس، أرض) أو منطقة (التجمع، زايد، دبي، إسبانيا، إسطنبول)، استدعِ أداة "search_properties" فوراً بالمحددات الدقيقة (مثل target_price: 20000000 أو 3000000).
+   - لا تجب من الذاكرة أو تخمن أسعاراً غير موجودة، بل اعتمد 100% على ما ترجعه الأداة.
+   - إذا سأل العميل عن نوع وحدة غير متاح كقطع الأراضي وأرجعت الأداة عدم وجود أراضي، وضح له ذلك بلطف ورشح له الشقق المتاحة في ميزانيته.
+2. أداة "calculate_installments": لحساب تفاصيل خطة الأقساط والمقدم لأي وحدة أو ميزانية.
+3. أداة "record_customer_lead": إذا كتب العميل رقم هاتفه أو طلب معاينة، استدعِ هذه الأداة لتسجيل رقمه وتأكيد تنسيق المعاينة.
+4. الدردشة العامة والتحية: إذا كان السؤال مجرد ترحيب عام أو شكر (مثل "هاي"، "مرحبا"، "شكراً")، أجب مباشرة بإيجاز وود دون استدعاء أي أدوات وبدون عرض عقارات.
 
-البيانات المعتمدة المتاحة حالياً للاستعلام:
-${propertyContext || 'لا توجد وحدات مطابقة تماماً حالياً. قدم نصيحة عقارية ورشح للعميل استكشاف أقرب البدائل.'}
-`;
+أسلوب الرد:
+- أسلوب راقٍ، مهني، وموجز (فقرتين إلى 3 فقرات مركزة).
+- لا تسرد جداول ضخمة لأن واجهة التطبيق تعرض كروت العقارات التفاعلية الكاملة للمستخدم بالصور والأسعار مباشرة.
+- وضّح ميزة كل وحدة ومقدمها وفترة تقسيطها.
+- أنهِ ردك بدعوة لمعاينة مجانية أو إمكانية توصيله بإدارة المشروع بدون مكالمات سيلز مزعجة.`;
 
-  const messages: DeepSeekChatMessage[] = [
+  const messages: any[] = [
     { role: 'system', content: systemPrompt },
-    ...conversationHistory.slice(-3), // keep last 3 context turns
-    { role: 'user', content: userPrompt },
+    ...conversationHistory.slice(-4).map(m => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: m.content
+    })),
+    { role: 'user', content: userPrompt }
   ];
 
+  const collectedProperties: Property[] = [];
+  let toolCallsCount = 0;
+
   try {
-    const response = await fetch('https://api.deepseek.com/chat/completions', {
+    // ── First Round: Ask DeepSeek (it may reply directly or request tool_calls) ──
+    const firstResponse = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey.trim()}`,
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages,
+        tools: AGENTIC_TOOLS_SCHEMA,
+        tool_choice: 'auto',
+        temperature: 0.3,
+        max_tokens: 600,
+      }),
+    });
+
+    if (!firstResponse.ok) {
+      const err = await firstResponse.text();
+      console.warn('[DeepSeek Agentic] HTTP Error:', firstResponse.status, err);
+      return null;
+    }
+
+    const firstData = await firstResponse.json();
+    const choice = firstData.choices?.[0];
+    const assistantMessage = choice?.message;
+
+    if (!assistantMessage) {
+      return null;
+    }
+
+    // If DeepSeek responded directly without tools (e.g. general greeting)
+    if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
+      return {
+        content: assistantMessage.content || '',
+        properties: [],
+        toolCallsCount: 0
+      };
+    }
+
+    // ── Process Tool Calls in Parallel ──
+    toolCallsCount += assistantMessage.tool_calls.length;
+    messages.push(assistantMessage);
+
+    const toolExecutionPromises = assistantMessage.tool_calls.map(async (tc: any) => {
+      const fnName = tc.function?.name;
+      let args: any = {};
+      try {
+        args = JSON.parse(tc.function?.arguments || '{}');
+      } catch (parseErr) {
+        console.error('Failed to parse tool arguments:', tc.function?.arguments);
+      }
+
+      let toolOutput: any = {};
+
+      if (fnName === 'search_properties') {
+        const searchRes = await executePropertySearch(args);
+        if (searchRes.properties && searchRes.properties.length > 0) {
+          searchRes.properties.forEach(p => {
+            if (!collectedProperties.some(cp => cp.id === p.id)) {
+              collectedProperties.push(p);
+            }
+          });
+        }
+        toolOutput = {
+          found_count: searchRes.found,
+          message: searchRes.message,
+          properties_summary: searchRes.properties.map((p, idx) => ({
+            id: p.id,
+            title: p.title,
+            type: p.unit_type,
+            price: `${p.total_price.toLocaleString()} ${p.currency}`,
+            compound: p.compound?.name,
+            location: p.compound?.city || p.compound?.area_name,
+            down_payment: `${p.down_payment_pct}% (${(p.down_payment_amount || 0).toLocaleString()} ${p.currency})`,
+            installment_years: p.installment_years,
+            monthly_installment: p.monthly_installment,
+            bedrooms: p.bedrooms,
+            area_sqm: p.area_sqm
+          }))
+        };
+      } else if (fnName === 'calculate_installments') {
+        toolOutput = executeInstallmentCalculation(args);
+      } else if (fnName === 'record_customer_lead') {
+        toolOutput = await executeLeadRecording(args);
+      } else {
+        toolOutput = { error: `Tool ${fnName} not recognized` };
+      }
+
+      return {
+        role: 'tool',
+        tool_call_id: tc.id,
+        content: JSON.stringify(toolOutput)
+      };
+    });
+
+    const toolResponses = await Promise.all(toolExecutionPromises);
+    messages.push(...toolResponses);
+
+    // ── Second Round: Let DeepSeek synthesize final grounded answer from tool results ──
+    const secondResponse = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -90,22 +191,34 @@ ${propertyContext || 'لا توجد وحدات مطابقة تماماً حال�
         model: 'deepseek-chat',
         messages,
         temperature: 0.3,
-        max_tokens: 350,
-        stream: false,
+        max_tokens: 600,
       }),
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.warn('DeepSeek API error status:', response.status, errText);
-      return null; // triggers fallback
+    if (!secondResponse.ok) {
+      const err = await secondResponse.text();
+      console.warn('[DeepSeek Agentic] Second round HTTP Error:', secondResponse.status, err);
+      // Fallback: construct concise response from tool results
+      return {
+        content: isAr
+          ? `وجدت لك ${collectedProperties.length} وحدات مطابقة لمواصفات بحثك. تفقد تفاصيلها وكروت المعاينة بالأسفل.`
+          : `Found ${collectedProperties.length} units matching your search. Check the property cards below.`,
+        properties: collectedProperties.slice(0, 4),
+        toolCallsCount
+      };
     }
 
-    const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content;
-    return reply || null;
-  } catch (err) {
-    console.error('DeepSeek invocation exception:', err);
-    return null; // graceful fallback
+    const secondData = await secondResponse.json();
+    const finalContent = secondData.choices?.[0]?.message?.content || '';
+
+    return {
+      content: finalContent,
+      properties: collectedProperties.slice(0, 4),
+      toolCallsCount
+    };
+
+  } catch (error) {
+    console.error('[DeepSeek Agentic] Invocation error:', error);
+    return null;
   }
 }

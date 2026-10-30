@@ -94,6 +94,8 @@ export interface PropertyFilter {
   platform?: 'Aqarmap' | 'TEKCE' | string;
   min_price?: number;
   max_price?: number;
+  target_price?: number;
+  currency?: string;
   bedrooms?: number;
   max_down_payment?: number;
   installment_years?: number;

@@ -5,9 +5,10 @@ import {
   getFeaturedOpportunities, 
   formatGroundedBrokerResponse 
 } from '@/lib/real-estate-engine';
-import { generateDeepSeekBrokerReply, isDeepSeekConfigured } from '@/lib/deepseek';
+import { runDeepSeekAgenticChat, isDeepSeekConfigured } from '@/lib/deepseek';
 import { checkAndIncrementDailyUsage, DAILY_LIMIT, GUEST_LIMIT } from '@/lib/usage-manager';
 import { createClient } from '@supabase/supabase-js';
+import { Property } from '@/lib/types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://csuifvyghfsibkrnxrby.supabase.co';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -32,71 +33,61 @@ async function ensureChatSession(sessionId: string, title: string, userId?: stri
         .maybeSingle();
 
       if (existing) {
-        // Update user_id if newly authenticated
         if (userId && !existing.user_id) {
-          await supabaseAdmin.from('chat_sessions').update({ user_id: userId }).eq('id', existing.id);
+          await supabaseAdmin
+            .from('chat_sessions')
+            .update({ user_id: userId, updated_at: new Date().toISOString() })
+            .eq('id', sessionId);
         }
         return existing.id;
       }
 
-      const { data: created, error } = await supabaseAdmin
+      const { data: inserted, error } = await supabaseAdmin
         .from('chat_sessions')
-        .insert({
+        .insert([{
           id: sessionId,
-          session_token: sessionId,
-          title: title.slice(0, 80),
           user_id: userId || null,
-          is_deleted: false,
-        })
+          title: title.slice(0, 60),
+          is_pinned: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }])
         .select('id')
         .single();
 
-      if (!error && created) return created.id;
-    } else {
-      const { data: existing } = await supabaseAdmin
-        .from('chat_sessions')
-        .select('id, user_id')
-        .eq('session_token', sessionId)
-        .maybeSingle();
-
-      if (existing) {
-        if (userId && !existing.user_id) {
-          await supabaseAdmin.from('chat_sessions').update({ user_id: userId }).eq('id', existing.id);
-        }
-        return existing.id;
-      }
-
-      const { data: created, error } = await supabaseAdmin
-        .from('chat_sessions')
-        .insert({
-          session_token: sessionId,
-          title: title.slice(0, 80),
-          user_id: userId || null,
-          is_deleted: false,
-        })
-        .select('id')
-        .single();
-
-      if (!error && created) return created.id;
+      if (!error && inserted) return inserted.id;
     }
+
+    const { data: inserted } = await supabaseAdmin
+      .from('chat_sessions')
+      .insert([{
+        user_id: userId || null,
+        title: title.slice(0, 60),
+        is_pinned: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }])
+      .select('id')
+      .single();
+
+    return inserted?.id || null;
   } catch (err) {
-    console.error('ensureChatSession error:', err);
+    console.warn('Chat session ensure failed (continuing gracefully):', err);
+    return null;
   }
-  return null;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const userMessage = body.message || body.prompt || (body.messages && body.messages.length > 0 ? body.messages[body.messages.length - 1].content : '');
+    const userMessage: string = (body.message || body.prompt || '').trim();
     const sessionId = body.sessionId || body.session_id;
     const userId = body.userId || body.user_id || null;
     const clientId = userId || body.clientId || sessionId || req.headers.get('x-forwarded-for') || 'guest_user';
-    const userPlan = body.plan === 'pro' ? 'pro' : 'free';
     const locale = (['ar', 'en', 'tr', 'ru', 'de', 'fr', 'es'].includes(body.locale) ? body.locale : 'ar');
     const freeTest = body.freeTest || body.bypassDeepSeek || body.engineOnly || false;
 
-    if (!userMessage || !userMessage.trim()) {
+    if (!userMessage) {
       return NextResponse.json(
         { error: locale === 'ar' ? 'من فضلك أدخل سؤالك العقاري أو نوع الوحدة التي تبحث عنها.' : 'Please enter your property inquiry or preferred unit type.' },
         { status: 400 }
@@ -135,70 +126,58 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Analyze query constraints & intent (Anti-Hallucination filter extractor)
-    const analysis = analyzeUserQuery(userMessage);
-
-    // 3. Fetch grounded properties from Supabase matching the exact constraints
-    const matchedProperties = await queryProperties(analysis.filter);
-
-    // 4. Fetch featured opportunities for realistic fallbacks
-    const featuredOpportunities = await getFeaturedOpportunities();
-
-    // 5. Build Grounded Response:
-    // If freeTest / bypassDeepSeek is requested, use the fast 0-cost local grounded engine
-    let finalContent = '';
-    // ── Cap results: max 4 cards shown in UI regardless of how many match ──
-    // ── If intent is general (greeting/small-talk) show NO property cards ──
-    const MAX_CARDS = 4;
-    const isGeneralChat = analysis.intent === 'general';
-    const propertiesToReturn = isGeneralChat
-      ? []
-      : (matchedProperties.length > 0 ? matchedProperties : featuredOpportunities).slice(0, MAX_CARDS);
-
-    // 5.1 Auto-Capture Lead & Phone Numbers from conversation
+    // 2. Strict Lead / Phone Number Auto-Capture
     const phoneRegex = /(?:\+?20|0)?1[0125]\d{8}\b|\+?\d{10,14}\b/;
     const phoneMatch = userMessage.match(phoneRegex);
     const extractedPhone = phoneMatch ? phoneMatch[0] : null;
 
-    if (extractedPhone) {
-      try {
-        await supabaseAdmin.from('leads_inquiries').insert([{
-          user_name: body.userName || (body.userEmail ? body.userEmail.split('@')[0] : 'عميل مهتم من الشات'),
-          phone: extractedPhone,
-          email: body.userEmail || null,
-          preferred_location: analysis.filter.location || analysis.filter.compound_name || null,
-          preferred_unit_type: analysis.filter.unit_type || null,
-          property_id: propertiesToReturn[0]?.id || null,
-          unit_title: propertiesToReturn[0]?.title || null,
-          developer_name: propertiesToReturn[0]?.compound?.developer?.name || null,
-          notes: `طلب واستفسار مباشر عبر الشات: "${userMessage}"`,
-          source: 'chat_conversation',
-          status: 'جديد',
-          user_id: userId || null,
-          session_id: sessionId || null,
-        }]);
-      } catch (leadSaveErr) {
-        console.error('Lead auto-save error:', leadSaveErr);
-      }
-    }
+    let finalContent = '';
+    let propertiesToReturn: Property[] = [];
+    let detectedIntent = 'search';
 
+    // 3. AGENTIC EXECUTION: Pure LLM-driven Function Calling via DeepSeek (inspired by stokscan_AI)
     if (isDeepSeekConfigured() && !freeTest) {
       try {
         const history = (body.messages || []).map((m: any) => ({
           role: m.role || 'user',
           content: m.content || '',
         }));
-        const deepSeekReply = await generateDeepSeekBrokerReply(userMessage, propertiesToReturn, locale, history);
-        if (deepSeekReply && deepSeekReply.trim().length > 20) {
-          finalContent = deepSeekReply;
+
+        const agenticResult = await runDeepSeekAgenticChat(userMessage, locale, history);
+        if (agenticResult && agenticResult.content) {
+          finalContent = agenticResult.content;
+          propertiesToReturn = agenticResult.properties || [];
+          detectedIntent = agenticResult.toolCallsCount > 0 ? 'agentic_search' : 'general';
         }
       } catch (aiErr) {
-        console.warn('DeepSeek generation failed, falling back to rule engine:', aiErr);
+        console.warn('[Chat Route] DeepSeek agentic execution failed, falling back:', aiErr);
       }
     }
 
-    // Fallback to deterministic grounded broker response if DeepSeek not configured, failed, or freeTest requested
+    // 4. DETERMINISTIC FALLBACK ENGINE (if DeepSeek is offline, failed, or freeTest requested)
     if (!finalContent) {
+      const analysis = analyzeUserQuery(userMessage);
+      detectedIntent = analysis.intent;
+      const isGeneral = analysis.intent === 'general';
+
+      let matchedProperties: Property[] = [];
+      if (!isGeneral) {
+        matchedProperties = await queryProperties(analysis.filter);
+      }
+
+      const featuredOpportunities = await getFeaturedOpportunities();
+      
+      const hasSpecificFilter = Boolean(analysis.filter.unit_type || analysis.filter.target_price || analysis.filter.location);
+      if (isGeneral) {
+        propertiesToReturn = [];
+      } else if (matchedProperties.length > 0) {
+        propertiesToReturn = matchedProperties.slice(0, 4);
+      } else if (!hasSpecificFilter) {
+        propertiesToReturn = featuredOpportunities.slice(0, 4);
+      } else {
+        propertiesToReturn = [];
+      }
+
       const formatted = formatGroundedBrokerResponse(
         userMessage,
         analysis,
@@ -209,12 +188,32 @@ export async function POST(req: NextRequest) {
       finalContent = formatted.content;
     }
 
-    // Acknowledge phone/lead recording if extracted
-    if (extractedPhone && !finalContent.includes(extractedPhone)) {
-      const ack = locale === 'ar'
-        ? `✅ **تم تسجيل رقم هاتفك (${extractedPhone}) وتفاصيل طلبك بنجاح!**\nكشات بوت مستشارك الذكي، هدفي هو توفير وقتك وربطك مباشرة بصاحب الوحدة أو إدارة المبيعات الرسمية للمشروع لتحديد موعد المعاينة بدون أي إزعاج.\n\n`
-        : `✅ **Your contact number (${extractedPhone}) and request have been recorded!**\nAs your AI advisor, my goal is to connect you directly with the property owner/developer for official viewing.\n\n`;
-      finalContent = ack + finalContent;
+    // 5. Auto-record Lead if phone was extracted
+    if (extractedPhone) {
+      try {
+        await supabaseAdmin.from('leads_inquiries').insert([{
+          user_name: body.userName || (body.userEmail ? body.userEmail.split('@')[0] : 'عميل مهتم من الشات'),
+          phone: extractedPhone,
+          email: body.userEmail || null,
+          property_id: propertiesToReturn[0]?.id || null,
+          unit_title: propertiesToReturn[0]?.title || null,
+          developer_name: propertiesToReturn[0]?.compound?.developer?.name || null,
+          notes: `طلب واستفسار مباشر عبر الشات: "${userMessage}"`,
+          source: 'chat_conversation',
+          status: 'جديد',
+          user_id: userId || null,
+          session_id: sessionId || null,
+        }]);
+
+        if (!finalContent.includes(extractedPhone)) {
+          const ack = locale === 'ar'
+            ? `✅ **تم تسجيل رقم هاتفك (${extractedPhone}) وتفاصيل طلبك بنجاح!**\nكشات بوت مستشارك الذكي، هدفي هو توفير وقتك وربطك مباشرة بصاحب الوحدة أو إدارة المبيعات الرسمية للمشروع لتحديد موعد المعاينة بدون أي إزعاج.\n\n`
+            : `✅ **Your contact number (${extractedPhone}) and request have been recorded!**\nAs your AI advisor, my goal is to connect you directly with the property owner/developer for official viewing.\n\n`;
+          finalContent = ack + finalContent;
+        }
+      } catch (leadSaveErr) {
+        console.error('Lead auto-save error:', leadSaveErr);
+      }
     }
 
     const defaultSuggestedActions = locale === 'ar' 
@@ -241,7 +240,7 @@ export async function POST(req: NextRequest) {
               metadata: {
                 properties_count: propertiesToReturn.length,
                 property_ids: propertiesToReturn.map(p => p.id),
-                ai_model: (isDeepSeekConfigured() && !freeTest) ? 'deepseek-chat' : 'grounded-engine',
+                ai_model: (isDeepSeekConfigured() && !freeTest) ? 'deepseek-agentic' : 'grounded-engine',
                 usage: { used: usage.used, limit: usage.limit, remaining: usage.remaining },
               }
             }
@@ -258,9 +257,8 @@ export async function POST(req: NextRequest) {
       content: finalContent,
       properties: propertiesToReturn,
       suggestedActions: defaultSuggestedActions,
-      intent: analysis.intent,
-      filterApplied: analysis.filter,
-      aiProvider: (isDeepSeekConfigured() && !freeTest) ? 'deepseek' : 'grounded-engine',
+      intent: detectedIntent,
+      aiProvider: (isDeepSeekConfigured() && !freeTest) ? 'deepseek-agentic' : 'grounded-engine',
       usage: {
         used: usage.used,
         limit: usage.limit,

@@ -80,8 +80,10 @@ export function analyzeUserQuery(query: string): QueryAnalysis {
     }
   }
 
-  // 3. Detect Unit Type
-  if (q.includes('شقة') || q.includes('شقق') || q.includes('apartment') || q.includes('flat') || q.includes('daire') || q.includes('квартир') || q.includes('wohnung')) {
+  // 5. Detect Unit Type & Land
+  if (q.includes('أرض') || q.includes('ارض') || q.includes('اراضي') || q.includes('أراضي') || q.includes('قطعة أرض') || q.includes('قطعه ارض') || q.includes('land')) {
+    filter.unit_type = 'أرض';
+  } else if (q.includes('شقة') || q.includes('شقق') || q.includes('apartment') || q.includes('flat') || q.includes('daire') || q.includes('квартир') || q.includes('wohnung')) {
     filter.unit_type = 'شقة';
   } else if (q.includes('فيلا') || q.includes('فيلات') || q.includes('villa') || q.includes('вилл')) {
     filter.unit_type = 'فيلا';
@@ -93,6 +95,32 @@ export function analyzeUserQuery(query: string): QueryAnalysis {
     filter.unit_type = 'استوديو';
   } else if (q.includes('بنتهاوس') || q.includes('penthouse') || q.includes('пентхаус')) {
     filter.unit_type = 'بنتهاوس';
+  }
+
+  // 5.1 Extract Numbers & Budget Range (e.g. "20 مليون", "3 مليون", "20M", "500 الف")
+  const millionMatch = q.match(/(\d+(?:\.\d+)?)\s*(?:مليون|ملايين|مليونز|m\b)/i);
+  const thousandMatch = q.match(/(\d+(?:\.\d+)?)\s*(?:ألف|الف|k\b)/i);
+  const plainNumberMatch = q.match(/\b([1-9]\d{5,8})\b/);
+
+  let extractedPrice: number | null = null;
+  if (millionMatch) {
+    extractedPrice = parseFloat(millionMatch[1]) * 1_000_000;
+  } else if (thousandMatch) {
+    extractedPrice = parseFloat(thousandMatch[1]) * 1_000;
+  } else if (plainNumberMatch) {
+    extractedPrice = parseInt(plainNumberMatch[1], 10);
+  }
+
+  if (extractedPrice) {
+    if (q.includes('اقل من') || q.includes('أقل من') || q.includes('بحد اقصى') || q.includes('بحد أقصى') || q.includes('under') || q.includes('max')) {
+      filter.max_price = extractedPrice;
+      filter.target_price = extractedPrice;
+    } else if (q.includes('اكثر من') || q.includes('أكثر من')) {
+      filter.min_price = extractedPrice;
+      filter.target_price = extractedPrice;
+    } else {
+      filter.target_price = extractedPrice;
+    }
   }
 
   // 4. Detect Number of Bedrooms
@@ -236,12 +264,43 @@ export async function queryProperties(filter: PropertyFilter): Promise<Property[
   const allProperties = await getAllCachedProperties();
   let results = [...allProperties];
 
+  // 1. Explicit handle for land (قاعدة البيانات لا تحتوي على أراضي)
+  if (filter.unit_type && (filter.unit_type.includes('أرض') || filter.unit_type.includes('ارض') || filter.unit_type.includes('land'))) {
+    return [];
+  }
+
   if (filter.bedrooms) {
     results = results.filter(p => p.bedrooms === filter.bedrooms);
   }
 
   if (filter.unit_type) {
-    results = results.filter(p => p.unit_type.toLowerCase().includes(filter.unit_type!.toLowerCase()));
+    results = results.filter(p => (p.unit_type || '').toLowerCase().includes(filter.unit_type!.toLowerCase()));
+  }
+
+  // 2. Currency determination
+  let targetCurrency = filter.currency;
+  if (!targetCurrency) {
+    if (filter.location) {
+      const loc = filter.location.toLowerCase();
+      if (loc.includes('دبي') || loc.includes('dubai')) {
+        targetCurrency = 'AED';
+      } else if (loc.includes('إسبانيا') || loc.includes('spain') || loc.includes('مالقة')) {
+        targetCurrency = 'EUR';
+      } else if (loc.includes('تركيا') || loc.includes('turkey')) {
+        targetCurrency = 'USD';
+      } else {
+        targetCurrency = 'EGP';
+      }
+    } else {
+      targetCurrency = 'EGP';
+    }
+  }
+
+  if (targetCurrency) {
+    const currMatches = results.filter(p => p.currency === targetCurrency);
+    if (currMatches.length > 0) {
+      results = currMatches;
+    }
   }
 
   if (filter.max_price) {
@@ -250,6 +309,16 @@ export async function queryProperties(filter: PropertyFilter): Promise<Property[
 
   if (filter.min_price) {
     results = results.filter(p => p.total_price >= filter.min_price!);
+  }
+
+  // 3. Sort by closest to target_price if requested (e.g. 20 million or 3 million)
+  if (filter.target_price && filter.target_price > 0) {
+    const target = filter.target_price;
+    results.sort((a, b) => {
+      const diffA = Math.abs(a.total_price - target);
+      const diffB = Math.abs(b.total_price - target);
+      return diffA - diffB;
+    });
   }
 
   if (filter.max_down_payment) {
