@@ -313,7 +313,7 @@ export default function SkanybotChatPage() {
     }
   };
 
-  const handleDeleteSession = (id: string) => {
+  const handleDeleteSession = async (id: string) => {
     const remaining = sessions.filter(s => s.id !== id);
     setSessions(remaining);
     localStorage.setItem('skanybot_sessions', JSON.stringify(remaining));
@@ -327,6 +327,17 @@ export default function SkanybotChatPage() {
       } else {
         createNewChat();
       }
+    }
+
+    // Soft delete in Supabase (never permanently purged, kept for admin auditing)
+    try {
+      fetch('/api/chat/delete-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: id }),
+      }).catch(() => {});
+    } catch {
+      // Ignore background network error
     }
   };
 
