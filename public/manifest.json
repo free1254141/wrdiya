@@ -1,16 +1,28 @@
 {
-  "name": "LineChat - وردية إدارة مصانع و OEE",
-  "short_name": "وردية",
-  "description": "Chat-First Factory OEE, Downtime & Shift Handover SaaS",
+  "name": "Skanybot | مستشارك وبروكر العقارات الذكي",
+  "short_name": "Skanybot",
+  "description": "المنصة الذكية للبحث عن العقارات، حساب الأقساط، وحجز المعاينات الميدانية بأحدث المشاريع في مصر ودولياً",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#020617",
-  "theme_color": "#f59e0b",
+  "background_color": "#090d16",
+  "theme_color": "#0ea5e9",
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
     }
   ]
 }

@@ -1,135 +1,114 @@
-export type UserRole = 'operator' | 'supervisor' | 'maintenance' | 'admin';
+// ==============================================================================
+// Real Estate Broker AI (Skanybot) - Core Types
+// ==============================================================================
 
-export type MachineStatus = 'running' | 'down' | 'maintenance';
+export type SupportedLocale = 'ar' | 'en' | 'tr' | 'ru' | 'de' | 'fr' | 'es';
 
-export type DowntimeCategory = 'electrical' | 'mechanical' | 'material' | 'other';
-
-export type ShiftName = 'morning' | 'evening' | 'night';
-
-export type NoteCategory = 'material_issue' | 'worker_absence' | 'handover_alert' | 'general';
-
-export interface FactoryProfile {
+export interface Developer {
   id: string;
   name: string;
-  industry: string;
-  code: string;
-  adminName: string;
-  adminEmail: string;
-  shiftModel: string;
-  linesCount: number;
-  machinesCount: number;
-  staffCount: number;
-  createdAt: string;
+  slug: string;
+  logo_url?: string;
+  description?: string;
+  phone?: string;
+  whatsapp?: string;
+  reputation_score: number;
+  established_year?: number;
+  created_at?: string;
 }
 
-export interface NewFactoryRegistration {
-  factoryName: string;
-  industry: string;
-  adminName: string;
-  email: string;
-  password: string;
-  shiftModel: string;
-  estimatedLines?: number;
-  estimatedMachines?: number;
-}
-
-export interface StaffMember {
+export interface CompoundProject {
   id: string;
+  developer_id: string;
   name: string;
-  role: UserRole;
-  line: string;
-  shift: ShiftName;
-  // Operator dynamic fields
-  stationTask?: string;
-  targetQuota?: string;
-  ppeApproved?: boolean;
-  // Supervisor dynamic fields
-  supervisedSector?: string;
-  radioChannel?: string;
-  targetOee?: string;
-  handoverProtocol?: string;
-  // Maintenance dynamic fields
-  technicalSpecialty?: string;
-  responseLine?: string;
-  toolboxId?: string;
-  onCallStatus?: string;
-  // Admin dynamic fields
-  operationalDivision?: string;
-  approvalScope?: string;
-  emergencyExtension?: string;
+  slug: string;
+  country?: string;
+  city: string;
+  area_name: string;
+  platform?: 'Aqarmap' | 'TEKCE' | string;
+  description?: string;
+  amenities: string[];
+  delivery_year: number;
+  master_plan_url?: string;
+  cover_image?: string;
+  created_at?: string;
+  developer?: Developer;
 }
 
-export interface Machine {
+export interface Property {
   id: string;
-  factory_id: string;
-  name: string;
-  code: string;
-  line_name?: string;
-  qr_url?: string;
-  current_status: MachineStatus;
-  last_status_change: string;
-  active_downtime_start?: string;
-  active_downtime_reason?: DowntimeCategory;
-  active_downtime_note?: string;
-  target_hourly_rate?: number;
+  project_id: string;
+  title: string;
+  unit_type: 'شقة' | 'دوبلكس' | 'بنتهاوس' | 'تاون هاوس' | 'فيلا مستقلة' | 'استوديو' | string;
+  bedrooms: number;
+  bathrooms: number;
+  area_sqm: number;
+  finishing_type: string;
+  total_price: number;
+  currency: string;
+  down_payment_pct: number;
+  down_payment_amount: number;
+  installment_years: number;
+  monthly_installment: number;
+  quarterly_installment?: number;
+  maintenance_fee?: number;
+  delivery_date: string;
+  status: 'متاح' | 'محجوز' | 'مباع' | string;
+  images: string[];
+  featured: boolean;
+  roi_expected_pct?: number;
+  platform?: 'Aqarmap' | 'TEKCE' | string;
+  partner_code?: string; // Stored securely on backend, not displayed to customer
+  affiliate_url?: string; // Direct URL containing tracking params
+  created_at?: string;
+  compound?: CompoundProject;
 }
 
-export interface DowntimeLog {
-  id: string;
-  factory_id: string;
-  machine_id: string;
-  machine_name?: string;
-  machine_code?: string;
-  reported_by?: string;
-  resolved_by?: string;
-  reason_category: DowntimeCategory;
-  voice_note_text?: string;
-  started_at: string;
-  ended_at?: string | null;
-  duration_minutes?: number | null;
+export interface LeadInquiry {
+  id?: string;
+  user_name: string;
+  phone: string;
+  email?: string;
+  preferred_location?: string;
+  preferred_unit_type?: string;
+  budget_max?: number;
+  payment_method?: 'تقسيط' | 'كاش' | string;
+  property_id?: string;
+  notes?: string;
+  source?: string;
+  status?: 'جديد' | 'تم التواصل' | 'معاينة مجدولة' | 'تم الإغلاق' | 'غير جاد';
+  created_at?: string;
 }
 
-export interface ProductionLog {
+export interface ChatSession {
   id: string;
-  factory_id: string;
-  machine_id: string;
-  machine_name?: string;
-  supervisor_id?: string;
-  shift_name: ShiftName;
-  good_count: number;
-  scrap_count: number;
-  log_date: string;
+  title: string;
+  session_token?: string;
   created_at: string;
+  updated_at?: string;
 }
 
-export interface ShiftNote {
-  id: string;
-  factory_id: string;
-  supervisor_id?: string;
-  supervisor_name?: string;
-  category: NoteCategory;
-  note_text: string;
-  is_pinned_for_next_shift: boolean;
-  created_at: string;
-}
-
-export interface OEEMetrics {
-  availability: number; // e.g. 88.5%
-  performance: number;  // e.g. 92.0%
-  quality: number;      // e.g. 96.4%
-  overall_oee: number;  // e.g. 78.5%
-  total_good: number;
-  total_scrap: number;
-  total_downtime_minutes: number;
+export interface PropertyFilter {
+  location?: string;
+  country?: string;
+  platform?: 'Aqarmap' | 'TEKCE' | string;
+  min_price?: number;
+  max_price?: number;
+  bedrooms?: number;
+  max_down_payment?: number;
+  installment_years?: number;
+  delivery_year?: number | string;
+  unit_type?: string;
+  developer_name?: string;
+  compound_name?: string;
 }
 
 export interface ChatMessage {
   id: string;
-  sender_role: UserRole;
-  sender_name: string;
-  timestamp: string;
-  type: 'text' | 'breakdown_alert' | 'repair_log' | 'shift_handover' | 'production_summary' | 'ai_analyst_card';
-  content?: string;
-  meta?: any;
+  session_id?: string;
+  role?: 'user' | 'assistant' | 'system';
+  content: string;
+  properties?: Property[];
+  suggested_actions?: string[];
+  created_at: string;
 }
-

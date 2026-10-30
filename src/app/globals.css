@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --background: #07090e;
@@ -137,10 +138,10 @@ html.light .bg-zinc-950 {
   color: #0f172a !important;
 }
 
-/* Gradients in light mode */
-html.light .bg-gradient-to-b,
-html.light .bg-gradient-to-tr,
-html.light .bg-gradient-to-r {
+/* Gradients in light mode for non-interactive containers */
+html.light div.bg-gradient-to-b:not([class*="from-amber"]):not([class*="from-emerald"]):not([class*="from-cyan"]):not(.wrdya-brand-mark),
+html.light div.bg-gradient-to-tr:not([class*="from-amber"]):not([class*="from-emerald"]):not([class*="from-cyan"]):not(.wrdya-brand-mark),
+html.light div.bg-gradient-to-r:not([class*="from-amber"]):not([class*="from-emerald"]):not([class*="from-cyan"]):not(.wrdya-brand-mark) {
   background-image: none !important;
   background-color: #ffffff !important;
 }

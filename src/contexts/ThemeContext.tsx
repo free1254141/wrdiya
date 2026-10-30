@@ -19,7 +19,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true);
     try {
-      const saved = localStorage.getItem('wrdya_theme') as Theme | null;
+      const saved = localStorage.getItem('aqar_theme') as Theme | null;
       if (saved === 'light' || saved === 'dark') {
         setThemeState(saved);
         applyTheme(saved);
@@ -49,7 +49,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setTheme = (t: Theme) => {
     setThemeState(t);
     try {
-      localStorage.setItem('wrdya_theme', t);
+      localStorage.setItem('aqar_theme', t);
     } catch {}
     applyTheme(t);
   };
