@@ -131,7 +131,11 @@ export async function POST(req: NextRequest) {
     // 5. Build Grounded Response:
     // If freeTest / bypassDeepSeek is requested, use the fast 0-cost local grounded engine
     let finalContent = '';
-    const propertiesToReturn = matchedProperties.length > 0 ? matchedProperties : featuredOpportunities.slice(0, 4);
+    // ── Cap results: max 4 cards shown in UI regardless of how many match ──
+    const MAX_CARDS = 4;
+    const propertiesToReturn = (
+      matchedProperties.length > 0 ? matchedProperties : featuredOpportunities
+    ).slice(0, MAX_CARDS);
 
     // 5.1 Auto-Capture Lead & Phone Numbers from conversation
     const phoneRegex = /(?:\+?20|0)?1[0125]\d{8}\b|\+?\d{10,14}\b/;
