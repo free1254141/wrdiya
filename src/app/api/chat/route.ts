@@ -6,7 +6,7 @@ import {
   formatGroundedBrokerResponse 
 } from '@/lib/real-estate-engine';
 import { generateDeepSeekBrokerReply, isDeepSeekConfigured } from '@/lib/deepseek';
-import { checkAndIncrementUsage, SubscriptionPlan } from '@/lib/usage-manager';
+import { checkAndIncrementDailyUsage, DAILY_LIMIT, GUEST_LIMIT } from '@/lib/usage-manager';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://csuifvyghfsibkrnxrby.supabase.co';
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     const sessionId = body.sessionId || body.session_id;
     const userId = body.userId || body.user_id || null;
     const clientId = userId || body.clientId || sessionId || req.headers.get('x-forwarded-for') || 'guest_user';
-    const userPlan: SubscriptionPlan = body.plan === 'pro' ? 'pro' : 'free';
+    const userPlan = body.plan === 'pro' ? 'pro' : 'free';
     const locale = (['ar', 'en', 'tr', 'ru', 'de', 'fr', 'es'].includes(body.locale) ? body.locale : 'ar');
     const freeTest = body.freeTest || body.bypassDeepSeek || body.engineOnly || false;
 
@@ -103,8 +103,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Usage Tracking (silent, no blocking/upsell while subscriptions are hidden)
-    const usage = checkAndIncrementUsage(clientId, "pro", true);
+    // 1. Strict Usage Enforcement: Guest max 3 msgs, Authenticated max 10/day
+    const isAuth = Boolean(userId);
+    const usage = checkAndIncrementDailyUsage(userId || clientId, isAuth, true);
+
+    if (usage.exceeded) {
+      if (usage.requiresLogin) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'login_required',
+            message: locale === 'ar'
+              ? 'لقد استهلكت 3 رسائل تجريبية كزائر. يرجى تسجيل الدخول مجاناً للمتابعة وحفظ بحثك!'
+              : 'You have used your 3 free guest messages. Please sign in to continue!',
+            usage,
+          },
+          { status: 401 }
+        );
+      } else {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'daily_limit_reached',
+            message: locale === 'ar'
+              ? 'وصلت للحد الأقصى اليومي (10 استفسارات). يتجدد رصيدك تلقائياً غداً للحفاظ على استقرار الخدمة!'
+              : 'You have reached your daily limit of 10 queries. Your quota will reset tomorrow!',
+            usage,
+          },
+          { status: 429 }
+        );
+      }
+    }
 
     // 2. Analyze query constraints & intent (Anti-Hallucination filter extractor)
     const analysis = analyzeUserQuery(userMessage);
@@ -213,7 +242,7 @@ export async function POST(req: NextRequest) {
                 properties_count: propertiesToReturn.length,
                 property_ids: propertiesToReturn.map(p => p.id),
                 ai_model: (isDeepSeekConfigured() && !freeTest) ? 'deepseek-chat' : 'grounded-engine',
-                usage: { used: usage.used, limit: usage.limit, plan: usage.plan },
+                usage: { used: usage.used, limit: usage.limit, remaining: usage.remaining },
               }
             }
           ]);
@@ -235,7 +264,6 @@ export async function POST(req: NextRequest) {
       usage: {
         used: usage.used,
         limit: usage.limit,
-        plan: usage.plan,
         remaining: usage.remaining,
         resetDate: usage.resetDate,
       },

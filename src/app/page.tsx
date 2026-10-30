@@ -68,13 +68,13 @@ export default function SkanybotChatPage() {
     return 0;
   });
 
-  // Usage & Quota State (Free: 30, Pro: 300)
-  const [usageState, setUsageState] = useState<{ used: number; limit: number; plan: 'free' | 'pro' }>({
+  // Daily Quota State: 10 queries per day for registered users
+  const DAILY_LIMIT = 10;
+  const [dailyUsage, setDailyUsage] = useState<{ used: number; limit: number; remaining: number }>({
     used: 0,
-    limit: 30,
-    plan: 'free',
+    limit: DAILY_LIMIT,
+    remaining: DAILY_LIMIT,
   });
-  const [pricingModalOpen, setPricingModalOpen] = useState(false);
 
   // Favorites state
   const [favorites, setFavorites] = useState<Property[]>([]);
@@ -268,13 +268,14 @@ export default function SkanybotChatPage() {
         setFavorites(JSON.parse(savedFavs));
       }
 
-      // Restore plan & usage count
-      const savedPlan = (localStorage.getItem('skanybot_plan') as 'free' | 'pro') || 'free';
-      const savedUsage = parseInt(localStorage.getItem('skanybot_usage_count') || '0', 10);
-      setUsageState({
-        plan: savedPlan,
-        limit: savedPlan === 'pro' ? 300 : 30,
-        used: isNaN(savedUsage) ? 0 : savedUsage,
+      // Restore daily usage count
+      const todayKey = new Date().toISOString().split('T')[0];
+      const savedDate = localStorage.getItem('skanybot_usage_date');
+      const savedUsed = (savedDate === todayKey) ? parseInt(localStorage.getItem('skanybot_daily_used') || '0', 10) : 0;
+      setDailyUsage({
+        used: isNaN(savedUsed) ? 0 : savedUsed,
+        limit: DAILY_LIMIT,
+        remaining: Math.max(0, DAILY_LIMIT - (isNaN(savedUsed) ? 0 : savedUsed)),
       });
 
       const savedSessions = localStorage.getItem('skanybot_sessions') || localStorage.getItem('aqar_ai_sessions');
@@ -414,15 +415,30 @@ export default function SkanybotChatPage() {
     const query = (textToSend || inputText).trim();
     if (!query || loading) return;
 
-    // ── Guest limit: 3 free messages before login wall ──
+    // ── 1. Guest Check: Must login after 3 messages ──
     if (!user) {
-      const nextCount = guestMsgCount + 1;
-      if (nextCount > GUEST_MSG_LIMIT) {
+      if (guestMsgCount >= GUEST_MSG_LIMIT) {
         setAuthModalOpen(true);
         return;
       }
+      const nextCount = guestMsgCount + 1;
       setGuestMsgCount(nextCount);
       try { localStorage.setItem('skanybot_guest_msgs', String(nextCount)); } catch (e) {}
+    } else {
+      // ── 2. Authenticated Daily Limit Check: 10 queries/day ──
+      if (dailyUsage.used >= DAILY_LIMIT) {
+        const errorMsg: ChatMessage = {
+          id: `msg_${Date.now()}_limit`,
+          session_id: activeSessionId || 'limit_session',
+          role: 'assistant',
+          content: isRtl 
+            ? '⚠️ **لقد استهلكت رصيدك اليومي المتاح (10 استفسارات).**\n\nيتجدد رصيدك تلقائياً عند منتصف الليل لضمان تقديم أعلى جودة وتحليل دقيق لجميع المستخدمين. يسعدنا استكمال بحثك غداً!'
+            : '⚠️ **You have reached your daily limit of 10 queries.**\n\nYour quota will reset automatically tomorrow!',
+          created_at: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, errorMsg]);
+        return;
+      }
     }
 
     setInputText('');
@@ -463,7 +479,7 @@ export default function SkanybotChatPage() {
           clientId: user?.id || currSessionId,
           userId: user?.id || null,
           userEmail: user?.email || null,
-          plan: usageState.plan,
+          plan: 'free',
           message: query,
           locale: locale,
           history: newHistory.slice(-8)
@@ -472,26 +488,26 @@ export default function SkanybotChatPage() {
 
       const data = await response.json();
 
-      if (response.status === 429 || data.error === 'quota_exceeded') {
-        // quota check removed
-        throw new Error(data.message || (isRtl ? 'لقد وصلت للحد الأقصى للاستفسارات هذا الشهر. قم بالترقية لخطة Pro للمتابعة.' : 'Monthly limit reached. Upgrade to Pro to continue.'));
+      if (response.status === 401 || data.error === 'login_required') {
+        setAuthModalOpen(true);
+        throw new Error(data.message || (isRtl ? 'يرجى تسجيل الدخول مجاناً للمتابعة' : 'Please sign in to continue'));
+      }
+
+      if (response.status === 429 || data.error === 'daily_limit_reached') {
+        throw new Error(data.message || (isRtl ? 'وصلت للحد الأقصى اليومي (10 استفسارات). يتجدد رصيدك تلقائياً غداً!' : 'Daily limit of 10 queries reached. Resets tomorrow!'));
       }
 
       if (!response.ok) {
         throw new Error(data.error || 'Server error occurred');
       }
 
-      // Update live usage state
+      // Update daily usage state
       if (data.usage) {
-        setUsageState({
+        setDailyUsage({
           used: data.usage.used,
-          limit: data.usage.limit,
-          plan: data.usage.plan,
+          limit: data.usage.limit || DAILY_LIMIT,
+          remaining: data.usage.remaining !== undefined ? data.usage.remaining : Math.max(0, DAILY_LIMIT - data.usage.used),
         });
-        try {
-          localStorage.setItem('skanybot_usage_count', String(data.usage.used));
-          localStorage.setItem('skanybot_plan', data.usage.plan);
-        } catch (e) {}
       }
 
       const botMsg: ChatMessage = {
@@ -607,6 +623,18 @@ export default function SkanybotChatPage() {
               <PhoneCall className="h-3.5 w-3.5" />
               <span>{t.contactAdvisor}</span>
             </button>
+
+            {/* Daily Quota Counter & Account */}
+            {user ? (
+              <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
+                <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                <span>{dailyUsage.remaining} / 10 {isRtl ? 'متبقية اليوم' : 'left today'}</span>
+              </div>
+            ) : (
+              <div className="hidden sm:flex items-center gap-1.5 rounded-xl border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
+                <span>{Math.max(0, GUEST_MSG_LIMIT - guestMsgCount)} {isRtl ? 'رسائل تجريبية' : 'trials'}</span>
+              </div>
+            )}
 
             {/* User Account / Auth Button */}
             {user ? (
