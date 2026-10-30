@@ -3,7 +3,7 @@
  * Endpoint: https://api.deepseek.com/chat/completions
  * Model: deepseek-chat
  * 
- * System Prompt: Grounded Real Estate Advisor persona for Egypt & International.
+ * System Prompt: Grounded, Concise Real Estate Advisor persona for Egypt & International.
  */
 
 import { Property } from './types';
@@ -19,7 +19,7 @@ export function isDeepSeekConfigured(): boolean {
 }
 
 /**
- * Generate a conversational broker response using DeepSeek Chat
+ * Generate a concise, conversational broker response using DeepSeek Chat
  */
 export async function generateDeepSeekBrokerReply(
   userPrompt: string,
@@ -32,8 +32,11 @@ export async function generateDeepSeekBrokerReply(
     return null; // Signals fallback to deterministic engine
   }
 
+  // Limit to top 4 units to keep context focused and avoid prompt bloat
+  const topUnits = matchedProperties.slice(0, 4);
+
   // Format retrieved properties as verifiable grounding context
-  const propertyContext = matchedProperties.map((p, idx) => {
+  const propertyContext = topUnits.map((p, idx) => {
     return `[الوحدة ${idx + 1}]:
 - الاسم: ${p.title}
 - النوع: ${p.unit_type}
@@ -43,29 +46,31 @@ export async function generateDeepSeekBrokerReply(
 - مدة التقسيط: ${p.installment_years || 7} سنوات
 - القسط الشهري: ${(p.monthly_installment || Math.round(p.total_price * 0.9 / ((p.installment_years || 7) * 12))).toLocaleString()} ${p.currency}
 - المساحة: ${p.area_sqm || 'غير محدد'} م²
-- الغرف: ${p.bedrooms || 'غير محدد'} | الحمامات: ${p.bathrooms || 'غير محدد'}
-- الاستلام: ${p.delivery_date || 'استلام فوري / 2026'}
-- المنصة: ${p.platform || 'Aqarmap'}`;
+- الغرف: ${p.bedrooms || 'غير محدد'} | الاستلام: ${p.delivery_date || 'استلام فوري / 2026'}`;
   }).join('\n\n');
 
-  const systemPrompt = `أنت "Skanybot" - مستشار وبروكر العقارات الذكي الأول في مصر ودولياً (دبي، إسبانيا، تركيا).
-شعارك الأساسي وميزتك التنافسية:
-"اعرف أسعار وأقساط أي كمبوند في مصر أو دبي في ثواني — ومن غير مكالمات سيلز مزعجة."
+  const isAr = locale === 'ar';
 
-القواعد الصارمة لإجاباتك:
-1. أنت تعتمد حصرياً و100% على الوحدات العقارية الحقيقية المرفقة في سياق البيانات أدناه (Grounding Context). لا تخترع أو تهلوس بأي أسعار أو أرقام من خارج البيانات.
-2. اذكر للعميل تفاصيل الأسعار بدقة، والمقدم، والقسط الشهري، ونظام السداد لكل وحدة تناسب طلبه.
-3. كن مهذباً وواضحاً ومباشراً بدون أي إلحاح بيعي أو ضغط مكالمات مزعج.
-4. شجع العميل على حجز معاينة ميدانية مجانية بالضغط على زر "طلب معاينة 📅" المتاح في كارت الوحدة مباشرة، أو التواصل عبر الواتساب بدون أي إزعاج.
-5. أجب بلغة المستخدم المطلوبة (${locale === 'ar' ? 'العربية' : locale}).
+  const systemPrompt = `أنت "Skanybot" - مستشار عقاري ذكي وسريع ومباشر في مصر ودولياً (دبي، إسبانيا، تركيا).
+شعارك: "اعرف أسعار وأقساط أي كمبوند في مصر أو دبي في ثواني ومن غير مكالمات سيلز مزعجة."
 
-البيانات العقارية المعتمدة المتاحة حالياً للاستعلام:
-${propertyContext || 'لا توجد وحدات مطابقة تماماً للميزانية المحددة حالياً. قدم نصيحة عقارية ورشح للعميل استكشاف أقرب البدائل المتاحة.'}
+القواعد الأساسية للرد:
+1. الإيجاز والذكاء: ردك يجب أن يكون قصيراً ومركزاً ومريحاً للقراءة (فقرتين إلى 3 فقرات قصيرة فقط، بحد أقصى 100-130 كلمة).
+2. عدم تكرار القوائم الطويلة: لا تسرد كل الوحدات وتفاصيلها في النص كقائمة طويلة، لأن واجهة التطبيق تعرض بالفعل كروت العقارات التفاعلية الكاملة بالصور والأسعار وزر المعاينة تحت ردك مباشرة.
+3. هيكل الإجابة المثالي:
+   - تأكيد العثور على الوحدات المطلوبة في المنطقة/المشروع.
+   - ملخص سريع للأسعار ونظام السداد (مثال: تبدأ الأسعار من كذا، بمقدم يبدأ من كذا، وقسط شهري من كذا حتى كذا سنوات).
+   - توجيه العميل بلطف للاطلاع على كروت الوحدات بالأسفل لحجز معاينة مجانية أو فتح التفاصيل.
+   - سؤال استيضاحي واحد ذكي (مثل: هل تفضل استلام فوري أم تقسيط أطول؟ أو ما هي الميزانية المناسبة لك؟).
+4. لغة الرد: أجب بلغة المستخدم (${isAr ? 'العربية' : locale}) بأسلوب ودود ومهني وبدون إلحاح بيعي.
+
+البيانات المعتمدة المتاحة حالياً للاستعلام:
+${propertyContext || 'لا توجد وحدات مطابقة تماماً حالياً. قدم نصيحة عقارية ورشح للعميل استكشاف أقرب البدائل.'}
 `;
 
   const messages: DeepSeekChatMessage[] = [
     { role: 'system', content: systemPrompt },
-    ...conversationHistory.slice(-4), // keep last 4 context turns
+    ...conversationHistory.slice(-3), // keep last 3 context turns
     { role: 'user', content: userPrompt },
   ];
 
@@ -80,7 +85,7 @@ ${propertyContext || 'لا توجد وحدات مطابقة تماماً للم�
         model: 'deepseek-chat',
         messages,
         temperature: 0.3,
-        max_tokens: 1200,
+        max_tokens: 350,
         stream: false,
       }),
     });

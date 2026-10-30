@@ -332,89 +332,61 @@ export function formatGroundedBrokerResponse(
   // Case 1: Matching Properties Found
   if (count > 0) {
     const topUnits = matchedProperties.slice(0, 4);
+    const curr = topUnits[0].currency || (isAr ? 'ج.م' : 'EGP');
+    const prices = topUnits.map(p => p.total_price).filter(p => p > 0);
+    const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+    const installments = topUnits.map(p => p.installment_years || 7);
+    const maxYears = Math.max(...installments);
+    const monthlies = topUnits.map(p => p.monthly_installment).filter(m => m > 0);
+    const minMonthly = monthlies.length > 0 ? Math.min(...monthlies) : 0;
+    const downPcts = topUnits.map(p => p.down_payment_pct || 10);
+    const minDown = Math.min(...downPcts);
+
     let text = '';
 
     if (isAr) {
-      text = `وجدت لك **${count} ${count === 1 ? 'فرصة عقارية معتمدة ومطابقة' : 'فرص عقارية معتمدة ومطابقة'}** لطلبك في قاعدة بيانات العقارات الرسمية:\n\n`;
+      text = `أهلاً بك! وجدت لك **${count} فرصة عقارية معتمدة** مطابقة لطلبك في قاعدة البيانات الرسمية.\n\n` +
+        `💰 **نظرة سريعة على الأسعار وأنظمة السداد:**\n` +
+        `• تبدأ الأسعار من **${minPrice.toLocaleString('ar-EG')} ${curr}**\n` +
+        `• مقدم يبدأ من **${minDown}%** وتقسيط مريح يصل حتى **${maxYears} سنوات** (أقساط شهرية تبدأ من **${Math.round(minMonthly).toLocaleString('ar-EG')} ${curr}**).\n\n` +
+        `👇 **عرضت لك أبرز الوحدات في الكروت التفاعلية بالأسفل بكامل التفاصيل والصور وأرقام التواصل الرسمية:**`;
     } else if (isTr) {
-      text = `Kriterlerinize uygun resmi veritabanında **${count} onaylı gayrimenkul fırsatı** bulundu:\n\n`;
+      text = `Harika! Kriterlerinize uygun **${count} onaylı gayrimenkul fırsatı** bulundu.\n\n` +
+        `💰 **Fiyat ve Ödeme Planı Özeti:**\n` +
+        `• Fiyatlar **${minPrice.toLocaleString('tr-TR')} ${curr}** seviyesinden başlamaktadır.\n` +
+        `• Peşinat **%${minDown}** ve **${maxYears} yıla varan** taksit imkanı.\n\n` +
+        `👇 **Aşağıdaki kartlardan en popüler birimleri ve detaylarını inceleyebilirsiniz:**`;
     } else if (isRu) {
-      text = `В официальной базе данных найдено **${count} проверенных объектов**, соответствующих вашему запросу:\n\n`;
+      text = `Здравствуйте! По вашему запросу найдено **${count} проверенных объектов** в официальной базе данных.\n\n` +
+        `💰 **Кратко по ценам и условиям рассрочки:**\n` +
+        `• Цены начинаются от **${minPrice.toLocaleString('ru-RU')} ${curr}**\n` +
+        `• Первый взнос от **${minDown}%**, рассрочка до **${maxYears} лет**.\n\n` +
+        `👇 **Ниже представлены интерактивные карточки с фото и деталями:**`;
     } else if (isDe) {
-      text = `In der offiziellen Datenbank wurden **${count} verifizierte Immobilienangebote** gefunden:\n\n`;
+      text = `Hallo! Wir haben **${count} verifizierte Einheiten** gefunden, die zu Ihrer Anfrage passen.\n\n` +
+        `💰 **Preis- und Ratenübersicht:**\n` +
+        `• Preise ab **${minPrice.toLocaleString('de-DE')} ${curr}**\n` +
+        `• Anzahlung ab **${minDown}%**, Laufzeit bis zu **${maxYears} Jahre**.\n\n` +
+        `👇 **Die besten Optionen finden Sie direkt in den Karten unten:**`;
     } else if (isFr) {
-      text = `J'ai trouvé **${count} opportunités immobilières vérifiées** correspondant à vos critères :\n\n`;
+      text = `Bonjour ! J'ai trouvé **${count} biens vérifiés** correspondant à votre recherche.\n\n` +
+        `💰 **Aperçu des prix et financements :**\n` +
+        `• Prix à partir de **${minPrice.toLocaleString('fr-FR')} ${curr}**\n` +
+        `• Acompte dès **${minDown}%** avec paiement échelonné jusqu'à **${maxYears} ans**.\n\n` +
+        `👇 **Découvrez les options clés ci-dessous avec photos et détails :**`;
     } else if (isEs) {
-      text = `He encontrado **${count} oportunidades verificadas** en la base de datos oficial:\n\n`;
+      text = `¡Hola! Hemos encontrado **${count} propiedades verificadas** para su búsqueda.\n\n` +
+        `💰 **Resumen de precios y financiación:**\n` +
+        `• Precios desde **${minPrice.toLocaleString('es-ES')} ${curr}**\n` +
+        `• Entrada desde **${minDown}%** y financiación hasta **${maxYears} años**.\n\n` +
+        `👇 **Consulte las unidades destacadas en las tarjetas a continuación:**`;
     } else {
-      text = `I found **${count} verified propert${count === 1 ? 'y' : 'ies'}** matching your criteria in the official database:\n\n`;
+      text = `Hello! I found **${count} verified properties** matching your request in the official database.\n\n` +
+        `💰 **Pricing & Payment Overview:**\n` +
+        `• Starting from **${minPrice.toLocaleString('en-US')} ${curr}**\n` +
+        `• Down payment from **${minDown}%** with flexible installments up to **${maxYears} years** (monthly from **${Math.round(minMonthly).toLocaleString('en-US')} ${curr}**).\n\n` +
+        `👇 **Explore top matching units in the interactive cards below with full photos & direct booking:**`;
     }
-
-    topUnits.forEach((prop, idx) => {
-      const devName = prop.compound?.developer?.name || (isAr ? 'مطور معتمد' : 'Verified Developer');
-      const projectName = prop.compound?.name || (isAr ? 'مشروع سكني فاخر' : 'Luxury Development');
-      const area = prop.compound?.area_name || (isAr ? 'موقع استراتيجي' : 'Prime Location');
-      const curr = prop.currency || (isAr ? 'ج.م' : 'EGP');
-      const affiliateLink = prop.affiliate_url || (prop.platform === 'TEKCE' ? AFFILIATE_CONFIG.tekce.homeUrl : AFFILIATE_CONFIG.aqarmap.expoUrl);
-
-      if (isAr) {
-        text += `### ${idx + 1}. ${prop.title}\n`;
-        text += `📍 **الوجهة والمشروع**: ${projectName} — ${devName} (${area})\n`;
-        text += `📐 **المساحة والتقسيم**: ${prop.area_sqm} م² (${prop.bedrooms} غرف نوم • ${prop.bathrooms} حمامات) — تشطيب: *${prop.finishing_type}*\n`;
-        text += `💰 **السعر الإجمالي**: **${prop.total_price.toLocaleString('ar-EG')} ${curr}**\n`;
-        text += `💳 **نظام السداد**: مقدم **${prop.down_payment_pct}%** (${prop.down_payment_amount.toLocaleString('ar-EG')} ${curr}) وتقسيط مريح على **${prop.installment_years} سنوات** (قسط شهري: **${prop.monthly_installment.toLocaleString('ar-EG')} ${curr}**)\n`;
-        text += `🔑 **موعد الاستلام**: ${prop.delivery_date}\n`;
-        text += `🌐 **رابط التفاصيل والحجز الرسمي**: [اضغط هنا لتصفح التفاصيل الرسمية وحجز الوحدة مباشرة](${affiliateLink})\n\n`;
-      } else if (isTr) {
-        text += `### ${idx + 1}. ${prop.title}\n`;
-        text += `📍 **Proje ve Geliştirici**: ${projectName} — ${devName} (${area})\n`;
-        text += `📐 **Alan ve Plan**: ${prop.area_sqm} m² (${prop.bedrooms} oda • ${prop.bathrooms} banyo) — Teslim: *${prop.finishing_type}*\n`;
-        text += `💰 **Toplam Fiyat**: **${prop.total_price.toLocaleString('tr-TR')} ${curr}**\n`;
-        text += `💳 **Ödeme Planı**: Peşinat **%${prop.down_payment_pct}** (${prop.down_payment_amount.toLocaleString('tr-TR')} ${curr}), **${prop.installment_years} yıl** vade (Aylık: **${prop.monthly_installment.toLocaleString('tr-TR')} ${curr}**)\n`;
-        text += `🔑 **Teslim Tarihi**: ${prop.delivery_date}\n`;
-        text += `🌐 **Resmi Detaylar ve Rezervasyon**: [Resmi detayları görüntülemek ve birimi ayırtmak için tıklayın](${affiliateLink})\n\n`;
-      } else if (isRu) {
-        text += `### ${idx + 1}. ${prop.title}\n`;
-        text += `📍 **Проект и застройщик**: ${projectName} — ${devName} (${area})\n`;
-        text += `📐 **Площадь и планировка**: ${prop.area_sqm} м² (${prop.bedrooms} комн. • ${prop.bathrooms} санузла) — Отделка: *${prop.finishing_type}*\n`;
-        text += `💰 **Полная стоимость**: **${prop.total_price.toLocaleString('ru-RU')} ${curr}**\n`;
-        text += `💳 **Условия рассрочки**: Первый взнос **${prop.down_payment_pct}%** (${prop.down_payment_amount.toLocaleString('ru-RU')} ${curr}), рассрочка на **${prop.installment_years} лет** (Ежемесячно: **${prop.monthly_installment.toLocaleString('ru-RU')} ${curr}**)\n`;
-        text += `🔑 **Срок сдачи**: ${prop.delivery_date}\n`;
-        text += `🌐 **Официальная информация и бронь**: [Нажмите здесь для перехода на официальную страницу объекта](${affiliateLink})\n\n`;
-      } else if (isDe) {
-        text += `### ${idx + 1}. ${prop.title}\n`;
-        text += `📍 **Projekt & Bauträger**: ${projectName} — ${devName} (${area})\n`;
-        text += `📐 **Fläche & Aufteilung**: ${prop.area_sqm} m² (${prop.bedrooms} Zi. • ${prop.bathrooms} Bäder) — Ausführung: *${prop.finishing_type}*\n`;
-        text += `💰 **Gesamtpreis**: **${prop.total_price.toLocaleString('de-DE')} ${curr}**\n`;
-        text += `💳 **Zahlungsplan**: Anzahlung **${prop.down_payment_pct}%** (${prop.down_payment_amount.toLocaleString('de-DE')} ${curr}), **${prop.installment_years} Jahre** Ratenzahlung (Monatlich: **${prop.monthly_installment.toLocaleString('de-DE')} ${curr}**)\n`;
-        text += `🔑 **Übergabe**: ${prop.delivery_date}\n`;
-        text += `🌐 **Offizielle Reservierung**: [Hier klicken für offizielle Details und Direktreservierung](${affiliateLink})\n\n`;
-      } else if (isFr) {
-        text += `### ${idx + 1}. ${prop.title}\n`;
-        text += `📍 **Projet & Promoteur**: ${projectName} — ${devName} (${area})\n`;
-        text += `📐 **Surface & Disposition**: ${prop.area_sqm} m² (${prop.bedrooms} ch. • ${prop.bathrooms} sdb) — Finition: *${prop.finishing_type}*\n`;
-        text += `💰 **Prix total**: **${prop.total_price.toLocaleString('fr-FR')} ${curr}**\n`;
-        text += `💳 **Plan de paiement**: Acompte **${prop.down_payment_pct}%** (${prop.down_payment_amount.toLocaleString('fr-FR')} ${curr}), échelonné sur **${prop.installment_years} ans** (Mensualité : **${prop.monthly_installment.toLocaleString('fr-FR')} ${curr}**)\n`;
-        text += `🔑 **Date de livraison**: ${prop.delivery_date}\n`;
-        text += `🌐 **Réservation officielle**: [Cliquez ici pour accéder aux détails officiels et réserver](${affiliateLink})\n\n`;
-      } else if (isEs) {
-        text += `### ${idx + 1}. ${prop.title}\n`;
-        text += `📍 **Proyecto y Promotor**: ${projectName} — ${devName} (${area})\n`;
-        text += `📐 **Superficie y Distribución**: ${prop.area_sqm} m² (${prop.bedrooms} dorm. • ${prop.bathrooms} baños) — Acabados: *${prop.finishing_type}*\n`;
-        text += `💰 **Precio Total**: **${prop.total_price.toLocaleString('es-ES')} ${curr}**\n`;
-        text += `💳 **Plan de pago**: Entrada **${prop.down_payment_pct}%** (${prop.down_payment_amount.toLocaleString('es-ES')} ${curr}) a **${prop.installment_years} años** (Mensual: **${prop.monthly_installment.toLocaleString('es-ES')} ${curr}**)\n`;
-        text += `🔑 **Fecha de entrega**: ${prop.delivery_date}\n`;
-        text += `🌐 **Reserva oficial**: [Haga clic aquí para consultar detalles oficiales y reservar directamente](${affiliateLink})\n\n`;
-      } else {
-        text += `### ${idx + 1}. ${prop.title}\n`;
-        text += `📍 **Project & Developer**: ${projectName} — ${devName} (${area})\n`;
-        text += `📐 **Area & Layout**: ${prop.area_sqm} sqm (${prop.bedrooms} beds • ${prop.bathrooms} baths) — Finishing: *${prop.finishing_type}*\n`;
-        text += `💰 **Total Price**: **${prop.total_price.toLocaleString('en-US')} ${curr}**\n`;
-        text += `💳 **Payment Plan**: Down Payment **${prop.down_payment_pct}%** (${prop.down_payment_amount.toLocaleString('en-US')} ${curr}) with **${prop.installment_years} years** installments (Monthly: **${prop.monthly_installment.toLocaleString('en-US')} ${curr}**)\n`;
-        text += `🔑 **Delivery Date**: ${prop.delivery_date}\n`;
-        text += `🌐 **Official Details & Booking**: [Click here to view official details and reserve directly](${affiliateLink})\n\n`;
-      }
-    });
 
     const actionsAr = isInternational ? [
       'عقارات دبي المؤهلة للإقامة الذهبية',
