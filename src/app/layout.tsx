@@ -23,6 +23,9 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Skanybot",
   },
+  verification: {
+    google: "googleaddb18d989d05866",
+  },
 };
 
 export const viewport: Viewport = {
