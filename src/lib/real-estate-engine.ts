@@ -160,6 +160,12 @@ export function analyzeUserQuery(query: string): QueryAnalysis {
     intent = 'installment_calc';
   }
 
+  // 9. Greeting / general chat — no property cards needed
+  const greetingPattern = /^(هاي|هي|هايا|مرحبا|سلام|السلام|أهلا|اهلا|ازيك|كيف حالك|شكرا|ok|okay|تمام|oke|hi|hey|hello|good morning|good evening|bonjour|hola|ciao|merhaba|merhabalar|привет|здравствуй|danke|gracias|merci)[\s!.،,؟?]*$/i;
+  if (greetingPattern.test(q.trim()) || (q.trim().length < 5 && Object.keys(filter).length === 0)) {
+    intent = 'general';
+  }
+
   return { intent, filter, rawQuery: query };
 }
 

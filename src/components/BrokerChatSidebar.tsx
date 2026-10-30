@@ -9,7 +9,6 @@ import {
   Edit2, 
   Check, 
   X, 
-  PanelLeftClose, 
   PanelRightClose,
   Building2, 
   Star, 
@@ -19,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import LanguageSelector from '@/components/LanguageSelector';
 
 interface BrokerChatSidebarProps {
   sessions: ChatSession[];
@@ -48,7 +48,7 @@ export default function BrokerChatSidebar({
   onOpenFavorites
 }: BrokerChatSidebarProps) {
   const { theme, toggleTheme } = useTheme();
-  const { locale, toggleLocale, t, isRtl, currentLanguage } = useLanguage();
+  const { locale, t, isRtl, currentLanguage } = useLanguage();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -70,15 +70,15 @@ export default function BrokerChatSidebar({
   if (!isOpen) return null;
 
   const quickFilters = isRtl ? [
-    { label: 'مشاريع معارض عقارماب الرسمية', icon: '🏛️' },
+    { label: 'مشاريع معارض عقارات الرسمية', icon: '🏛️' },
     { label: 'فرص الاستثمار الدولي في دبي وتركيا', icon: '🌐' },
-    { label: 'شقق التجمع الخامس بتقسيط 8 سنين', icon: '🏢' },
+    { label: 'شقق التجمع الخامس بتقسيط 8 سنين', icon: '🏙️' },
     { label: 'الشيخ زايد وبادية بالم هيلز بمقدم 10%', icon: '🏡' },
     { label: 'وحدات استلام فوري جاهزة للسكن', icon: '🔑' },
   ] : [
     { label: 'Official Expo Partner Projects', icon: '🏛️' },
     { label: 'International Units (Dubai & Turkey)', icon: '🌐' },
-    { label: 'New Cairo with 8-Year Installments', icon: '🏢' },
+    { label: 'New Cairo with 8-Year Installments', icon: '🏙️' },
     { label: 'Sheikh Zayed & Palm Hills (10% Down)', icon: '🏡' },
     { label: 'Ready-to-Move Units', icon: '🔑' },
   ];
@@ -92,12 +92,11 @@ export default function BrokerChatSidebar({
         aria-hidden="true"
       />
 
-      {/* Main Sidebar: dynamically flips position to right-0 for RTL (Arabic) and left-0 for LTR */}
+      {/* Main Sidebar: Fixed permanently on the right so changing language never jumps the UI across the screen */}
       <aside 
         aria-label={t.chatHistory}
-        className={`fixed inset-y-0 z-50 flex w-[280px] max-w-[85vw] flex-col border-slate-200/90 bg-white text-slate-900 shadow-2xl transition-all duration-300 md:relative md:z-auto md:w-[290px] md:shadow-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 ${
-          isRtl ? 'right-0 border-l md:border-l' : 'left-0 border-r md:border-r'
-        }`}
+        dir={isRtl ? 'rtl' : 'ltr'}
+        className="fixed inset-y-0 right-0 z-50 flex w-[280px] max-w-[85vw] flex-col border-l border-slate-200/90 bg-white text-slate-900 shadow-2xl transition-all duration-300 md:relative md:z-auto md:w-[290px] md:shadow-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
       >
         {/* Brand & New Chat Header */}
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 p-3.5 dark:border-zinc-800/80">
@@ -114,13 +113,13 @@ export default function BrokerChatSidebar({
             <span>{t.newChat}</span>
           </button>
 
-          {/* Close Sidebar icon flips orientation based on RTL / LTR */}
+          {/* Close Sidebar icon */}
           <button
             onClick={onToggle}
             className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 transition hover:bg-slate-100 hover:text-black dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
             title="Toggle Sidebar"
           >
-            {isRtl ? <PanelRightClose className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            <PanelRightClose className="h-4 w-4" />
           </button>
         </div>
 
@@ -194,22 +193,22 @@ export default function BrokerChatSidebar({
                     {isEditing ? (
                       <input
                         type="text"
-                        autoFocus
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') handleSaveRename(s.id, e as any);
                           if (e.key === 'Escape') setEditingId(null);
                         }}
-                        className="w-full rounded-md border border-amber-500 bg-white px-1.5 py-0.5 text-xs dark:bg-zinc-800"
+                        autoFocus
+                        className="w-full rounded-md border border-amber-500 bg-white px-1.5 py-0.5 text-xs text-slate-900 focus:outline-hidden dark:bg-zinc-800 dark:text-white"
                       />
                     ) : (
                       <span className="truncate">{s.title}</span>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition">
+                  {/* Actions: Rename / Delete */}
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                     {isEditing ? (
                       <>
                         <button
@@ -256,22 +255,19 @@ export default function BrokerChatSidebar({
           )}
         </div>
 
-        {/* Footer info & Controls: Language Switch & Theme Toggle */}
-        <div className="shrink-0 border-t border-slate-100 p-3 dark:border-zinc-800">
-          <div className="flex items-center justify-between">
-            {/* Active Language Badge */}
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-zinc-400">
-              <span className="text-base">{currentLanguage.flag}</span>
-              <span className="text-[11px]">{currentLanguage.nativeName}</span>
-            </div>
+        {/* Footer: Language Switcher and Theme Toggle in Sidebar */}
+        <div className="shrink-0 border-t border-slate-100 p-3 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/40">
+          <div className="flex items-center justify-between gap-2">
+            {/* Language Selector Dropdown */}
+            <LanguageSelector />
 
-            {/* Theme Toggle */}
+            {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
-              className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="grid h-8 w-8 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-2xs transition hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
-              {theme === 'dark' ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-slate-700" />}
+              {theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-700" />}
             </button>
           </div>
         </div>

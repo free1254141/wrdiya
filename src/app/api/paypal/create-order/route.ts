@@ -33,11 +33,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const plan = body.plan || 'pro';
     const amount = plan === 'pro' ? '15.00' : '29.00';
+    const userId = body.userId || null;
 
     const token = await getPayPalAccessToken();
 
     // If client credentials are configured with PayPal API
     if (token) {
+      const origin = req.nextUrl.origin || 'https://skanybot.vercel.app';
       const orderRes = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
         method: 'POST',
         headers: {
@@ -48,13 +50,21 @@ export async function POST(req: NextRequest) {
           intent: 'CAPTURE',
           purchase_units: [
             {
+              reference_id: userId || 'customer_purchase',
               amount: {
                 currency_code: 'USD',
                 value: amount,
               },
-              description: 'Skanybot Pro Subscription - 300 Queries / Month',
+              description: 'sakanybot Pro Subscription - 300 Queries / Month',
             },
           ],
+          application_context: {
+            brand_name: 'sakanybot سكنى بوت',
+            landing_page: 'NO_PREFERENCE',
+            user_action: 'PAY_NOW',
+            return_url: `${origin}/?payment=success`,
+            cancel_url: `${origin}/?payment=cancelled`,
+          }
         }),
       });
 
@@ -70,7 +80,7 @@ export async function POST(req: NextRequest) {
       mock: true,
       amount,
       plan: 'pro',
-      description: 'Skanybot Pro Subscription (300 Queries / Month)',
+      description: 'sakanybot Pro Subscription (300 Queries / Month)',
     });
 
   } catch (error: any) {

@@ -37,6 +37,7 @@ import LanguageSelector from '@/components/LanguageSelector';
 import UsagePill from '@/components/UsagePill';
 import PricingModal from '@/components/PricingModal';
 import AuthModal from '@/components/AuthModal';
+import PropertyDetailsModal from '@/components/PropertyDetailsModal';
 
 export default function SkanybotChatPage() {
   const { locale, t, dir, isRtl } = useLanguage();
@@ -82,6 +83,10 @@ export default function SkanybotChatPage() {
   // Booking lead modal state
   const [selectedPropertyForLead, setSelectedPropertyForLead] = useState<Property | null>(null);
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
+
+  // Fullscreen / Expanded Property Details & Gallery modal
+  const [selectedPropertyForDetails, setSelectedPropertyForDetails] = useState<Property | null>(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -540,7 +545,7 @@ export default function SkanybotChatPage() {
   return (
     <div 
       className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-black dark:text-zinc-100" 
-      dir={dir}
+      dir="rtl"
     >
       {/* ChatGPT-Style Sidebar: In RTL (Arabic) it renders first at the RIGHT. In LTR (others) it renders first at the LEFT. */}
       <BrokerChatSidebar
@@ -577,23 +582,19 @@ export default function SkanybotChatPage() {
               <div className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-xl border border-amber-500/30 bg-gradient-to-tr from-amber-500 to-yellow-400 p-0.5 shadow-xs">
                 <img 
                   src="/logo.png" 
-                  alt="Skanybot" 
+                  alt="sakanybot" 
                   className="h-full w-full object-cover rounded-lg"
                   onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
                 />
               </div>
-              <div>
-                <h1 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5">
-                  <span className="tracking-tight">{t.brand}</span>
-                  <span className="hidden sm:inline-block rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
-                    {t.tagline}
-                  </span>
-                </h1>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-base font-black tracking-tight text-amber-500 font-sans">sakanybot</span>
+                <span className="text-xs font-bold text-slate-700 dark:text-zinc-300">سكنى بوت</span>
               </div>
             </div>
           </div>
 
-          {/* Quick Header Controls: Usage Quota, Multilingual Dropdown, Theme & Advisor CTA */}
+          {/* Quick Header Controls: Usage Quota & Account */}
           <div className="flex items-center gap-2">
             {/* Monthly Usage & Quota Pill (Free: 30, Pro: 300) */}
             <UsagePill
@@ -602,18 +603,6 @@ export default function SkanybotChatPage() {
               plan={usageState.plan}
               onOpenPricing={() => setPricingModalOpen(true)}
             />
-
-            {/* Multilingual Selector Dropdown with Flags */}
-            <LanguageSelector />
-
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="grid h-8 w-8 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            >
-              {theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-700" />}
-            </button>
 
             {/* Contact Broker CTA */}
             <button
@@ -661,7 +650,7 @@ export default function SkanybotChatPage() {
         </header>
 
         {/* Scrollable Conversation Stream */}
-        <div className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pt-4 pb-36 sm:pb-32">
+        <div className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pt-4 pb-36 sm:pb-32" dir={dir}>
           <div className="mx-auto max-w-3xl">
             {messages.length === 0 ? (
               /* Welcome Screen with Grounded Suggestions */
@@ -674,8 +663,9 @@ export default function SkanybotChatPage() {
                     onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
                   />
                 </div>
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-                  {t.brand} • {t.tagline}
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center justify-center gap-2">
+                  <span className="text-amber-500 font-sans tracking-tight">sakanybot</span>
+                  <span>سكنى بوت</span>
                 </h2>
                 <p className="mx-auto mt-2 max-w-md text-xs sm:text-sm text-slate-500 dark:text-zinc-400 leading-relaxed font-medium">
                   {t.subtitle}
@@ -759,6 +749,10 @@ export default function SkanybotChatPage() {
                                     property={prop}
                                     onBookViewing={handleBookViewing}
                                     onToggleFavorite={handleToggleFavorite}
+                                    onViewDetails={(p) => {
+                                      setSelectedPropertyForDetails(p);
+                                      setDetailsModalOpen(true);
+                                    }}
                                     isFavorite={favorites.some(f => f.id === prop.id)}
                                   />
                                 </div>
@@ -884,6 +878,19 @@ export default function SkanybotChatPage() {
         }}
         onBookViewing={handleBookViewing}
       />
+      {/* Fullscreen / Expanded Property Gallery & Details Modal */}
+      <PropertyDetailsModal
+        property={selectedPropertyForDetails}
+        isOpen={detailsModalOpen}
+        onClose={() => setDetailsModalOpen(false)}
+        onBookViewing={(p) => {
+          setSelectedPropertyForLead(p);
+          setBookingModalOpen(true);
+        }}
+        onToggleFavorite={handleToggleFavorite}
+        isFavorite={favorites.some(f => f.id === selectedPropertyForDetails?.id)}
+      />
+
       {/* Pricing & PayPal Subscription Modal */}
       <PricingModal
         isOpen={pricingModalOpen}
@@ -897,6 +904,7 @@ export default function SkanybotChatPage() {
             localStorage.setItem('skanybot_plan', newPlan);
           } catch (e) {}
         }}
+        onOpenAuthModal={() => setAuthModalOpen(true)}
       />
 
       {/* Supabase Authentication Modal (Google + Email) */}

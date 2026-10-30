@@ -132,10 +132,12 @@ export async function POST(req: NextRequest) {
     // If freeTest / bypassDeepSeek is requested, use the fast 0-cost local grounded engine
     let finalContent = '';
     // ── Cap results: max 4 cards shown in UI regardless of how many match ──
+    // ── If intent is general (greeting/small-talk) show NO property cards ──
     const MAX_CARDS = 4;
-    const propertiesToReturn = (
-      matchedProperties.length > 0 ? matchedProperties : featuredOpportunities
-    ).slice(0, MAX_CARDS);
+    const isGeneralChat = analysis.intent === 'general';
+    const propertiesToReturn = isGeneralChat
+      ? []
+      : (matchedProperties.length > 0 ? matchedProperties : featuredOpportunities).slice(0, MAX_CARDS);
 
     // 5.1 Auto-Capture Lead & Phone Numbers from conversation
     const phoneRegex = /(?:\+?20|0)?1[0125]\d{8}\b|\+?\d{10,14}\b/;
