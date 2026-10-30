@@ -17,17 +17,20 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  // Always default strictly to Arabic ('ar')
   const [locale, setLocaleState] = useState<Locale>('ar');
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('aqar_locale') as Locale | null;
-      const valid = SUPPORTED_LANGUAGES.some(l => l.code === saved);
-      if (saved && valid) {
+      const saved = localStorage.getItem('sakany_locale_v2') as Locale | null;
+      if (saved && SUPPORTED_LANGUAGES.some(l => l.code === saved)) {
         setLocaleState(saved);
         applyLocale(saved);
       } else {
+        // Strict default: Arabic
+        setLocaleState('ar');
         applyLocale('ar');
+        localStorage.setItem('sakany_locale_v2', 'ar');
       }
     } catch {
       applyLocale('ar');
@@ -67,13 +70,12 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const setLocale = (loc: Locale) => {
     setLocaleState(loc);
     try {
-      localStorage.setItem('aqar_locale', loc);
+      localStorage.setItem('sakany_locale_v2', loc);
     } catch {}
     applyLocale(loc);
   };
 
   const toggleLocale = () => {
-    // Quick toggle between primary two, or cycle
     setLocale(locale === 'ar' ? 'en' : 'ar');
   };
 
