@@ -103,21 +103,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Quota & Usage Enforcement (Free: 30 / month, Pro: 300 / month)
-    const usage = checkAndIncrementUsage(clientId, userPlan, true);
-    if (usage.exceeded) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'quota_exceeded',
-          message: locale === 'ar'
-            ? `لقد استهلكت رصيدك الشهري المتاح (${usage.limit} استفسار). قم بالترقية لخطة Pro للحصول على 300 استفسار شهرياً!`
-            : `You have reached your monthly quota of ${usage.limit} queries. Upgrade to Pro for 300 queries/month!`,
-          usage,
-        },
-        { status: 429 }
-      );
-    }
+    // 1. Usage Tracking (silent, no blocking/upsell while subscriptions are hidden)
+    const usage = checkAndIncrementUsage(clientId, "pro", true);
 
     // 2. Analyze query constraints & intent (Anti-Hallucination filter extractor)
     const analysis = analyzeUserQuery(userMessage);

@@ -473,7 +473,7 @@ export default function SkanybotChatPage() {
       const data = await response.json();
 
       if (response.status === 429 || data.error === 'quota_exceeded') {
-        setPricingModalOpen(true);
+        // quota check removed
         throw new Error(data.message || (isRtl ? 'لقد وصلت للحد الأقصى للاستفسارات هذا الشهر. قم بالترقية لخطة Pro للمتابعة.' : 'Monthly limit reached. Upgrade to Pro to continue.'));
       }
 
@@ -594,16 +594,8 @@ export default function SkanybotChatPage() {
             </div>
           </div>
 
-          {/* Quick Header Controls: Usage Quota & Account */}
+          {/* Quick Header Controls */}
           <div className="flex items-center gap-2">
-            {/* Monthly Usage & Quota Pill (Free: 30, Pro: 300) */}
-            <UsagePill
-              used={usageState.used}
-              limit={usageState.limit}
-              plan={usageState.plan}
-              onOpenPricing={() => setPricingModalOpen(true)}
-            />
-
             {/* Contact Broker CTA */}
             <button
               onClick={() => {
@@ -891,21 +883,7 @@ export default function SkanybotChatPage() {
         isFavorite={favorites.some(f => f.id === selectedPropertyForDetails?.id)}
       />
 
-      {/* Pricing & PayPal Subscription Modal */}
-      <PricingModal
-        isOpen={pricingModalOpen}
-        onClose={() => setPricingModalOpen(false)}
-        currentPlan={usageState.plan}
-        usedCount={usageState.used}
-        limitCount={usageState.limit}
-        onUpgradeSuccess={(newPlan, newLimit) => {
-          setUsageState(prev => ({ ...prev, plan: newPlan, limit: newLimit }));
-          try {
-            localStorage.setItem('skanybot_plan', newPlan);
-          } catch (e) {}
-        }}
-        onOpenAuthModal={() => setAuthModalOpen(true)}
-      />
+      
 
       {/* Supabase Authentication Modal (Google + Email) */}
       <AuthModal
