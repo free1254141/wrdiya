@@ -138,10 +138,18 @@ export async function POST(req: NextRequest) {
     // 3. AGENTIC EXECUTION: Pure LLM-driven Function Calling via DeepSeek (inspired by stokscan_AI)
     if (isDeepSeekConfigured() && !freeTest) {
       try {
-        const history = (body.messages || []).map((m: any) => ({
-          role: m.role || 'user',
-          content: m.content || '',
-        }));
+        // The UI sends `history` (last turns incl. the current message). Drop the current
+        // message from it since runDeepSeekAgenticChat appends it itself.
+        const rawHistory: any[] = Array.isArray(body.history) ? body.history : (Array.isArray(body.messages) ? body.messages : []);
+        const history = rawHistory
+          .filter((m: any) => m && typeof m.content === 'string' && m.content.trim())
+          .map((m: any) => ({
+            role: m.role === 'assistant' ? 'assistant' as const : 'user' as const,
+            content: String(m.content).slice(0, 1500),
+          }));
+        if (history.length && history[history.length - 1].role === 'user' && history[history.length - 1].content.trim() === userMessage) {
+          history.pop();
+        }
 
         const agenticResult = await runDeepSeekAgenticChat(userMessage, locale, history);
         if (agenticResult && agenticResult.content) {
@@ -171,9 +179,9 @@ export async function POST(req: NextRequest) {
       if (isGeneral) {
         propertiesToReturn = [];
       } else if (matchedProperties.length > 0) {
-        propertiesToReturn = matchedProperties.slice(0, 4);
+        propertiesToReturn = matchedProperties.slice(0, 6);
       } else if (!hasSpecificFilter) {
-        propertiesToReturn = featuredOpportunities.slice(0, 4);
+        propertiesToReturn = featuredOpportunities.slice(0, 6);
       } else {
         propertiesToReturn = [];
       }

@@ -64,6 +64,7 @@ export async function runDeepSeekAgenticChat(
 
 أسلوب الرد:
 - أسلوب راقٍ، مهني، وموجز (فقرتين إلى 3 فقرات مركزة).
+- أداة البحث تعرض 6 وحدات افتراضياً وتخبرك بإجمالي المطابق (total_matches_in_database). اذكر للعميل العدد الكلي، وإذا كان أكثر مما عُرض فاعرض عليه المزيد؛ وإذا طلب المزيد استدعِ الأداة بنفس الشروط مع offset.
 - لا تسرد جداول ضخمة لأن واجهة التطبيق تعرض كروت العقارات التفاعلية الكاملة للمستخدم بالصور والأسعار مباشرة.
 - وضّح ميزة كل وحدة ومقدمها وفترة تقسيطها.
 - أنهِ ردك بدعوة لمعاينة مجانية أو إمكانية توصيله بإدارة المشروع بدون مكالمات سيلز مزعجة.`;
@@ -147,6 +148,8 @@ export async function runDeepSeekAgenticChat(
         }
         toolOutput = {
           found_count: searchRes.found,
+          total_matches_in_database: searchRes.total_matches,
+          offset: searchRes.offset,
           message: searchRes.message,
           properties_summary: searchRes.properties.map((p, idx) => ({
             id: p.id,
@@ -203,7 +206,7 @@ export async function runDeepSeekAgenticChat(
         content: isAr
           ? `وجدت لك ${collectedProperties.length} وحدات مطابقة لمواصفات بحثك. تفقد تفاصيلها وكروت المعاينة بالأسفل.`
           : `Found ${collectedProperties.length} units matching your search. Check the property cards below.`,
-        properties: collectedProperties.slice(0, 4),
+        properties: collectedProperties.slice(0, 12),
         toolCallsCount
       };
     }
@@ -213,7 +216,7 @@ export async function runDeepSeekAgenticChat(
 
     return {
       content: finalContent,
-      properties: collectedProperties.slice(0, 4),
+      properties: collectedProperties.slice(0, 12),
       toolCallsCount
     };
 

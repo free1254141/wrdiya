@@ -21,6 +21,7 @@ export interface SearchPropertiesArgs {
   delivery_type?: 'فوري' | 'تقسيط' | 'جاهز' | 'all';
   compound_name?: string;
   limit?: number;
+  offset?: number;
 }
 
 export interface InstallmentCalcArgs {
@@ -90,7 +91,11 @@ export const AGENTIC_TOOLS_SCHEMA = [
           },
           limit: {
             type: 'number',
-            description: 'الحد الأقصى لعدد الوحدات المطلوبة (افتراضياً 4)'
+            description: 'عدد الوحدات المطلوب عرضها (افتراضياً 6 وحد أقصى 12)'
+          },
+          offset: {
+            type: 'number',
+            description: 'عدد الوحدات التي تم عرضها سابقاً لتخطيها (استخدمها عندما يطلب العميل المزيد من النتائج: 6 ثم 12 وهكذا)'
           }
         }
       }
@@ -178,13 +183,16 @@ const LOCATION_SYNONYMS: Record<string, string[]> = {
  */
 export async function executePropertySearch(args: SearchPropertiesArgs): Promise<{
   found: number;
+  total_matches?: number;
+  offset?: number;
   message?: string;
   properties: Property[];
   filtersApplied: Record<string, any>;
 }> {
   const all = await getAllCachedProperties();
   let results = [...all];
-  const limit = Math.min(args.limit || 4, 8);
+  const limit = Math.min(Math.max(args.limit || 6, 1), 12);
+  const offset = Math.max(args.offset || 0, 0);
 
   // 1. Check unit type
   if (args.unit_type) {
@@ -295,10 +303,13 @@ export async function executePropertySearch(args: SearchPropertiesArgs): Promise
     }
   }
 
-  const finalProperties = results.slice(0, limit);
+  const totalMatches = results.length;
+  const finalProperties = results.slice(offset, offset + limit);
 
   return {
     found: finalProperties.length,
+    total_matches: totalMatches,
+    offset,
     properties: finalProperties,
     filtersApplied: {
       unit_type: args.unit_type,
