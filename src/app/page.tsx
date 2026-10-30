@@ -48,7 +48,12 @@ export default function SkanybotChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 768; // open by default on md+, closed on mobile
+    }
+    return true;
+  });
 
   // Auth modal state
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -552,7 +557,7 @@ export default function SkanybotChatPage() {
               <div>
                 <h1 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5">
                   <span className="tracking-tight">{t.brand}</span>
-                  <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                  <span className="hidden sm:inline-block rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
                     {t.tagline}
                   </span>
                 </h1>
@@ -618,17 +623,17 @@ export default function SkanybotChatPage() {
             ) : (
               <button
                 onClick={() => setAuthModalOpen(true)}
-                className="flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-600 transition hover:bg-amber-500/20 dark:text-amber-400"
+                className="flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-amber-600 transition hover:bg-amber-500/20 dark:text-amber-400"
               >
-                <User className="h-3.5 w-3.5" />
-                <span>{isRtl ? 'تسجيل الدخول' : 'Sign In'}</span>
+                <User className="h-3.5 w-3.5 shrink-0" />
+                <span className="hidden sm:inline">{isRtl ? 'تسجيل الدخول' : 'Sign In'}</span>
               </button>
             )}
           </div>
         </header>
 
         {/* Scrollable Conversation Stream */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 md:px-8">
+        <div className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pt-4 pb-36 sm:pb-32">
           <div className="mx-auto max-w-3xl">
             {messages.length === 0 ? (
               /* Welcome Screen with Grounded Suggestions */
@@ -671,7 +676,7 @@ export default function SkanybotChatPage() {
               </div>
             ) : (
               /* Messages Stream */
-              <div className="space-y-6 pb-24">
+              <div className="space-y-6 pb-6">
                 {messages.map((msg) => {
                   const isUser = msg.role === 'user';
 
@@ -717,17 +722,18 @@ export default function SkanybotChatPage() {
                         }`}>
                           <MarkdownRenderer content={msg.content} />
 
-                          {/* Grounded Property Cards Grid */}
+                          {/* Grounded Property Cards – horizontal scroll on mobile, 2-col grid on sm+ */}
                           {msg.properties && msg.properties.length > 0 && (
-                            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div className="mt-4 flex gap-3 overflow-x-auto pb-2.5 pt-1 snap-x snap-mandatory no-scrollbar sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 sm:pt-0 sm:gap-4">
                               {msg.properties.map((prop) => (
-                                <PropertyCard
-                                  key={prop.id}
-                                  property={prop}
-                                  onBookViewing={handleBookViewing}
-                                  onToggleFavorite={handleToggleFavorite}
-                                  isFavorite={favorites.some(f => f.id === prop.id)}
-                                />
+                                <div key={prop.id} className="w-[280px] shrink-0 snap-center sm:w-auto sm:shrink">
+                                  <PropertyCard
+                                    property={prop}
+                                    onBookViewing={handleBookViewing}
+                                    onToggleFavorite={handleToggleFavorite}
+                                    isFavorite={favorites.some(f => f.id === prop.id)}
+                                  />
+                                </div>
                               ))}
                             </div>
                           )}
