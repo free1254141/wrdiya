@@ -5,6 +5,8 @@ import {
   getFeaturedOpportunities, 
   formatGroundedBrokerResponse 
 } from '@/lib/real-estate-engine';
+import { generateDeepSeekBrokerReply, isDeepSeekConfigured } from '@/lib/deepseek';
+import { checkAndIncrementUsage, SubscriptionPlan } from '@/lib/usage-manager';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://csuifvyghfsibkrnxrby.supabase.co';
@@ -19,6 +21,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const userMessage = body.message || body.prompt || (body.messages && body.messages.length > 0 ? body.messages[body.messages.length - 1].content : '');
     const sessionId = body.sessionId || body.session_id;
+    const clientId = body.clientId || sessionId || req.headers.get('x-forwarded-for') || 'guest_user';
+    const userPlan: SubscriptionPlan = body.plan === 'pro' ? 'pro' : 'free';
     const locale = (['ar', 'en', 'tr', 'ru', 'de', 'fr', 'es'].includes(body.locale) ? body.locale : 'ar');
 
     if (!userMessage || !userMessage.trim()) {
@@ -28,25 +32,68 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Analyze query constraints & intent (Anti-Hallucination filter extractor)
+    // 1. Quota & Usage Enforcement (Free: 30 / month, Pro: 300 / month)
+    const usage = checkAndIncrementUsage(clientId, userPlan, true);
+    if (usage.exceeded) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'quota_exceeded',
+          message: locale === 'ar'
+            ? `لقد استهلكت رصيدك الشهري المتاح (${usage.limit} استفسار). قم بالترقية لخطة Pro للحصول على 300 استفسار شهرياً!`
+            : `You have reached your monthly quota of ${usage.limit} queries. Upgrade to Pro for 300 queries/month!`,
+          usage,
+        },
+        { status: 429 }
+      );
+    }
+
+    // 2. Analyze query constraints & intent (Anti-Hallucination filter extractor)
     const analysis = analyzeUserQuery(userMessage);
 
-    // 2. Fetch grounded properties from Supabase matching the exact constraints
+    // 3. Fetch grounded properties from Supabase matching the exact constraints
     const matchedProperties = await queryProperties(analysis.filter);
 
-    // 3. Fetch featured opportunities for realistic fallbacks
+    // 4. Fetch featured opportunities for realistic fallbacks
     const featuredOpportunities = await getFeaturedOpportunities();
 
-    // 4. Format grounded response strictly backed by database evidence
-    const formatted = formatGroundedBrokerResponse(
-      userMessage,
-      analysis,
-      matchedProperties,
-      featuredOpportunities,
-      locale
-    );
+    // 5. Build Grounded Response:
+    // Try DeepSeek first if DEEPSEEK_API_KEY is configured
+    let finalContent = '';
+    const propertiesToReturn = matchedProperties.length > 0 ? matchedProperties : featuredOpportunities.slice(0, 4);
 
-    // 5. If sessionId is provided, store message pair in chat_messages table
+    if (isDeepSeekConfigured()) {
+      try {
+        const history = (body.messages || []).map((m: any) => ({
+          role: m.role || 'user',
+          content: m.content || '',
+        }));
+        const deepSeekReply = await generateDeepSeekBrokerReply(userMessage, propertiesToReturn, locale, history);
+        if (deepSeekReply && deepSeekReply.trim().length > 20) {
+          finalContent = deepSeekReply;
+        }
+      } catch (aiErr) {
+        console.warn('DeepSeek generation failed, falling back to rule engine:', aiErr);
+      }
+    }
+
+    // Fallback to deterministic grounded broker response if DeepSeek not configured or empty
+    if (!finalContent) {
+      const formatted = formatGroundedBrokerResponse(
+        userMessage,
+        analysis,
+        matchedProperties,
+        featuredOpportunities,
+        locale
+      );
+      finalContent = formatted.content;
+    }
+
+    const defaultSuggestedActions = locale === 'ar' 
+      ? ['طلب استشارة ومعاينة مجانية 📅', 'حساب خطة الأقساط الشهرية 💰', 'عقارات في دبي والإمارات 🇦🇪']
+      : ['Book Free Viewing 📅', 'Calculate Monthly Installments 💰', 'Dubai & UAE Properties 🇦🇪'];
+
+    // 6. If sessionId is provided, store message pair in chat_messages table
     if (sessionId) {
       try {
         await supabaseAdmin.from('chat_messages').insert([
@@ -58,11 +105,12 @@ export async function POST(req: NextRequest) {
           {
             session_id: sessionId,
             role: 'assistant',
-            content: formatted.content,
+            content: finalContent,
             metadata: {
-              properties_count: formatted.properties.length,
-              property_ids: formatted.properties.map(p => p.id),
-              suggested_actions: formatted.suggestedActions
+              properties_count: propertiesToReturn.length,
+              property_ids: propertiesToReturn.map(p => p.id),
+              ai_model: isDeepSeekConfigured() ? 'deepseek-chat' : 'grounded-engine',
+              usage: { used: usage.used, limit: usage.limit, plan: usage.plan },
             }
           }
         ]);
@@ -74,11 +122,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       role: 'assistant',
-      content: formatted.content,
-      properties: formatted.properties,
-      suggestedActions: formatted.suggestedActions,
+      content: finalContent,
+      properties: propertiesToReturn,
+      suggestedActions: defaultSuggestedActions,
       intent: analysis.intent,
-      filterApplied: analysis.filter
+      filterApplied: analysis.filter,
+      aiProvider: isDeepSeekConfigured() ? 'deepseek' : 'grounded-engine',
+      usage: {
+        used: usage.used,
+        limit: usage.limit,
+        plan: usage.plan,
+        remaining: usage.remaining,
+        resetDate: usage.resetDate,
+      },
     });
 
   } catch (error: any) {

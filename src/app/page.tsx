@@ -32,6 +32,8 @@ import BookingLeadModal from '@/components/BookingLeadModal';
 import FavoritesModal from '@/components/FavoritesModal';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import LanguageSelector from '@/components/LanguageSelector';
+import UsagePill from '@/components/UsagePill';
+import PricingModal from '@/components/PricingModal';
 
 export default function SkanybotChatPage() {
   const { locale, t, dir, isRtl } = useLanguage();
@@ -43,6 +45,14 @@ export default function SkanybotChatPage() {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Usage & Quota State (Free: 30, Pro: 300)
+  const [usageState, setUsageState] = useState<{ used: number; limit: number; plan: 'free' | 'pro' }>({
+    used: 0,
+    limit: 30,
+    plan: 'free',
+  });
+  const [pricingModalOpen, setPricingModalOpen] = useState(false);
 
   // Favorites state
   const [favorites, setFavorites] = useState<Property[]>([]);
@@ -232,6 +242,15 @@ export default function SkanybotChatPage() {
         setFavorites(JSON.parse(savedFavs));
       }
 
+      // Restore plan & usage count
+      const savedPlan = (localStorage.getItem('skanybot_plan') as 'free' | 'pro') || 'free';
+      const savedUsage = parseInt(localStorage.getItem('skanybot_usage_count') || '0', 10);
+      setUsageState({
+        plan: savedPlan,
+        limit: savedPlan === 'pro' ? 300 : 30,
+        used: isNaN(savedUsage) ? 0 : savedUsage,
+      });
+
       const savedSessions = localStorage.getItem('skanybot_sessions') || localStorage.getItem('aqar_ai_sessions');
       if (savedSessions) {
         const parsed: ChatSession[] = JSON.parse(savedSessions);
@@ -382,6 +401,8 @@ export default function SkanybotChatPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId: currSessionId,
+          clientId: currSessionId,
+          plan: usageState.plan,
           message: query,
           locale: locale,
           history: newHistory.slice(-8)
@@ -390,8 +411,26 @@ export default function SkanybotChatPage() {
 
       const data = await response.json();
 
+      if (response.status === 429 || data.error === 'quota_exceeded') {
+        setPricingModalOpen(true);
+        throw new Error(data.message || (isRtl ? 'لقد وصلت للحد الأقصى للاستفسارات هذا الشهر. قم بالترقية لخطة Pro للمتابعة.' : 'Monthly limit reached. Upgrade to Pro to continue.'));
+      }
+
       if (!response.ok) {
         throw new Error(data.error || 'Server error occurred');
+      }
+
+      // Update live usage state
+      if (data.usage) {
+        setUsageState({
+          used: data.usage.used,
+          limit: data.usage.limit,
+          plan: data.usage.plan,
+        });
+        try {
+          localStorage.setItem('skanybot_usage_count', String(data.usage.used));
+          localStorage.setItem('skanybot_plan', data.usage.plan);
+        } catch (e) {}
       }
 
       const botMsg: ChatMessage = {
@@ -498,8 +537,16 @@ export default function SkanybotChatPage() {
             </div>
           </div>
 
-          {/* Quick Header Controls: Full Multilingual Dropdown, Theme & Advisor CTA */}
+          {/* Quick Header Controls: Usage Quota, Multilingual Dropdown, Theme & Advisor CTA */}
           <div className="flex items-center gap-2">
+            {/* Monthly Usage & Quota Pill (Free: 30, Pro: 300) */}
+            <UsagePill
+              used={usageState.used}
+              limit={usageState.limit}
+              plan={usageState.plan}
+              onOpenPricing={() => setPricingModalOpen(true)}
+            />
+
             {/* Multilingual Selector Dropdown with Flags */}
             <LanguageSelector />
 
@@ -543,9 +590,12 @@ export default function SkanybotChatPage() {
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
                   {t.brand} • {t.tagline}
                 </h2>
-                <p className="mx-auto mt-2 max-w-md text-xs sm:text-sm text-slate-500 dark:text-zinc-400 leading-relaxed">
+                <p className="mx-auto mt-2 max-w-md text-xs sm:text-sm text-slate-500 dark:text-zinc-400 leading-relaxed font-medium">
                   {t.subtitle}
                 </p>
+                <div className="mt-3.5 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 shadow-xs">
+                  <span>{t.noSpamBadge}</span>
+                </div>
 
                 {/* Quick Discovery Cards */}
                 <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 text-left rtl:text-right">
@@ -725,6 +775,20 @@ export default function SkanybotChatPage() {
           localStorage.setItem('skanybot_favorites', JSON.stringify(updated));
         }}
         onBookViewing={handleBookViewing}
+      />
+      {/* Pricing & PayPal Subscription Modal */}
+      <PricingModal
+        isOpen={pricingModalOpen}
+        onClose={() => setPricingModalOpen(false)}
+        currentPlan={usageState.plan}
+        usedCount={usageState.used}
+        limitCount={usageState.limit}
+        onUpgradeSuccess={(newPlan, newLimit) => {
+          setUsageState(prev => ({ ...prev, plan: newPlan, limit: newLimit }));
+          try {
+            localStorage.setItem('skanybot_plan', newPlan);
+          } catch (e) {}
+        }}
       />
     </div>
   );

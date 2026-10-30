@@ -23,7 +23,8 @@ export const translations = {
   ar: {
     brand: 'Skanybot',
     tagline: 'مستشارك وبروكر العقارات الذكي',
-    subtitle: 'ابحث عن شقتك، قارن المشاريع، واحسب أقساطك بدقة تامة وبدون تضليل عقاري.',
+    subtitle: 'اعرف أسعار وأقساط أي كمبوند في مصر أو دبي في ثواني — ومن غير مكالمات سيلز مزعجة.',
+    noSpamBadge: '🛡️ خصوصية تامة • بدون مكالمات سيلز متكررة • أرقام رسمية موثقة',
     newChat: 'محادثة عقارية جديدة',
     chatHistory: 'سجل المحادثات',
     noChats: 'لا توجد محادثات سابقة. ابدأ بالبحث عن شقتك الآن!',
@@ -80,7 +81,8 @@ export const translations = {
   en: {
     brand: 'Skanybot',
     tagline: 'Your Intelligent Real Estate Broker',
-    subtitle: 'Search apartments, compare developments, and calculate monthly installments accurately without real estate bias.',
+    subtitle: 'Find exact property prices and payment plans in Egypt & Dubai in seconds — zero annoying sales calls.',
+    noSpamBadge: '🛡️ 100% Privacy • No Unwanted Cold Calls • Verified Official Data',
     newChat: 'New Real Estate Chat',
     chatHistory: 'Chat History',
     noChats: 'No previous conversations yet. Start your property search now!',
@@ -137,7 +139,8 @@ export const translations = {
   tr: {
     brand: 'Skanybot',
     tagline: 'Akıllı Gayrimenkul Danışmanınız',
-    subtitle: 'Daire arayın, projeleri karşılaştırın ve ödeme planlarını doğru hesaplayın.',
+    subtitle: 'Mısır ve Dubai projelerinin fiyat ve taksitlerini saniyeler içinde öğrenin — rahatsız edici satış aramaları olmadan.',
+    noSpamBadge: '🛡️ %100 Gizlilik • İstenmeyen Arama Yok • Doğrulanmış Resmi Veriler',
     newChat: 'Yeni Emlak Sohbeti',
     chatHistory: 'Sohbet Geçmişi',
     noChats: 'Henüz geçmiş sohbet yok. Aramaya hemen başlayın!',
@@ -194,7 +197,8 @@ export const translations = {
   ru: {
     brand: 'Skanybot',
     tagline: 'Ваш умный эксперт по недвижимости',
-    subtitle: 'Поиск квартир, сравнение проектов и точный расчет рассрочки в Дубае, Турции и Египте.',
+    subtitle: 'Цены и рассрочка в Египте и Дубае за секунды — без назойливых звонков риелторов.',
+    noSpamBadge: '🛡️ 100% конфиденциальность • Никаких спам-звонков • Официальные данные',
     newChat: 'Новый чат по недвижимости',
     chatHistory: 'История поиска',
     noChats: 'История поиска пуста. Начните поиск прямо сейчас!',
@@ -251,7 +255,8 @@ export const translations = {
   de: {
     brand: 'Skanybot',
     tagline: 'Ihr intelligenter Immobilienberater',
-    subtitle: 'Wohnungen finden, Projekte vergleichen und Ratenpläne ohne Makleraufschlag berechnen.',
+    subtitle: 'Preise und Ratenpläne in Ägypten & Dubai in Sekunden — ohne lästige Makleranrufe.',
+    noSpamBadge: '🛡️ 100% Privatsphäre • Keine Kaltakquise • Verifizierte Daten',
     newChat: 'Neuer Immobilien-Chat',
     chatHistory: 'Verlauf',
     noChats: 'Keine bisherigen Gespräche. Starten Sie jetzt Ihre Suche!',
@@ -308,7 +313,8 @@ export const translations = {
   fr: {
     brand: 'Skanybot',
     tagline: 'Votre courtier immobilier intelligent',
-    subtitle: 'Recherchez des appartements, comparez les projets et calculez vos mensualités.',
+    subtitle: 'Prix et plans de paiement en Égypte & Dubaï en quelques secondes — sans appels de démarchage.',
+    noSpamBadge: '🛡️ Confidentialité totale • Aucun démarchage • Données officielles',
     newChat: 'Nouvelle conversation',
     chatHistory: 'Historique',
     noChats: 'Aucun historique. Commencez votre recherche dès maintenant !',
@@ -365,7 +371,8 @@ export const translations = {
   es: {
     brand: 'Skanybot',
     tagline: 'Tu asesor y broker inmobiliario inteligente',
-    subtitle: 'Busca apartamentos, compara promociones y calcula plazos de pago con total precisión.',
+    subtitle: 'Precios y planes de pago en Egipto y Dubái en segundos — sin molestas llamadas de comerciales.',
+    noSpamBadge: '🛡️ 100% Privacidad • Sin llamadas comerciales • Datos oficiales',
     newChat: 'Nueva consulta inmobiliaria',
     chatHistory: 'Historial',
     noChats: 'No hay conversaciones previas. ¡Empieza tu búsqueda ahora!',
