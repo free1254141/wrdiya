@@ -20,6 +20,10 @@ export async function POST(req: NextRequest) {
       budgetMax, 
       paymentMethod = 'تقسيط',
       propertyId, 
+      unitTitle,
+      developerName,
+      userId,
+      sessionId,
       notes,
       source = 'chatbot'
     } = body;
@@ -45,6 +49,10 @@ export async function POST(req: NextRequest) {
           budget_max: budgetMax ? Number(budgetMax) : null,
           payment_method: paymentMethod,
           property_id: propertyId || null,
+          unit_title: unitTitle || null,
+          developer_name: developerName || null,
+          user_id: userId || null,
+          session_id: sessionId || null,
           notes: notes || null,
           source,
           status: 'جديد'

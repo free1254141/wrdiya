@@ -133,6 +133,33 @@ export async function POST(req: NextRequest) {
     let finalContent = '';
     const propertiesToReturn = matchedProperties.length > 0 ? matchedProperties : featuredOpportunities.slice(0, 4);
 
+    // 5.1 Auto-Capture Lead & Phone Numbers from conversation
+    const phoneRegex = /(?:\+?20|0)?1[0125]\d{8}\b|\+?\d{10,14}\b/;
+    const phoneMatch = userMessage.match(phoneRegex);
+    const extractedPhone = phoneMatch ? phoneMatch[0] : null;
+
+    if (extractedPhone) {
+      try {
+        await supabaseAdmin.from('leads_inquiries').insert([{
+          user_name: body.userName || (body.userEmail ? body.userEmail.split('@')[0] : 'عميل مهتم من الشات'),
+          phone: extractedPhone,
+          email: body.userEmail || null,
+          preferred_location: analysis.filter.location || analysis.filter.compound_name || null,
+          preferred_unit_type: analysis.filter.unit_type || null,
+          property_id: propertiesToReturn[0]?.id || null,
+          unit_title: propertiesToReturn[0]?.title || null,
+          developer_name: propertiesToReturn[0]?.compound?.developer?.name || null,
+          notes: `طلب واستفسار مباشر عبر الشات: "${userMessage}"`,
+          source: 'chat_conversation',
+          status: 'جديد',
+          user_id: userId || null,
+          session_id: sessionId || null,
+        }]);
+      } catch (leadSaveErr) {
+        console.error('Lead auto-save error:', leadSaveErr);
+      }
+    }
+
     if (isDeepSeekConfigured() && !freeTest) {
       try {
         const history = (body.messages || []).map((m: any) => ({
@@ -158,6 +185,14 @@ export async function POST(req: NextRequest) {
         locale
       );
       finalContent = formatted.content;
+    }
+
+    // Acknowledge phone/lead recording if extracted
+    if (extractedPhone && !finalContent.includes(extractedPhone)) {
+      const ack = locale === 'ar'
+        ? `✅ **تم تسجيل رقم هاتفك (${extractedPhone}) وتفاصيل طلبك بنجاح!**\nكشات بوت مستشارك الذكي، هدفي هو توفير وقتك وربطك مباشرة بصاحب الوحدة أو إدارة المبيعات الرسمية للمشروع لتحديد موعد المعاينة بدون أي إزعاج.\n\n`
+        : `✅ **Your contact number (${extractedPhone}) and request have been recorded!**\nAs your AI advisor, my goal is to connect you directly with the property owner/developer for official viewing.\n\n`;
+      finalContent = ack + finalContent;
     }
 
     const defaultSuggestedActions = locale === 'ar' 

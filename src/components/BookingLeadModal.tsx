@@ -66,11 +66,13 @@ export default function BookingLeadModal({
           userName: userName.trim(),
           phone: phone.trim(),
           propertyId: property?.id,
+          unitTitle: property?.title || null,
+          developerName: property?.compound?.developer?.name || null,
           preferredLocation: property?.compound?.area_name || property?.compound?.city || 'General',
           preferredUnitType: property?.unit_type || 'Apartment',
           budgetMax: property?.total_price,
           notes: `Timing: ${preferredTime}. Notes: ${notes || 'None'}`,
-          source: 'property_card_viewing'
+          source: property ? 'property_card_viewing' : 'direct_advisor_inquiry'
         })
       });
 
