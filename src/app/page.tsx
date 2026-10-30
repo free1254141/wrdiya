@@ -58,6 +58,15 @@ export default function SkanybotChatPage() {
   // Auth modal state
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
+  // Guest message counter — after 3 messages, prompt login
+  const GUEST_MSG_LIMIT = 3;
+  const [guestMsgCount, setGuestMsgCount] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      return parseInt(localStorage.getItem('skanybot_guest_msgs') || '0', 10);
+    }
+    return 0;
+  });
+
   // Usage & Quota State (Free: 30, Pro: 300)
   const [usageState, setUsageState] = useState<{ used: number; limit: number; plan: 'free' | 'pro' }>({
     used: 0,
@@ -287,6 +296,14 @@ export default function SkanybotChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
+  // Reset guest counter when user logs in
+  useEffect(() => {
+    if (user) {
+      setGuestMsgCount(0);
+      try { localStorage.removeItem('skanybot_guest_msgs'); } catch (e) {}
+    }
+  }, [user]);
+
   const loadSessionMessages = (sessionId: string) => {
     try {
       const stored = localStorage.getItem(`skanybot_msgs_${sessionId}`) || localStorage.getItem(`aqar_ai_msgs_${sessionId}`);
@@ -391,6 +408,17 @@ export default function SkanybotChatPage() {
   const handleSendMessage = async (textToSend?: string) => {
     const query = (textToSend || inputText).trim();
     if (!query || loading) return;
+
+    // ── Guest limit: 3 free messages before login wall ──
+    if (!user) {
+      const nextCount = guestMsgCount + 1;
+      if (nextCount > GUEST_MSG_LIMIT) {
+        setAuthModalOpen(true);
+        return;
+      }
+      setGuestMsgCount(nextCount);
+      try { localStorage.setItem('skanybot_guest_msgs', String(nextCount)); } catch (e) {}
+    }
 
     setInputText('');
     if (textareaRef.current) {
@@ -767,6 +795,26 @@ export default function SkanybotChatPage() {
                     <div className="flex items-center gap-1 font-semibold">
                       <span>{t.checkingDatabase}</span>
                     </div>
+                  </div>
+                )}
+
+                {/* Guest soft-wall banner — appears after 2nd message */}
+                {!user && !loading && guestMsgCount >= 2 && guestMsgCount <= GUEST_MSG_LIMIT && (
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs">
+                    <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-semibold">
+                      <Sparkles className="h-4 w-4 shrink-0" />
+                      <span>
+                        {isRtl
+                          ? `تبقّى لك ${GUEST_MSG_LIMIT - guestMsgCount} رسيلة — سجّل دخول عشان توصل لكل الميزات وتحفظ بحثك 🔓`
+                          : `${GUEST_MSG_LIMIT - guestMsgCount} free message${GUEST_MSG_LIMIT - guestMsgCount > 1 ? 's' : ''} left — Sign in to unlock full access 🔓`}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setAuthModalOpen(true)}
+                      className="shrink-0 rounded-xl bg-amber-500 px-3 py-1.5 text-[11px] font-black text-black transition hover:bg-amber-400"
+                    >
+                      {isRtl ? 'تسجيل الدخول' : 'Sign In'}
+                    </button>
                   </div>
                 )}
 
