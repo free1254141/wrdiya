@@ -20,18 +20,22 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseKey, {
  * Ensure a chat session exists in Supabase.
  * Returns the UUID session id for foreign key linking.
  */
-async function ensureChatSession(sessionId: string, title: string): Promise<string | null> {
+async function ensureChatSession(sessionId: string, title: string, userId?: string | null): Promise<string | null> {
   try {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId);
 
     if (isUuid) {
       const { data: existing } = await supabaseAdmin
         .from('chat_sessions')
-        .select('id')
+        .select('id, user_id')
         .eq('id', sessionId)
         .maybeSingle();
 
       if (existing) {
+        // Update user_id if newly authenticated
+        if (userId && !existing.user_id) {
+          await supabaseAdmin.from('chat_sessions').update({ user_id: userId }).eq('id', existing.id);
+        }
         return existing.id;
       }
 
@@ -41,6 +45,7 @@ async function ensureChatSession(sessionId: string, title: string): Promise<stri
           id: sessionId,
           session_token: sessionId,
           title: title.slice(0, 80),
+          user_id: userId || null,
           is_deleted: false,
         })
         .select('id')
@@ -50,11 +55,14 @@ async function ensureChatSession(sessionId: string, title: string): Promise<stri
     } else {
       const { data: existing } = await supabaseAdmin
         .from('chat_sessions')
-        .select('id')
+        .select('id, user_id')
         .eq('session_token', sessionId)
         .maybeSingle();
 
       if (existing) {
+        if (userId && !existing.user_id) {
+          await supabaseAdmin.from('chat_sessions').update({ user_id: userId }).eq('id', existing.id);
+        }
         return existing.id;
       }
 
@@ -63,6 +71,7 @@ async function ensureChatSession(sessionId: string, title: string): Promise<stri
         .insert({
           session_token: sessionId,
           title: title.slice(0, 80),
+          user_id: userId || null,
           is_deleted: false,
         })
         .select('id')
@@ -81,7 +90,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const userMessage = body.message || body.prompt || (body.messages && body.messages.length > 0 ? body.messages[body.messages.length - 1].content : '');
     const sessionId = body.sessionId || body.session_id;
-    const clientId = body.clientId || sessionId || req.headers.get('x-forwarded-for') || 'guest_user';
+    const userId = body.userId || body.user_id || null;
+    const clientId = userId || body.clientId || sessionId || req.headers.get('x-forwarded-for') || 'guest_user';
     const userPlan: SubscriptionPlan = body.plan === 'pro' ? 'pro' : 'free';
     const locale = (['ar', 'en', 'tr', 'ru', 'de', 'fr', 'es'].includes(body.locale) ? body.locale : 'ar');
     const freeTest = body.freeTest || body.bypassDeepSeek || body.engineOnly || false;
@@ -157,7 +167,7 @@ export async function POST(req: NextRequest) {
     // 6. Store message pair in Supabase chat_sessions & chat_messages tables for auditing & CRM
     if (sessionId) {
       try {
-        const dbSessionId = await ensureChatSession(sessionId, userMessage);
+        const dbSessionId = await ensureChatSession(sessionId, userMessage, userId);
         if (dbSessionId) {
           await supabaseAdmin.from('chat_messages').insert([
             {

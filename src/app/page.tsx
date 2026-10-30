@@ -21,11 +21,13 @@ import {
   AlertCircle,
   TrendingUp,
   MapPin,
-  ExternalLink
+  ExternalLink,
+  LogOut
 } from 'lucide-react';
 import { Property, ChatSession, ChatMessage } from '@/lib/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import BrokerChatSidebar from '@/components/BrokerChatSidebar';
 import PropertyCard from '@/components/PropertyCard';
 import BookingLeadModal from '@/components/BookingLeadModal';
@@ -34,10 +36,12 @@ import MarkdownRenderer from '@/components/MarkdownRenderer';
 import LanguageSelector from '@/components/LanguageSelector';
 import UsagePill from '@/components/UsagePill';
 import PricingModal from '@/components/PricingModal';
+import AuthModal from '@/components/AuthModal';
 
 export default function SkanybotChatPage() {
   const { locale, t, dir, isRtl } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const { user, signOut } = useAuth();
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -45,6 +49,9 @@ export default function SkanybotChatPage() {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Auth modal state
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   // Usage & Quota State (Free: 30, Pro: 300)
   const [usageState, setUsageState] = useState<{ used: number; limit: number; plan: 'free' | 'pro' }>({
@@ -412,7 +419,9 @@ export default function SkanybotChatPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId: currSessionId,
-          clientId: currSessionId,
+          clientId: user?.id || currSessionId,
+          userId: user?.id || null,
+          userEmail: user?.email || null,
           plan: usageState.plan,
           message: query,
           locale: locale,
@@ -581,6 +590,37 @@ export default function SkanybotChatPage() {
               <PhoneCall className="h-3.5 w-3.5" />
               <span>{t.contactAdvisor}</span>
             </button>
+
+            {/* User Account / Auth Button */}
+            {user ? (
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 py-1 px-2 text-xs font-bold text-slate-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
+                  <div className="grid h-6 w-6 place-items-center rounded-full bg-gradient-to-tr from-amber-500 to-yellow-400 text-[11px] font-black text-black">
+                    {user.avatar ? (
+                      <img src={user.avatar} alt={user.name} className="h-full w-full rounded-full object-cover" />
+                    ) : (
+                      user.name.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <span className="hidden md:inline max-w-[90px] truncate">{user.name}</span>
+                </div>
+                <button
+                  onClick={() => signOut()}
+                  className="grid h-8 w-8 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition hover:bg-red-50 hover:text-red-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                  title={isRtl ? 'تسجيل الخروج' : 'Sign Out'}
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAuthModalOpen(true)}
+                className="flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-600 transition hover:bg-amber-500/20 dark:text-amber-400"
+              >
+                <User className="h-3.5 w-3.5" />
+                <span>{isRtl ? 'تسجيل الدخول' : 'Sign In'}</span>
+              </button>
+            )}
           </div>
         </header>
 
@@ -800,6 +840,12 @@ export default function SkanybotChatPage() {
             localStorage.setItem('skanybot_plan', newPlan);
           } catch (e) {}
         }}
+      />
+
+      {/* Supabase Authentication Modal (Google + Email) */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
       />
     </div>
   );
