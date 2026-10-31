@@ -17,6 +17,7 @@ import {
   User,
   LogOut,
   ShieldCheck,
+  PhoneCall,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,6 +42,7 @@ interface BrokerChatSidebarProps {
   onOpenFavorites: () => void;
   myListings?: Property[];
   onOpenSellerModal?: (mode?: 'list' | 'create', editProp?: Property | null) => void;
+  onOpenContactBroker?: () => void;
   onOpenAuthModal?: () => void;
   wallpaper?: ChatWallpaper;
   onSelectWallpaper?: (wp: ChatWallpaper) => void;
@@ -108,6 +110,7 @@ export default function BrokerChatSidebar({
   onOpenFavorites,
   myListings = [],
   onOpenSellerModal,
+  onOpenContactBroker,
   onOpenAuthModal,
   wallpaper,
   onSelectWallpaper,
@@ -204,6 +207,28 @@ export default function BrokerChatSidebar({
               {favoritesCount}
             </span>
           </button>
+
+          {/* Contact Real Estate Broker button (Moved exclusively to sidebar per user request) */}
+          {onOpenContactBroker && (
+            <button
+              onClick={() => {
+                onOpenContactBroker();
+                if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                  onToggle();
+                }
+              }}
+              className="flex w-full items-center justify-between rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-700 transition hover:bg-amber-500/20 hover:text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20 shadow-2xs"
+              title={t.contactAdvisor}
+            >
+              <span className="flex items-center gap-2">
+                <PhoneCall className="h-3.5 w-3.5 text-amber-500" />
+                <span>{t.contactAdvisor}</span>
+              </span>
+              <span className="rounded-md bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
+                {isRtl ? 'مستشار معتمد' : 'Advisor'}
+              </span>
+            </button>
+          )}
 
           {/* User's Own Listed Units for Sale (بروفايل البائع) */}
           {onOpenSellerModal && (

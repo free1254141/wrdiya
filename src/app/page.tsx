@@ -52,7 +52,7 @@ import PropertiesTableModal from '@/components/PropertiesTableModal';
 import InlinePropertiesTable from '@/components/InlinePropertiesTable';
 import SellerPropertiesModal from '@/components/SellerPropertiesModal';
 import DirectSearchPanel from '@/components/DirectSearchPanel';
-import WallpaperSelector, { ChatWallpaper } from '@/components/WallpaperSelector';
+import { ChatWallpaper } from '@/components/WallpaperSelector';
 import { Locale } from '@/lib/i18n';
 
 const OPEN_FORM_BTN_LABELS: Record<Locale, string> = {
@@ -884,6 +884,10 @@ export default function SkanybotChatPage() {
           setSellerPrefill(null);
           setSellerModalOpen(true);
         }}
+        onOpenContactBroker={() => {
+          setSelectedPropertyForLead(null);
+          setBookingModalOpen(true);
+        }}
         onOpenAuthModal={() => setAuthModalOpen(true)}
         wallpaper={chatWallpaper}
         onSelectWallpaper={handleSelectWallpaper}
@@ -964,28 +968,8 @@ export default function SkanybotChatPage() {
             </div>
           </div>
 
-          {/* Quick Header Controls */}
+          {/* Quick Header Controls (Streamlined: wallpaper & contact broker moved to sidebar) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Chat Wallpaper Selector (Architectural / Palestine / Arabesque) */}
-            <WallpaperSelector
-              currentWallpaper={chatWallpaper}
-              onSelectWallpaper={handleSelectWallpaper}
-              isRtl={isRtl}
-            />
-
-            {/* Contact Broker CTA (shown on large screens only to prevent header clutter) */}
-            <button
-              onClick={() => {
-                setSelectedPropertyForLead(null);
-                setBookingModalOpen(true);
-              }}
-              className="hidden xl:flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-700 transition hover:bg-amber-500/20 hover:text-amber-600 dark:text-amber-400 shadow-2xs whitespace-nowrap"
-              title={t.contactAdvisor}
-            >
-              <PhoneCall className="h-3.5 w-3.5" />
-              <span>{t.contactAdvisor}</span>
-            </button>
-
             {/* Daily Protection Quota Pill */}
             {user ? (
               <div
