@@ -1,4 +1,5 @@
 import { Property, CompoundProject, Developer, PropertyFilter, SupportedLocale } from './types';
+import { calculatePropertyDealScore } from './engine/deal-scoring';
 import { createClient } from '@supabase/supabase-js';
 
 // Server-side Supabase client using Service Role or Anon key
@@ -440,7 +441,32 @@ export async function queryProperties(filter: PropertyFilter): Promise<Property[
     results = results.filter(p => p.delivery_date.includes(String(filter.delivery_year)) || p.delivery_date.includes('فوري'));
   }
 
-  return results;
+  return results.map(enrichPropertyWithScore);
+}
+
+export function enrichPropertyWithScore(p: Property): Property {
+  try {
+    if (p.deal_score !== undefined) return p;
+    const scoreResult = calculatePropertyDealScore({
+      unitPrice: p.total_price,
+      areaSqm: p.area_sqm,
+      locationOrArea: p.compound?.city || p.compound?.area_name || p.location_text || p.title,
+      paymentType: p.installment_years > 0 ? 'تقسيط' : 'كاش',
+      downPaymentPct: p.down_payment_pct,
+      installmentYears: p.installment_years,
+      developerName: p.compound?.developer?.name,
+      deliveryDateOrYears: p.delivery_date,
+      finishingType: p.finishing_type,
+    });
+    return {
+      ...p,
+      deal_score: scoreResult.totalScore,
+      deal_badge: scoreResult.verdictLabel,
+      deal_color: scoreResult.badgeColor,
+    };
+  } catch {
+    return p;
+  }
 }
 
 /**

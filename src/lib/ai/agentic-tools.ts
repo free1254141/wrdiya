@@ -1,6 +1,10 @@
 import { Property, SellerFormPrefill } from '@/lib/types';
 import { getAllCachedProperties } from '@/lib/real-estate-engine';
 import { createSellerProperty, updateSellerProperty } from '@/lib/seller-listings';
+import { calculateAnalyticalValuation } from '../engine/valuation-model';
+import { calculatePropertyDealScore } from '../engine/deal-scoring';
+import { getAreaIntelligence, compareTwoAreas } from '../knowledge/area-intelligence';
+import { getDeveloperIntelligence } from '../knowledge/developer-intelligence';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://csuifvyghfsibkrnxrby.supabase.co';
@@ -355,6 +359,62 @@ export const AGENTIC_TOOLS_SCHEMA = [
           status: { type: 'string', description: 'متاح | محجوز | مباع' },
           sale_circumstances: { type: 'string', description: 'تحديث ظروف البيع والتفاصيل' },
           seller_phone: { type: 'string' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'valuate_property',
+      description: 'تسعير وتقييم عقار بالذكاء الاصطناعي والموديل الكمي (Automated Valuation Model - AVM). استدعِ هذه الأداة فوراً عندما يسأل العميل عن سعر شقته أو يسأل "تسوى كام" أو يطلب تسعير وحدته لبيعها أو يطلب السعر العادل وسرعة البيع المتوقعة لمساحة ومنطقة معينة، أو يريد التحقق من عدالة سعر وحدة معروضة عليه.',
+      parameters: {
+        type: 'object',
+        required: ['area_sqm', 'location'],
+        properties: {
+          area_sqm: { type: 'number', description: 'مساحة الوحدة بالمتر المربع' },
+          location: { type: 'string', description: 'المدينة أو الحي أو المنطقة (مثل: التجمع الخامس، النرجس، بيت الوطن، الشيخ زايد، R7 العاصمة...)' },
+          unit_type: { type: 'string', description: 'نوع العقار (شقة، فيلا، دوبلكس، تاون هاوس...)' },
+          bedrooms: { type: 'number', description: 'عدد غرف النوم إن توفر' },
+          finishing_type: { type: 'string', description: 'حالة التشطيب (محارة، نصف تشطيب، تشطيب كامل، الترا لوكس)' },
+          floor: { type: 'string', description: 'الدور (أرضي بحديقة، متكرر، أخير، بنتهاوس)' },
+          payment_method: { type: 'string', description: 'كاش أم تقسيط' },
+          asking_price: { type: 'number', description: 'السعر المطلوب من المالك أو المعروض على العميل لتقييم ما إذا كان عادلاً أم مبالغاً فيه' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_area_intelligence',
+      description: 'استخراج استخبارات وعيوب ومميزات المناطق والأحياء في مصر، ومتوسطات أسعار المتر الحقيقية كاش وتقسيط والعائد الإيجاري الصادق ورأي البروكر المحايد. استدعِ هذه الأداة عندما يسأل العميل عن عيوب أو مميزات منطقة (مثل التجمع، زايد، العاصمة، المستقبل، الشروق، مدينتي...) أو يقارن بين منطقتين أو يسأل "أشتري فين" أو "إيه عيوب المنطقة دي".',
+      parameters: {
+        type: 'object',
+        required: ['area_name'],
+        properties: {
+          area_name: { type: 'string', description: 'اسم المنطقة أو الحي' },
+          compare_with: { type: 'string', description: 'اسم منطقة ثانية يرغب بمقارنتها مع المنطقة الأولى (إن وجدت)' }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'calculate_property_deal_score',
+      description: 'حساب سكور الصفقة وجودة السعر من 0 إلى 100 بدقة رياضية وتفصيل نقاط القوة والضعف (هل هي صفقة لقطة، سعر عادل، أم سعر مبالغ فيه).',
+      parameters: {
+        type: 'object',
+        required: ['unit_price', 'area_sqm', 'location'],
+        properties: {
+          unit_price: { type: 'number', description: 'السعر الإجمالي للوحدة بالجنيه' },
+          area_sqm: { type: 'number', description: 'المساحة بالمتر المربع' },
+          location: { type: 'string', description: 'المنطقة أو الحي' },
+          installment_years: { type: 'number', description: 'سنوات التقسيط إن وجدت' },
+          down_payment_pct: { type: 'number', description: 'نسبة المقدم إن وجدت' },
+          finishing_type: { type: 'string', description: 'نوع التشطيب' },
+          developer_name: { type: 'string', description: 'اسم المطور إن وجد' }
         }
       }
     }
@@ -1084,4 +1144,98 @@ export function getSellerFormBotCopy(locale: string = 'ar'): SellerFormBotCopy {
         openFormButtonLabel: '🏠 فتح فورم إضافة الوحدة للبيع',
       };
   }
+}
+
+/**
+ * Execute Property Valuation (AVM) with Comparables
+ */
+export async function executePropertyValuation(args: {
+  area_sqm: number;
+  location: string;
+  unit_type?: string;
+  bedrooms?: number;
+  finishing_type?: string;
+  floor?: string;
+  payment_method?: string;
+  asking_price?: number;
+}) {
+  const valuation = calculateAnalyticalValuation({
+    areaSqm: args.area_sqm,
+    areaNameOrSlug: args.location,
+    bedrooms: args.bedrooms,
+    finishing: args.finishing_type,
+    floor: args.floor,
+    paymentMethod: args.payment_method?.includes('كاش') ? 'كاش' : 'تقسيط',
+    askingPrice: args.asking_price,
+  });
+
+  // Pull top 3 real comparable listings from cache for proof
+  const all = await getAllCachedProperties();
+  const comps = all
+    .filter(p => {
+      const locMatch = 
+        p.compound?.city?.includes(args.location) || 
+        p.compound?.area_name?.includes(args.location) || 
+        p.title?.includes(args.location);
+      const sqmDiff = Math.abs(p.area_sqm - args.area_sqm) / (args.area_sqm || 1);
+      return locMatch && sqmDiff <= 0.35;
+    })
+    .slice(0, 3)
+    .map(p => ({
+      id: p.id,
+      title: p.title,
+      price: `${p.total_price.toLocaleString()} ${p.currency}`,
+      area_sqm: p.area_sqm,
+      price_per_sqm: Math.round(p.total_price / (p.area_sqm || 1)),
+      installment_years: p.installment_years,
+      developer: p.compound?.developer?.name || 'مطور معتمد',
+    }));
+
+  return {
+    success: true,
+    valuation,
+    comparable_market_units: comps,
+  };
+}
+
+/**
+ * Execute Area Intelligence and Honest Pros & Cons
+ */
+export function executeAreaIntelligence(args: { area_name: string; compare_with?: string }) {
+  if (args.compare_with) {
+    const comparison = compareTwoAreas(args.area_name, args.compare_with);
+    if (comparison) return { success: true, type: 'comparison', data: comparison };
+  }
+  const intel = getAreaIntelligence(args.area_name);
+  if (!intel) {
+    return {
+      success: false,
+      message: `لم نجد بيانات مخصصة للمنطقة "${args.area_name}"، جرب البحث باسم المدينة أو الحي الأكبر (مثل: التجمع، الشيخ زايد، العاصمة الإدارية).`,
+    };
+  }
+  return { success: true, type: 'single_area', data: intel };
+}
+
+/**
+ * Execute Property Deal Scoring (0-100)
+ */
+export function executeDealScoring(args: {
+  unit_price: number;
+  area_sqm: number;
+  location: string;
+  installment_years?: number;
+  down_payment_pct?: number;
+  finishing_type?: string;
+  developer_name?: string;
+}) {
+  const result = calculatePropertyDealScore({
+    unitPrice: args.unit_price,
+    areaSqm: args.area_sqm,
+    locationOrArea: args.location,
+    installmentYears: args.installment_years,
+    downPaymentPct: args.down_payment_pct,
+    finishingType: args.finishing_type,
+    developerName: args.developer_name,
+  });
+  return { success: true, deal_score_result: result };
 }

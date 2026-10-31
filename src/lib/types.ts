@@ -57,6 +57,9 @@ export interface Property {
   images: string[];
   featured: boolean;
   roi_expected_pct?: number;
+  deal_score?: number;
+  deal_badge?: string;
+  deal_color?: string;
   platform?: 'Aqarmap' | 'TEKCE' | string;
   partner_code?: string; // Stored securely on backend, not displayed to customer
   affiliate_url?: string; // Direct URL containing tracking params

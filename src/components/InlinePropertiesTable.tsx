@@ -133,6 +133,18 @@ export default function InlinePropertiesTable({
                       <div className="text-[11px] text-slate-500 dark:text-zinc-400 line-clamp-1">
                         {p.compound?.name || p.compound?.area_name || p.compound?.city || '—'}
                       </div>
+                      {p.deal_score !== undefined && (
+                        <div className="mt-0.5">
+                          <span className={`inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] font-black text-white ${
+                            p.deal_score >= 80 ? 'bg-emerald-600' :
+                            p.deal_score >= 65 ? 'bg-blue-600' :
+                            p.deal_score >= 50 ? 'bg-amber-600' :
+                            'bg-rose-600'
+                          }`}>
+                            ⭐ {p.deal_score}/100 {p.deal_badge ? `• ${p.deal_badge}` : ''}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </td>

@@ -216,6 +216,20 @@ export default function PropertyCard({
                 <span>{isAr ? 'معارض معتمدة' : 'Verified Expo'}</span>
               </span>
             )}
+            {property.deal_score !== undefined && (
+              <span 
+                className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black shadow-md backdrop-blur-xs text-white ${
+                  property.deal_score >= 80 ? 'bg-emerald-600' :
+                  property.deal_score >= 65 ? 'bg-blue-600' :
+                  property.deal_score >= 50 ? 'bg-amber-600' :
+                  'bg-rose-600'
+                }`}
+                title={property.deal_badge || `سكور التقييم: ${property.deal_score}/100`}
+              >
+                <Sparkles className="h-3 w-3" />
+                <span>{property.deal_score}/100</span>
+              </span>
+            )}
             {property.delivery_date.includes('فوري') && (
               <span className="rounded-full bg-emerald-500/90 px-2 py-0.5 text-[10px] font-bold text-white shadow-md">
                 {isAr ? 'استلام فوري' : 'Ready'}
