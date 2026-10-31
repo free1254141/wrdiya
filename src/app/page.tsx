@@ -458,6 +458,14 @@ export default function SkanybotChatPage() {
   };
 
   const createNewChat = () => {
+    // If the active chat is already blank with 0 messages, just stay on it and focus
+    if (messages.length === 0) {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+      return;
+    }
+
     const newId = `session_${Date.now()}`;
     const newSession: ChatSession = {
       id: newId,
@@ -465,18 +473,20 @@ export default function SkanybotChatPage() {
       created_at: new Date().toISOString()
     };
 
-    const updatedSessions = [newSession, ...sessions.slice(0, 20)];
-    setSessions(updatedSessions);
+    setSessions(prev => {
+      const updated = [newSession, ...prev.filter(s => s.id !== newId).slice(0, 20)];
+      try {
+        localStorage.setItem('skanybot_sessions', JSON.stringify(updated));
+        localStorage.removeItem(`skanybot_msgs_${newId}`);
+      } catch (e) {
+        console.error('Error saving new chat:', e);
+      }
+      return updated;
+    });
+
     setActiveSessionId(newId);
     setMessages([]);
     setSessionContext(emptySessionContext());
-
-    try {
-      localStorage.setItem('skanybot_sessions', JSON.stringify(updatedSessions));
-      localStorage.removeItem(`skanybot_msgs_${newId}`);
-    } catch (e) {
-      console.error('Error saving new chat:', e);
-    }
 
     if (textareaRef.current) {
       textareaRef.current.focus();
@@ -484,19 +494,30 @@ export default function SkanybotChatPage() {
   };
 
   const handleDeleteSession = async (id: string) => {
+    // Calculate remaining sessions strictly excluding the deleted id
     const remaining = sessions.filter(s => s.id !== id);
     setSessions(remaining);
-    localStorage.setItem('skanybot_sessions', JSON.stringify(remaining));
-    localStorage.removeItem(`skanybot_msgs_${id}`);
-    localStorage.removeItem(`skanybot_ctx_${id}`);
-    localStorage.removeItem(`aqar_ai_msgs_${id}`);
+
+    try {
+      localStorage.setItem('skanybot_sessions', JSON.stringify(remaining));
+      localStorage.removeItem(`skanybot_msgs_${id}`);
+      localStorage.removeItem(`skanybot_ctx_${id}`);
+      localStorage.removeItem(`aqar_ai_msgs_${id}`);
+    } catch (e) {
+      console.error('Failed to clean up localStorage on delete:', e);
+    }
 
     if (activeSessionId === id) {
       if (remaining.length > 0) {
-        setActiveSessionId(remaining[0].id);
-        loadSessionMessages(remaining[0].id);
+        const nextId = remaining[0].id;
+        setActiveSessionId(nextId);
+        loadSessionMessages(nextId);
       } else {
-        createNewChat();
+        // When last session is deleted: reset view to fresh blank state without resurrecting deleted session!
+        const freshId = `session_${Date.now()}`;
+        setActiveSessionId(freshId);
+        setMessages([]);
+        setSessionContext(emptySessionContext());
       }
     }
 
@@ -594,10 +615,27 @@ export default function SkanybotChatPage() {
     setMessages(newHistory);
     setLoading(true);
 
-    // Auto-update session title from first user query
+    // Auto-update session title from first user query (and insert into sidebar history if fresh)
     if (messages.length === 0) {
       const autoTitle = query.slice(0, 32) + (query.length > 32 ? '...' : '');
-      handleRenameSession(currSessionId, autoTitle);
+      setSessions(prev => {
+        const exists = prev.some(s => s.id === currSessionId);
+        let updated: ChatSession[];
+        if (exists) {
+          updated = prev.map(s => s.id === currSessionId ? { ...s, title: autoTitle } : s);
+        } else {
+          const freshSession: ChatSession = {
+            id: currSessionId!,
+            title: autoTitle,
+            created_at: new Date().toISOString()
+          };
+          updated = [freshSession, ...prev.slice(0, 20)];
+        }
+        try {
+          localStorage.setItem('skanybot_sessions', JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
     }
 
     try {
