@@ -776,21 +776,22 @@ export default function SkanybotChatPage() {
       {/* Main Chat Area */}
       <main className="relative flex flex-1 flex-col h-full min-w-0 overflow-hidden bg-white dark:bg-zinc-950">
         {/* Top Header Bar with Theme & Language controls */}
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur-md dark:border-zinc-800/80 dark:bg-zinc-950/95 z-10">
-          <div className="flex items-center gap-3">
-            {/* Show toggle button in header ONLY when sidebar is closed (eliminates duplicate icons) */}
+        <header className="relative flex h-14 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/80 px-2 sm:px-4 backdrop-blur-xl dark:border-zinc-800/80 dark:bg-zinc-950/80 z-20">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+            {/* Show toggle button in header ONLY when sidebar is closed */}
             {!sidebarOpen && (
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 transition hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-slate-200/80 bg-slate-50/80 text-slate-700 transition hover:bg-slate-100 hover:text-black dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
                 title={isRtl ? 'إظهار الشريط الجانبي' : 'Open Sidebar'}
               >
                 {isRtl ? <PanelRight className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
               </button>
             )}
 
-            <div className="flex items-center gap-2.5">
-              <div className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-xl border border-amber-500/30 bg-gradient-to-tr from-amber-500 to-yellow-400 p-0.5 shadow-xs">
+            {/* Brand Logo & Title */}
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="relative grid h-8 w-8 place-items-center overflow-hidden rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 p-0.5 shadow-2xs">
                 <img 
                   src="/logo.png" 
                   alt="sakanybot" 
@@ -798,52 +799,55 @@ export default function SkanybotChatPage() {
                   onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
                 />
               </div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-base font-black tracking-tight text-amber-500 font-sans">sakanybot</span>
-              </div>
+              <span className="hidden sm:inline text-base font-black tracking-tight text-slate-900 dark:text-white font-sans">
+                sakany<span className="text-amber-500">bot</span>
+              </span>
             </div>
 
             {/* Dual Mode Switcher: AI Chatbot vs Off-Agent Instant Direct Search */}
-            <div className="flex items-center rounded-2xl border border-slate-200/90 bg-slate-100 dark:border-zinc-800 dark:bg-zinc-900/90 p-1 mr-1 sm:mr-2">
+            <div className="flex items-center rounded-xl border border-slate-200/80 bg-slate-100/90 p-0.5 dark:border-zinc-800/80 dark:bg-zinc-900/90 shadow-2xs">
               <button
                 type="button"
                 onClick={() => setAppMode('chat')}
-                className={`flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-1 text-xs font-bold transition ${
+                className={`flex items-center gap-1.5 rounded-lg px-2 sm:px-2.5 py-1 text-xs font-bold transition-all ${
                   appMode === 'chat'
-                    ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-600 dark:text-zinc-400 hover:text-black dark:hover:text-white'
+                    ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-amber-400 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200'
                 }`}
-                title={isRtl ? 'استشارة مستشار العقارات بالذكاء الاصطناعي' : 'AI Broker Chat'}
+                title={isRtl ? 'مستشار العقارات بالذكاء الاصطناعي' : 'AI Broker Chat'}
               >
-                <Bot className="h-3.5 w-3.5 text-amber-500" />
+                <Bot className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                 <span className="hidden md:inline">{isRtl ? 'مستشار الشات' : 'AI Broker'}</span>
+                <span className="md:hidden text-[11px]">{isRtl ? 'شات' : 'Chat'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setAppMode('direct_search')}
-                className={`flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-1 text-xs font-bold transition ${
+                className={`flex items-center gap-1.5 rounded-lg px-2 sm:px-2.5 py-1 text-xs font-bold transition-all ${
                   appMode === 'direct_search'
-                    ? 'bg-amber-500 text-black shadow-xs font-black'
-                    : 'text-slate-600 dark:text-zinc-400 hover:text-black dark:hover:text-white'
+                    ? 'bg-amber-500 text-black shadow-2xs font-black'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200'
                 }`}
                 title={isRtl ? 'بحث وفلترة فورية لكافة العقارات مجاناً وبدون خصم رسائل' : 'Off-Agent Direct Search'}
               >
-                <Zap className="h-3.5 w-3.5" />
-                <span>{isRtl ? 'البحث المباشر ⚡' : 'Off-Agent ⚡'}</span>
+                <Zap className="h-3.5 w-3.5 shrink-0" />
+                <span className="hidden md:inline">{isRtl ? 'البحث المباشر ⚡' : 'Off-Agent ⚡'}</span>
+                <span className="md:hidden text-[11px]">{isRtl ? 'بحث ⚡' : 'Search ⚡'}</span>
               </button>
             </div>
           </div>
 
           {/* Quick Header Controls */}
-          <div className="flex items-center gap-2">
-            {/* Contact Broker CTA */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Contact Broker CTA (shown on large screens only to prevent header clutter) */}
             <button
               onClick={() => {
                 setSelectedPropertyForLead(null);
                 setBookingModalOpen(true);
               }}
-              className="hidden sm:flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 px-3 py-1.5 text-xs font-black text-black shadow-xs transition hover:brightness-105 active:scale-[0.98]"
+              className="hidden xl:flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-700 transition hover:bg-amber-500/20 hover:text-amber-600 dark:text-amber-400 shadow-2xs whitespace-nowrap"
+              title={t.contactAdvisor}
             >
               <PhoneCall className="h-3.5 w-3.5" />
               <span>{t.contactAdvisor}</span>
@@ -852,21 +856,23 @@ export default function SkanybotChatPage() {
             {/* Daily Protection Quota Pill */}
             {user ? (
               <div
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 px-2 sm:px-2.5 py-1 text-xs font-bold text-slate-700 dark:border-zinc-800/80 dark:bg-zinc-900/90 dark:text-zinc-200 shadow-2xs whitespace-nowrap"
                 title={isRtl ? 'استفساراتك اليومية المجانية المتبقية (تتجدد كل ليلة)' : 'Free daily inquiries left (resets nightly)'}
               >
                 <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                <span>{usage.remaining} / {usage.limit} {isRtl ? 'متبقية اليوم' : 'left today'}</span>
+                <span className="font-mono text-xs font-bold">{usage.remaining}/{usage.limit}</span>
+                <span className="hidden sm:inline text-[11px] font-normal text-slate-500 dark:text-zinc-400">{isRtl ? 'اليوم' : 'today'}</span>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={() => setAuthModalOpen(true)}
-                className="hidden sm:flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600 transition hover:bg-amber-500/20 dark:text-amber-400"
+                className="flex items-center gap-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2 sm:px-2.5 py-1 text-xs font-bold text-amber-600 transition hover:bg-amber-500/20 dark:text-amber-400 shadow-2xs whitespace-nowrap"
                 title={isRtl ? 'سجّل دخولك مجاناً لتحصل على 10 استفسارات يومياً' : 'Sign in free for 10 daily queries'}
               >
                 <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                <span>{usage.remaining} {isRtl ? 'رسائل تجريبية' : 'trials'}</span>
+                <span className="font-mono text-xs">{usage.remaining}</span>
+                <span className="hidden sm:inline text-[11px] font-normal">{isRtl ? 'تجريبية' : 'trials'}</span>
               </button>
             )}
 
@@ -874,39 +880,44 @@ export default function SkanybotChatPage() {
             {user && isAllowedAdminEmail(user.email) && (
               <Link
                 href="/admin"
-                className="flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/15 px-2.5 py-1 text-xs font-bold text-amber-600 transition hover:bg-amber-500/25 dark:text-amber-400 shadow-xs"
+                className="flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/15 px-2 sm:px-2.5 py-1 text-xs font-bold text-amber-600 transition hover:bg-amber-500/25 dark:text-amber-400 shadow-2xs whitespace-nowrap"
                 title={isRtl ? 'لوحة تحكم الإدارة' : 'Admin Dashboard'}
               >
-                <ShieldCheck className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{isRtl ? 'لوحة الإدارة' : 'Admin'}</span>
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                <span className="hidden md:inline">{isRtl ? 'الإدارة' : 'Admin'}</span>
               </Link>
             )}
 
             {/* User Account / Auth Button */}
             {user ? (
-              <div className="flex items-center gap-1.5">
-                <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 py-1 px-2 text-xs font-bold text-slate-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
-                  <div className="grid h-6 w-6 place-items-center rounded-full bg-gradient-to-tr from-amber-500 to-yellow-400 text-[11px] font-black text-black">
+              <div className="flex items-center gap-1 rounded-xl border border-slate-200/80 bg-slate-50/90 p-0.5 dark:border-zinc-800/80 dark:bg-zinc-900/90 shadow-2xs">
+                <div 
+                  className="flex items-center gap-1.5 px-1 py-0.5" 
+                  title={user.email || user.name}
+                >
+                  <div className="grid h-6 w-6 place-items-center overflow-hidden rounded-full bg-gradient-to-tr from-amber-500 to-yellow-400 text-[10px] font-black text-black">
                     {user.avatar ? (
                       <img src={user.avatar} alt={user.name} className="h-full w-full rounded-full object-cover" />
                     ) : (
                       user.name.charAt(0).toUpperCase()
                     )}
                   </div>
-                  <span className="hidden md:inline max-w-[90px] truncate">{user.name}</span>
+                  <span className="hidden xl:inline max-w-[80px] truncate text-xs font-semibold text-slate-800 dark:text-zinc-200">
+                    {user.name}
+                  </span>
                 </div>
                 <button
                   onClick={() => signOut()}
-                  className="grid h-8 w-8 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition hover:bg-red-50 hover:text-red-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                  className="grid h-6 w-6 place-items-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                   title={isRtl ? 'تسجيل الخروج' : 'Sign Out'}
                 >
-                  <LogOut className="h-3.5 w-3.5" />
+                  <LogOut className="h-3 w-3" />
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => setAuthModalOpen(true)}
-                className="flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-amber-600 transition hover:bg-amber-500/20 dark:text-amber-400"
+                className="flex items-center gap-1.5 rounded-xl bg-amber-500 px-2.5 sm:px-3 py-1 text-xs font-bold text-black shadow-xs transition hover:bg-amber-400 active:scale-95 whitespace-nowrap"
               >
                 <User className="h-3.5 w-3.5 shrink-0" />
                 <span className="hidden sm:inline">{isRtl ? 'تسجيل الدخول' : 'Sign In'}</span>
