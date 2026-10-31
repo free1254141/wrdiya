@@ -1,0 +1,34 @@
+# Sakanybot (سكنى بوت | Skanybot) — AI Real Estate Broker & Marketplace
+
+> Sakanybot (سكنى بوت) is an AI-powered real estate broker and two-sided property marketplace covering Egypt (New Cairo, Fifth Settlement, Sheikh Zayed, New Administrative Capital, 6th of October, Madinaty, North Coast) and international markets (Dubai, UAE; Malaga & Marbella, Spain; Istanbul & Antalya, Turkey). It provides 100% data-grounded property search, instant installment & down-payment calculations, direct owner-to-buyer property listings, and free viewing coordination without spam sales calls.
+
+## Key Capabilities
+- **AI Real Estate Advisor (المستشار العقاري الذكي):** Conversational search in 7 languages (Arabic, English, Turkish, Russian, German, French, Spanish) powered by function-calling AI grounded strictly in verified database inventory.
+- **Direct Instant Search (البحث المباشر الفوري):** Filter 980+ verified residential and commercial units (apartments, villas, townhouses, twin houses, duplexes, penthouses, chalets, studios, offices, and land plots) by location, budget, area (sqm), bedrooms, and payment method without using AI quota.
+- **Two-Sided Marketplace — Sell Your Property (اعرض وحدتك للبيع من المالك مباشرة):** Property owners can list apartments, villas, or land plots directly with custom sale circumstances (ظروف البيع), cash or installment terms, and direct WhatsApp contact.
+- **Grounded Installment Calculator (حاسبة الأقساط والمقدم):** Exact calculation of down payment (5% to 50%), monthly and quarterly installments over 1 to 10 years, and delivery timelines.
+- **Privacy-First Viewing Requests (حجز معاينة مجانية بدون إزعاج):** Connect directly with the verified developer sales office or property owner without sharing phone numbers with random cold-calling brokers.
+
+## Covered Real Estate Markets & Regions
+- **Egypt (مصر - بالجنيه المصري EGP):**
+  - New Cairo & Fifth Settlement (التجمع الخامس والقاهرة الجديدة): Mountain View iCity, Taj City, Mivida, Fifth Square, Zed East, Hyde Park, Palm Hills New Cairo, Sarai.
+  - Sheikh Zayed & 6th of October (الشيخ زايد و6 أكتوبر): Badya Palm Hills, Zed West, Westown, Allegria, October Plaza.
+  - New Administrative Capital (العاصمة الإدارية الجديدة): Il Bosco, Celia, Vinci, Midtown, R7 & R8 Districts.
+  - Madinaty, Mostakbal City, El Shorouk (مدينتي، مستقبل سيتي، الشروق).
+- **United Arab Emirates (دبي والإمارات - بالدرهم الإماراتي AED):**
+  - Dubai Meydan, Dubai Islands, Mina Rashid, Palm Jumeirah, Business Bay, Downtown Dubai, Dubai Marina, Dubai Creek Harbour.
+- **Spain (إسبانيا - باليورو EUR):**
+  - Costa del Sol, Malaga (مالقة), Marbella (ماربيا), Estepona, Benahavis, Alicante, Calpe.
+- **Turkey (تركيا - بالدولار الأمريكي USD):**
+  - Istanbul (إسطنبول الأوروبية والآسيوية), Antalya (أنطاليا), Alanya (ألانيا), Bodrum (بودروم) — including properties eligible for Turkish Citizenship and Golden Visa programs.
+
+## Important Links & Endpoints
+- Homepage & AI Chat: https://sakanybot.vercel.app/
+- Regional Search — New Cairo: https://sakanybot.vercel.app/?region=new-cairo
+- Regional Search — Sheikh Zayed: https://sakanybot.vercel.app/?region=sheikh-zayed
+- Regional Search — New Capital: https://sakanybot.vercel.app/?region=new-capital
+- Regional Search — Dubai: https://sakanybot.vercel.app/?region=dubai
+- Regional Search — Istanbul: https://sakanybot.vercel.app/?region=istanbul
+- Regional Search — Spain (Malaga & Marbella): https://sakanybot.vercel.app/?region=spain-malaga
+- Full AI Documentation: https://sakanybot.vercel.app/llms-full.txt
+- Sitemap: https://sakanybot.vercel.app/sitemap.xml

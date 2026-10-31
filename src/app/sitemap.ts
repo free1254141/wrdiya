@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://skanybot.vercel.app';
+  const baseUrl = 'https://sakanybot.vercel.app';
   const now = new Date();
 
   // Supported languages
@@ -14,6 +14,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     'new-capital',
     'madinaty',
     'october',
+    'north-coast',
     'dubai',
     'istanbul',
     'spain-malaga',
@@ -27,20 +28,44 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1.0,
       alternates: {
         languages: Object.fromEntries(
-          languages.map(lang => [lang, `${baseUrl}?lang=${lang}`])
+          languages.map((lang) => [lang, `${baseUrl}?lang=${lang}`])
         ),
       },
+    },
+    {
+      url: `${baseUrl}/llms.txt`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/llms-full.txt`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.9,
     },
   ];
 
   // Add regional landing URLs
-  regions.forEach(region => {
+  regions.forEach((region) => {
     routes.push({
       url: `${baseUrl}?region=${region}`,
       lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.8,
+      changeFrequency: 'daily',
+      priority: 0.85,
     });
+  });
+
+  // Add language entry URLs
+  languages.forEach((lang) => {
+    if (lang !== 'ar') {
+      routes.push({
+        url: `${baseUrl}?lang=${lang}`,
+        lastModified: now,
+        changeFrequency: 'weekly',
+        priority: 0.8,
+      });
+    }
   });
 
   return routes;

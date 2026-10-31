@@ -1,11 +1,13 @@
 {
-  "name": "Skanybot | مستشارك وبروكر العقارات الذكي",
-  "short_name": "Skanybot",
-  "description": "المنصة الذكية للبحث عن العقارات، حساب الأقساط، وحجز المعاينات الميدانية بأحدث المشاريع في مصر ودولياً",
+  "name": "سكنى بوت | Sakanybot — مستشارك العقاري الذكي",
+  "short_name": "سكنى بوت",
+  "description": "المنصة الذكية لشراء وبيع العقارات والأراضي، حساب الأقساط، والبحث المباشر في أكثر من 980 وحدة موثقة في مصر، دبي، إسبانيا، وتركيا.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#090d16",
-  "theme_color": "#0ea5e9",
+  "theme_color": "#f59e0b",
+  "lang": "ar",
+  "dir": "rtl",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",

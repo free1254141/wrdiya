@@ -1,6 +1,13 @@
 {
-  "name": "MyWebSite",
-  "short_name": "MySite",
+  "name": "سكنى بوت | Sakanybot — مستشارك العقاري الذكي",
+  "short_name": "سكنى بوت",
+  "description": "المنصة الذكية لشراء وبيع العقارات والأراضي، حساب الأقساط، والبحث المباشر في أكثر من 980 وحدة موثقة في مصر، دبي، إسبانيا، وتركيا.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#f59e0b",
+  "lang": "ar",
+  "dir": "rtl",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
@@ -14,8 +21,5 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ],
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff",
-  "display": "standalone"
+  ]
 }
