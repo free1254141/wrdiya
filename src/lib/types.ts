@@ -111,6 +111,8 @@ export interface ChatMessage {
   role?: 'user' | 'assistant' | 'system';
   content: string;
   properties?: Property[];
+  all_properties?: Property[];
+  total_matches?: number;
   suggested_actions?: string[];
   created_at: string;
 }

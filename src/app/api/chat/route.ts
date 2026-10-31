@@ -77,6 +77,15 @@ async function ensureChatSession(sessionId: string, title: string, userId?: stri
   }
 }
 
+/** Keep the full-results payload small enough to persist in the browser. */
+function slimForTable(list: Property[]): Property[] {
+  return list.map((p) => ({
+    ...p,
+    images: (p.images || []).slice(0, 3),
+    compound: p.compound ? { ...p.compound, description: undefined } : p.compound,
+  })) as Property[];
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -133,6 +142,8 @@ export async function POST(req: NextRequest) {
 
     let finalContent = '';
     let propertiesToReturn: Property[] = [];
+    let allPropertiesToReturn: Property[] = [];
+    let totalMatches = 0;
     let detectedIntent = 'search';
 
     // 3. AGENTIC EXECUTION: Pure LLM-driven Function Calling via DeepSeek (inspired by stokscan_AI)
@@ -155,6 +166,8 @@ export async function POST(req: NextRequest) {
         if (agenticResult && agenticResult.content) {
           finalContent = agenticResult.content;
           propertiesToReturn = agenticResult.properties || [];
+          allPropertiesToReturn = agenticResult.allProperties || [];
+          totalMatches = agenticResult.totalMatches || 0;
           detectedIntent = agenticResult.toolCallsCount > 0 ? 'agentic_search' : 'general';
         }
       } catch (aiErr) {
@@ -179,9 +192,11 @@ export async function POST(req: NextRequest) {
       if (isGeneral) {
         propertiesToReturn = [];
       } else if (matchedProperties.length > 0) {
-        propertiesToReturn = matchedProperties.slice(0, 6);
+        propertiesToReturn = matchedProperties.slice(0, 4);
+        totalMatches = matchedProperties.length;
+        if (matchedProperties.length > 4) allPropertiesToReturn = matchedProperties.slice(0, 100);
       } else if (!hasSpecificFilter) {
-        propertiesToReturn = featuredOpportunities.slice(0, 6);
+        propertiesToReturn = featuredOpportunities.slice(0, 4);
       } else {
         propertiesToReturn = [];
       }
@@ -264,6 +279,8 @@ export async function POST(req: NextRequest) {
       role: 'assistant',
       content: finalContent,
       properties: propertiesToReturn,
+      allProperties: slimForTable(allPropertiesToReturn),
+      totalMatches,
       suggestedActions: defaultSuggestedActions,
       intent: detectedIntent,
       aiProvider: (isDeepSeekConfigured() && !freeTest) ? 'deepseek-agentic' : 'grounded-engine',

@@ -28,6 +28,8 @@ export interface DeepSeekChatMessage {
 export interface AgenticChatResult {
   content: string;
   properties: Property[];
+  allProperties: Property[];
+  totalMatches: number;
   toolCallsCount: number;
 }
 
@@ -64,7 +66,7 @@ export async function runDeepSeekAgenticChat(
 
 أسلوب الرد:
 - أسلوب راقٍ، مهني، وموجز (فقرتين إلى 3 فقرات مركزة).
-- أداة البحث تعرض 6 وحدات افتراضياً وتخبرك بإجمالي المطابق (total_matches_in_database). اذكر للعميل العدد الكلي، وإذا كان أكثر مما عُرض فاعرض عليه المزيد؛ وإذا طلب المزيد استدعِ الأداة بنفس الشروط مع offset.
+- الواجهة تعرض 4 كروت فقط، وإذا كان إجمالي المطابق (total_matches_in_database) أكثر من 4 يظهر للعميل زر برمجي "عرض كل النتائج" يفتح جدولاً بكل الوحدات. اذكر العدد الكلي واطلب منه الضغط على هذا الزر لرؤية الباقي، ولا تطلب منه أن يكتب لك "المزيد".
 - لا تسرد جداول ضخمة لأن واجهة التطبيق تعرض كروت العقارات التفاعلية الكاملة للمستخدم بالصور والأسعار مباشرة.
 - وضّح ميزة كل وحدة ومقدمها وفترة تقسيطها.
 - أنهِ ردك بدعوة لمعاينة مجانية أو إمكانية توصيله بإدارة المشروع بدون مكالمات سيلز مزعجة.`;
@@ -79,6 +81,8 @@ export async function runDeepSeekAgenticChat(
   ];
 
   const collectedProperties: Property[] = [];
+  let allMatches: Property[] = [];
+  let totalMatches = 0;
   let toolCallsCount = 0;
 
   try {
@@ -118,6 +122,8 @@ export async function runDeepSeekAgenticChat(
       return {
         content: assistantMessage.content || '',
         properties: [],
+        allProperties: [],
+        totalMatches: 0,
         toolCallsCount: 0
       };
     }
@@ -139,6 +145,10 @@ export async function runDeepSeekAgenticChat(
 
       if (fnName === 'search_properties') {
         const searchRes = await executePropertySearch(args);
+        if (searchRes.all_matches && searchRes.all_matches.length > 0) {
+          allMatches = searchRes.all_matches;
+          totalMatches = searchRes.total_matches || searchRes.all_matches.length;
+        }
         if (searchRes.properties && searchRes.properties.length > 0) {
           searchRes.properties.forEach(p => {
             if (!collectedProperties.some(cp => cp.id === p.id)) {
@@ -206,7 +216,9 @@ export async function runDeepSeekAgenticChat(
         content: isAr
           ? `وجدت لك ${collectedProperties.length} وحدات مطابقة لمواصفات بحثك. تفقد تفاصيلها وكروت المعاينة بالأسفل.`
           : `Found ${collectedProperties.length} units matching your search. Check the property cards below.`,
-        properties: collectedProperties.slice(0, 12),
+        properties: collectedProperties.slice(0, 4),
+        allProperties: totalMatches > 4 ? allMatches : [],
+        totalMatches,
         toolCallsCount
       };
     }
@@ -216,7 +228,9 @@ export async function runDeepSeekAgenticChat(
 
     return {
       content: finalContent,
-      properties: collectedProperties.slice(0, 12),
+      properties: collectedProperties.slice(0, 4),
+      allProperties: totalMatches > 4 ? allMatches : [],
+      totalMatches,
       toolCallsCount
     };
 

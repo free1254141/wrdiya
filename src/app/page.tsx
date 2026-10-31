@@ -38,6 +38,7 @@ import UsagePill from '@/components/UsagePill';
 import PricingModal from '@/components/PricingModal';
 import AuthModal from '@/components/AuthModal';
 import PropertyDetailsModal from '@/components/PropertyDetailsModal';
+import PropertiesTableModal from '@/components/PropertiesTableModal';
 
 export default function SkanybotChatPage() {
   const { locale, t, dir, isRtl } = useLanguage();
@@ -87,6 +88,9 @@ export default function SkanybotChatPage() {
   // Fullscreen / Expanded Property Details & Gallery modal
   const [selectedPropertyForDetails, setSelectedPropertyForDetails] = useState<Property | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+
+  // Full results table (shown when a search matches more than the 4 cards)
+  const [tableProps, setTableProps] = useState<{ list: Property[]; total: number } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -516,6 +520,8 @@ export default function SkanybotChatPage() {
         role: 'assistant',
         content: data.content || (isRtl ? 'عذراً، حدث خطأ أثناء الاستعلام. يرجى إعادة المحاولة.' : 'Sorry, a query error occurred. Please try again.'),
         properties: data.properties || [],
+        all_properties: data.allProperties || [],
+        total_matches: data.totalMatches || 0,
         suggested_actions: data.suggestedActions || [],
         created_at: new Date().toISOString()
       };
@@ -524,7 +530,10 @@ export default function SkanybotChatPage() {
       setMessages(finalMessages);
 
       try {
-        localStorage.setItem(`skanybot_msgs_${currSessionId}`, JSON.stringify(finalMessages));
+        // Only the latest 3 replies keep their full results table in storage (keeps localStorage small)
+        const lastIdx = finalMessages.length;
+        const lean = finalMessages.map((m, i) => (i < lastIdx - 6 && m.all_properties ? { ...m, all_properties: undefined } : m));
+        localStorage.setItem(`skanybot_msgs_${currSessionId}`, JSON.stringify(lean));
       } catch (e) {
         console.error('Failed to cache messages:', e);
       }
@@ -780,6 +789,18 @@ export default function SkanybotChatPage() {
                             </div>
                           )}
 
+                          {/* Programmatic "view all results" button when there are more than the 4 cards */}
+                          {msg.all_properties && msg.all_properties.length > (msg.properties?.length || 0) && (
+                            <button
+                              onClick={() => setTableProps({ list: msg.all_properties!, total: msg.total_matches || msg.all_properties!.length })}
+                              className="mt-3 inline-flex items-center gap-2 rounded-xl border border-amber-500/60 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-700 transition hover:bg-amber-500 hover:text-black dark:text-amber-300"
+                            >
+                              <Building2 className="h-4 w-4" />
+                              {({ ar: 'عرض كل النتائج', en: 'View all results', tr: 'Tüm sonuçları gör', ru: 'Показать все результаты', de: 'Alle Ergebnisse anzeigen', fr: 'Voir tous les résultats', es: 'Ver todos los resultados' } as Record<string, string>)[locale] || 'View all results'}
+                              {' '}({msg.total_matches || msg.all_properties.length})
+                            </button>
+                          )}
+
                           {/* Suggested Action Chips */}
                           {msg.suggested_actions && msg.suggested_actions.length > 0 && (
                             <div className="mt-4 flex flex-wrap gap-2 pt-2">
@@ -899,11 +920,23 @@ export default function SkanybotChatPage() {
         onBookViewing={handleBookViewing}
       />
       {/* Fullscreen / Expanded Property Gallery & Details Modal */}
+      <PropertiesTableModal
+        isOpen={Boolean(tableProps)}
+        properties={tableProps?.list || []}
+        totalMatches={tableProps?.total}
+        onClose={() => setTableProps(null)}
+        onViewDetails={(p) => {
+          setSelectedPropertyForDetails(p);
+          setDetailsModalOpen(true);
+        }}
+      />
+
       <PropertyDetailsModal
         property={selectedPropertyForDetails}
         isOpen={detailsModalOpen}
         onClose={() => setDetailsModalOpen(false)}
         onBookViewing={(p) => {
+          setDetailsModalOpen(false);
           setSelectedPropertyForLead(p);
           setBookingModalOpen(true);
         }}

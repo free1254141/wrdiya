@@ -91,11 +91,11 @@ export const AGENTIC_TOOLS_SCHEMA = [
           },
           limit: {
             type: 'number',
-            description: 'عدد الوحدات المطلوب عرضها (افتراضياً 6 وحد أقصى 12)'
+            description: 'عدد الكروت المطلوب عرضها (افتراضياً 4، ولا تغيّره: الواجهة تعرض الباقي في جدول)'
           },
           offset: {
             type: 'number',
-            description: 'عدد الوحدات التي تم عرضها سابقاً لتخطيها (استخدمها عندما يطلب العميل المزيد من النتائج: 6 ثم 12 وهكذا)'
+            description: 'للاستخدام الداخلي فقط، اتركه فارغاً'
           }
         }
       }
@@ -184,6 +184,7 @@ const LOCATION_SYNONYMS: Record<string, string[]> = {
 export async function executePropertySearch(args: SearchPropertiesArgs): Promise<{
   found: number;
   total_matches?: number;
+  all_matches?: Property[];
   offset?: number;
   message?: string;
   properties: Property[];
@@ -191,7 +192,7 @@ export async function executePropertySearch(args: SearchPropertiesArgs): Promise
 }> {
   const all = await getAllCachedProperties();
   let results = [...all];
-  const limit = Math.min(Math.max(args.limit || 6, 1), 12);
+  const limit = Math.min(Math.max(args.limit || 4, 1), 12);
   const offset = Math.max(args.offset || 0, 0);
 
   // 1. Check unit type
@@ -309,6 +310,7 @@ export async function executePropertySearch(args: SearchPropertiesArgs): Promise
   return {
     found: finalProperties.length,
     total_matches: totalMatches,
+    all_matches: results.slice(0, 100),
     offset,
     properties: finalProperties,
     filtersApplied: {
