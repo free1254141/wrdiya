@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Property } from '@/lib/types';
-import { getDirectPropertyUrl } from '@/lib/property-link';
+import { getDirectPropertyUrl, getPropertyPortalBrand } from '@/lib/property-link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
   X,
@@ -76,6 +76,7 @@ export default function PropertyDetailsModal({
 
   const isSellerListing = property.platform === 'SellerListing';
   const directPropertyUrl = getDirectPropertyUrl(property);
+  const portalBrand = getPropertyPortalBrand(property);
 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md transition-all ${
@@ -418,24 +419,18 @@ export default function PropertyDetailsModal({
             </a>
           )}
 
-          {/* Official Partner Link (Only for Aqarmap/Tekce projects; NEVER for seller listings) */}
+          {/* Official Partner Link (Aqarmap / Nawy verified listing; NEVER for seller listings) */}
           {directPropertyUrl && !isSellerListing && (
             <a
               href={directPropertyUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs sm:text-sm font-bold text-amber-700 transition hover:bg-amber-500/20 dark:border-amber-400/30 dark:text-amber-400"
-              title={
-                property.platform === 'TEKCE'
-                  ? (isAr ? 'الموقع الرسمي ↗' : 'Official Page ↗')
-                  : (isAr ? 'فتح صفحة وإعلانات المشروع المباشرة على منصة عقارماب الرسمية' : 'Open direct project page & listings on official Aqarmap')
-              }
+              title={isAr ? portalBrand.buttonLabelAr : portalBrand.buttonLabelEn}
             >
               <ExternalLink className="h-4 w-4" />
               <span className="hidden sm:inline">
-                {property.platform === 'TEKCE'
-                  ? (isAr ? 'الموقع الرسمي ↗' : 'Official Page ↗')
-                  : (isAr ? 'فتح الإعلان على عقارماب ↗' : 'View on Aqarmap ↗')}
+                {isAr ? portalBrand.buttonLabelAr : portalBrand.buttonLabelEn}
               </span>
             </a>
           )}

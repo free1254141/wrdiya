@@ -315,7 +315,16 @@ export async function getAllCachedProperties(forceRefresh = false): Promise<Prop
       return cachedProperties || [];
     }
 
-    cachedProperties = (data as Property[]).map(hydrateSellerListing);
+    // Filter out unreviewed/unapproved seller listings so only approved units enter the active inventory
+    cachedProperties = (data as Property[])
+      .filter((p) => {
+        if (p.platform === 'SellerListing') {
+          const st = (p.status || '').trim();
+          return st === 'معتمد' || st === 'متاح' || st === 'متاح للبيع';
+        }
+        return true;
+      })
+      .map(hydrateSellerListing);
     lastCacheTimestamp = now;
     return cachedProperties;
   } catch (err) {

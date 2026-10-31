@@ -37,8 +37,18 @@ import {
   AlertCircle,
   CheckCheck,
   Coins,
-  Send
+  Send,
+  Tag,
+  Eye,
+  XCircle,
+  CheckCircle,
+  Home,
+  Bed,
+  Bath,
+  Images
 } from 'lucide-react';
+import { Property } from '@/lib/types';
+import PropertyDetailsModal from '@/components/PropertyDetailsModal';
 
 interface AdminStats {
   totalUsers: number;
@@ -47,6 +57,8 @@ interface AdminStats {
   totalProperties: number;
   recentSessions24h: number;
   totalLeads?: number;
+  totalSellerListings?: number;
+  pendingSellerListings?: number;
 }
 
 interface AdminLead {
@@ -112,8 +124,8 @@ export default function AdminDashboardPage() {
   // Fullscreen / Maximize Window Toggle
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Active Tab: 'chats' | 'leads' | 'users'
-  const [activeTab, setActiveTab] = useState<'chats' | 'leads' | 'users'>('chats');
+  // Active Tab: 'chats' | 'leads' | 'seller_properties' | 'users'
+  const [activeTab, setActiveTab] = useState<'chats' | 'leads' | 'seller_properties' | 'users'>('chats');
 
   // Stats & Users state
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -133,6 +145,21 @@ export default function AdminDashboardPage() {
   });
   const [updatingLeadId, setUpdatingLeadId] = useState<string | null>(null);
   const [deletingLeadId, setDeletingLeadId] = useState<string | null>(null);
+
+  // Seller Properties (وحدات وعروض الملاك المعروضة للبيع) state
+  const [sellerProperties, setSellerProperties] = useState<Property[]>([]);
+  const [loadingSellerProperties, setLoadingSellerProperties] = useState(false);
+  const [sellerSearch, setSellerSearch] = useState('');
+  const [sellerStatusFilter, setSellerStatusFilter] = useState<string>('all');
+  const [sellerCounts, setSellerCounts] = useState<{ all: number; pending: number; approved: number; rejected: number }>({
+    all: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+  });
+  const [updatingSellerId, setUpdatingSellerId] = useState<string | null>(null);
+  const [deletingSellerId, setDeletingSellerId] = useState<string | null>(null);
+  const [previewProperty, setPreviewProperty] = useState<Property | null>(null);
 
   // Chat Sessions state (Paginated)
   const [sessions, setSessions] = useState<ChatSessionItem[]>([]);
@@ -501,11 +528,126 @@ export default function AdminDashboardPage() {
     return `https://wa.me/${clean}?text=${text}`;
   };
 
+  // 6. Fetch Seller Properties (عروض وحدات الملاك)
+  const fetchSellerProperties = async () => {
+    try {
+      setLoadingSellerProperties(true);
+      const params = new URLSearchParams();
+      if (sellerSearch) params.set('q', sellerSearch);
+      if (sellerStatusFilter !== 'all') params.set('status', sellerStatusFilter);
+
+      const res = await fetch(`/api/admin/seller-properties?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSellerProperties(data.properties || []);
+        if (data.counts) {
+          setSellerCounts(data.counts);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch seller properties:', err);
+    } finally {
+      setLoadingSellerProperties(false);
+    }
+  };
+
+  // Approve & Publish Seller Property to active platform data
+  const handleApproveSellerProperty = async (id: string, title?: string) => {
+    try {
+      setUpdatingSellerId(id);
+      const res = await fetch('/api/admin/seller-properties', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action: 'approve' }),
+      });
+      if (res.ok) {
+        setSellerProperties((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, status: 'معتمد' } : p))
+        );
+        fetchSellerProperties();
+        fetchStats(true);
+      }
+    } catch (err) {
+      console.error('Failed to approve seller property:', err);
+    } finally {
+      setUpdatingSellerId(null);
+    }
+  };
+
+  // Reject Seller Property
+  const handleRejectSellerProperty = async (id: string) => {
+    if (!window.confirm('هل تريد رفض هذا العرض؟ لن يتم نشره في قاعدة بيانات المنصة.')) {
+      return;
+    }
+    try {
+      setUpdatingSellerId(id);
+      const res = await fetch('/api/admin/seller-properties', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action: 'reject' }),
+      });
+      if (res.ok) {
+        setSellerProperties((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, status: 'مرفوض' } : p))
+        );
+        fetchSellerProperties();
+        fetchStats(true);
+      }
+    } catch (err) {
+      console.error('Failed to reject seller property:', err);
+    } finally {
+      setUpdatingSellerId(null);
+    }
+  };
+
+  // Delete Seller Property permanently
+  const handleDeleteSellerProperty = async (id: string, title?: string) => {
+    if (!window.confirm(`⚠️ تأكيد حذف هذا العرض ("${title || id}") نهائياً من قاعدة البيانات؟`)) {
+      return;
+    }
+    try {
+      setDeletingSellerId(id);
+      const res = await fetch(`/api/admin/seller-properties?id=${id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setSellerProperties((prev) => prev.filter((p) => p.id !== id));
+        fetchSellerProperties();
+        fetchStats(true);
+      }
+    } catch (err) {
+      console.error('Failed to delete seller property:', err);
+    } finally {
+      setDeletingSellerId(null);
+    }
+  };
+
+  // Helper: Direct WhatsApp link for Seller
+  const getSellerWhatsAppUrl = (p: Property) => {
+    const phone = p.seller_phone || p.compound?.developer?.whatsapp || '';
+    const raw = phone.replace(/[^0-9]/g, '');
+    let clean = raw;
+    if (clean.startsWith('0')) clean = clean.slice(1);
+    if (!clean.startsWith('20')) clean = `20${clean}`;
+    const text = encodeURIComponent(
+      `السلام عليكم أ/ ${p.seller_name || 'المالك العزيز'}، معاك إدارة سكنى بوت بخصوص وحدتك المعروضة للبيع ("${p.title}")...`
+    );
+    return `https://wa.me/${clean}?text=${text}`;
+  };
+
   useEffect(() => {
     fetchStats();
     fetchSessions(1, false);
     fetchLeads();
+    fetchSellerProperties();
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchSellerProperties();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [sellerSearch, sellerStatusFilter]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -667,7 +809,7 @@ export default function AdminDashboardPage() {
           isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-white'
         }`}
       >
-        <div className="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {/* Card 1: Users */}
           <div
             className={`rounded-2xl border p-3.5 transition ${
@@ -770,6 +912,35 @@ export default function AdminDashboardPage() {
               )}
             </div>
           </div>
+
+          {/* Card 6: Seller Direct Listings */}
+          <div
+            onClick={() => setActiveTab('seller_properties')}
+            className={`rounded-2xl border p-3.5 transition cursor-pointer hover:border-amber-500/50 ${
+              activeTab === 'seller_properties'
+                ? 'border-amber-500 bg-amber-500/10'
+                : isDark
+                ? 'border-zinc-800 bg-black'
+                : 'border-zinc-200 bg-zinc-50 shadow-xs'
+            }`}
+          >
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>عروض وحدات الملاك</span>
+              <Tag className="h-4 w-4 text-emerald-500" />
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className={`text-2xl font-black font-mono ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                {stats?.totalSellerListings ?? sellerCounts.all ?? 0}
+              </span>
+              {sellerCounts.pending > 0 ? (
+                <span className="text-[11px] text-amber-500 font-black animate-pulse">
+                  +{sellerCounts.pending} قيد المراجعة
+                </span>
+              ) : (
+                <span className="text-[11px] text-zinc-500">معروضة</span>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -829,7 +1000,36 @@ export default function AdminDashboardPage() {
             </span>
           </button>
 
-          {/* Tab 3: Users */}
+          {/* Tab 3: Seller Properties */}
+          <button
+            onClick={() => setActiveTab('seller_properties')}
+            className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition whitespace-nowrap shrink-0 ${
+              activeTab === 'seller_properties'
+                ? 'border-amber-500 text-amber-500'
+                : 'border-transparent text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Tag className="h-4 w-4" />
+            <span>وحدات وعروض الملاك للبيع</span>
+            {sellerCounts.pending > 0 && (
+              <span className="rounded-full bg-amber-500 text-black px-1.5 py-0.2 text-[10px] font-black">
+                {sellerCounts.pending} قيد المراجعة
+              </span>
+            )}
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs ${
+                activeTab === 'seller_properties'
+                  ? 'bg-amber-500/20 text-amber-500 font-bold'
+                  : isDark
+                  ? 'bg-zinc-900 text-zinc-300 border border-zinc-800'
+                  : 'bg-zinc-200 text-zinc-700'
+              }`}
+            >
+              {sellerCounts.all}
+            </span>
+          </button>
+
+          {/* Tab 4: Users */}
           <button
             onClick={() => setActiveTab('users')}
             className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition whitespace-nowrap shrink-0 ${
@@ -1615,6 +1815,313 @@ export default function AdminDashboardPage() {
               </div>
             )}
           </div>
+        ) : activeTab === 'seller_properties' ? (
+          /* ============================================================== */
+          /* TAB 3: SELLER PROPERTIES (عروض ووحدات الملاك المعروضة للبيع)  */
+          /* ============================================================== */
+          <div className="space-y-4 flex-1 flex flex-col min-h-0">
+            {/* Search & Status Filters Toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[260px]">
+                {/* Search Input */}
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                  <input
+                    type="text"
+                    value={sellerSearch}
+                    onChange={(e) => setSellerSearch(e.target.value)}
+                    placeholder="ابحث باسم المالك، الهاتف، عنوان الوحدة، المنطقة..."
+                    className={`w-full rounded-xl border pr-10 pl-4 py-2 text-xs focus:outline-hidden focus:border-amber-500 transition ${
+                      isDark
+                        ? 'border-zinc-800 bg-black text-white placeholder-zinc-500'
+                        : 'border-zinc-300 bg-white text-zinc-900 placeholder-zinc-400'
+                    }`}
+                  />
+                  {sellerSearch && (
+                    <button
+                      onClick={() => setSellerSearch('')}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-xs"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                {/* Status Filter Chips */}
+                <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                  {[
+                    { id: 'all', label: 'الكل', count: sellerCounts.all },
+                    { id: 'قيد المراجعة', label: 'قيد المراجعة (جديدة)', count: sellerCounts.pending },
+                    { id: 'معتمد', label: 'معتمد ومضاف للداتا', count: sellerCounts.approved },
+                    { id: 'مرفوض', label: 'مرفوض', count: sellerCounts.rejected },
+                  ].map((filter) => (
+                    <button
+                      key={filter.id}
+                      onClick={() => setSellerStatusFilter(filter.id)}
+                      className={`flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                        sellerStatusFilter === filter.id
+                          ? 'bg-amber-500 text-black shadow-xs font-black'
+                          : isDark
+                          ? 'border border-zinc-800 bg-black text-zinc-300 hover:bg-zinc-900'
+                          : 'border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50'
+                      }`}
+                    >
+                      <span>{filter.label}</span>
+                      {filter.count > 0 && (
+                        <span
+                          className={`rounded-full px-1.5 py-0.2 text-[10px] ${
+                            sellerStatusFilter === filter.id
+                              ? 'bg-black/20 text-black font-black'
+                              : 'bg-zinc-800 text-zinc-300'
+                          }`}
+                        >
+                          {filter.count}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Refresh Button */}
+              <button
+                onClick={fetchSellerProperties}
+                disabled={loadingSellerProperties}
+                className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${
+                  isDark
+                    ? 'border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900'
+                    : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50'
+                }`}
+                title="تحديث عروض الملاك"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${loadingSellerProperties ? 'animate-spin text-amber-500' : ''}`} />
+                <span className="hidden sm:inline">تحديث</span>
+              </button>
+            </div>
+
+            {/* List / Grid of Seller Listings */}
+            {loadingSellerProperties ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-12 text-zinc-400 text-xs">
+                <RefreshCw className="h-6 w-6 animate-spin text-amber-500 mb-3" />
+                <span>جاري تحميل عروض ووحدات الملاك...</span>
+              </div>
+            ) : sellerProperties.length === 0 ? (
+              <div
+                className={`flex-1 flex flex-col items-center justify-center p-12 text-zinc-400 text-xs rounded-2xl border ${
+                  isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-white'
+                }`}
+              >
+                <Tag className="h-10 w-10 text-zinc-700 mb-3" />
+                <p className="font-bold text-sm text-zinc-300">لا توجد عروض بيع للملاك حالياً</p>
+                <p className="mt-1 text-zinc-500 text-center max-w-sm">
+                  {sellerSearch
+                    ? 'لم يتم العثور على أي وحدات تطابق معايير البحث الحالية.'
+                    : 'عندما يقوم أي مستخدم بعرض شقة أو أرض للبيع عبر المنصة، ستظهر كافة تفاصيلها هنا لمراجعتها واعتمادها.'}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 overflow-y-auto flex-1 pr-1">
+                {sellerProperties.map((p) => {
+                  const isApproved = p.status === 'معتمد' || p.status === 'متاح' || p.status === 'متاح للبيع';
+                  const isPending = p.status === 'قيد المراجعة';
+                  const isRejected = p.status === 'مرفوض';
+
+                  return (
+                    <div
+                      key={p.id}
+                      className={`rounded-2xl border p-4 flex flex-col justify-between transition-all hover:border-amber-500/40 shadow-xs ${
+                        isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-white'
+                      }`}
+                    >
+                      <div>
+                        {/* Header: Photo Preview & Status */}
+                        <div className="flex items-start gap-3">
+                          {p.images && p.images[0] ? (
+                            <div className="relative h-20 w-24 shrink-0 rounded-xl overflow-hidden border border-zinc-700 bg-zinc-800">
+                              <img
+                                src={p.images[0]}
+                                alt={p.title}
+                                className="h-full w-full object-cover"
+                              />
+                              {p.images.length > 1 && (
+                                <span className="absolute bottom-1 right-1 rounded-md bg-black/80 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                                  +{p.images.length - 1} صور
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="grid h-20 w-24 shrink-0 place-items-center rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-500">
+                              <Images className="h-6 w-6" />
+                              <span className="text-[9px] mt-0.5 font-bold">بدون صور</span>
+                            </div>
+                          )}
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-black text-amber-500">
+                                {p.unit_type}
+                              </span>
+
+                              {/* Status Badge */}
+                              {isPending && (
+                                <span className="flex items-center gap-1 rounded-md bg-amber-500/15 border border-amber-500/40 px-2 py-0.5 text-[10px] font-bold text-amber-400">
+                                  <Clock className="h-3 w-3" />
+                                  <span>قيد المراجعة</span>
+                                </span>
+                              )}
+                              {isApproved && (
+                                <span className="flex items-center gap-1 rounded-md bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  <span>معتمد بالداتا</span>
+                                </span>
+                              )}
+                              {isRejected && (
+                                <span className="flex items-center gap-1 rounded-md bg-rose-500/15 border border-rose-500/40 px-2 py-0.5 text-[10px] font-bold text-rose-400">
+                                  <XCircle className="h-3 w-3" />
+                                  <span>مرفوض</span>
+                                </span>
+                              )}
+                            </div>
+
+                            <h4 className={`mt-1.5 text-xs font-black line-clamp-2 ${isDark ? 'text-white' : 'text-zinc-900'}`} title={p.title}>
+                              {p.title}
+                            </h4>
+
+                            <div className="mt-1 flex items-center gap-1 text-[11px] text-zinc-400">
+                              <MapPin className="h-3 w-3 text-amber-500 shrink-0" />
+                              <span className="truncate">{p.location_text || p.compound?.city}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Seller Contact Box */}
+                        <div className={`mt-3 rounded-xl border p-2.5 text-xs ${
+                          isDark ? 'border-zinc-800/80 bg-zinc-950/60' : 'border-zinc-200/80 bg-zinc-50'
+                        }`}>
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-zinc-400">المالك: <strong className="text-zinc-200">{p.seller_name || 'مالك مباشر'}</strong></span>
+                            <span className="text-[10px] text-zinc-500">{formatDate(p.created_at)}</span>
+                          </div>
+
+                          {/* Quick WhatsApp & Call Buttons for Seller */}
+                          {p.seller_phone && (
+                            <div className="mt-2 grid grid-cols-2 gap-2">
+                              <a
+                                href={getSellerWhatsAppUrl(p)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-2 py-1.5 text-xs font-bold transition shadow-xs"
+                                title={`واتساب مباشر مع المالك: ${p.seller_phone}`}
+                              >
+                                <MessageCircle className="h-3.5 w-3.5" />
+                                <span>واتساب المالك</span>
+                              </a>
+
+                              <a
+                                href={`tel:${p.seller_phone}`}
+                                className="flex items-center justify-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 px-2 py-1.5 text-xs font-bold transition"
+                                title={`اتصال بالمالك: ${p.seller_phone}`}
+                              >
+                                <Phone className="h-3 w-3" />
+                                <span dir="ltr" className="font-mono text-[11px]">{p.seller_phone}</span>
+                              </a>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Financials & Specs */}
+                        <div className="mt-2.5 grid grid-cols-2 gap-2 text-xs">
+                          <div className="rounded-xl border border-zinc-800/60 p-2">
+                            <span className="text-[10px] text-zinc-400 block">السعر المطلوب:</span>
+                            <span className="font-mono font-black text-amber-500 text-sm">
+                              {Number(p.total_price || 0).toLocaleString()} ج.م
+                            </span>
+                          </div>
+                          <div className="rounded-xl border border-zinc-800/60 p-2">
+                            <span className="text-[10px] text-zinc-400 block">المساحة والمواصفات:</span>
+                            <span className="font-bold text-zinc-200 text-xs">
+                              {p.area_sqm} م² {p.bedrooms ? `• ${p.bedrooms} غرف` : ''} {p.bathrooms ? `• ${p.bathrooms} ح` : ''}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Payment & Finishing details */}
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-1 text-[11px] text-zinc-400 px-1">
+                          <span>نظام السداد: <strong className="text-zinc-200">{(p.installment_years || 0) > 0 ? `تقسيط ${p.installment_years} سنوات (مقدم ${p.down_payment_pct}%)` : 'كاش بالكامل'}</strong></span>
+                          <span>التشطيب: <strong className="text-zinc-200">{p.finishing_type || 'غير محدد'}</strong></span>
+                        </div>
+
+                        {/* Seller Sale Circumstances & Notes */}
+                        {p.sale_circumstances && (
+                          <div className="mt-2.5 rounded-xl border border-zinc-800/50 bg-zinc-950/40 p-2 text-xs">
+                            <span className="text-[10px] font-bold text-zinc-400 block">ظروف البيع وملاحظات المالك:</span>
+                            <p className="mt-0.5 text-xs text-zinc-300 line-clamp-3">
+                              {p.sale_circumstances}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Card Footer: Approval / Rejection Actions */}
+                      <div className="mt-4 pt-3 border-t border-zinc-800/60 space-y-2">
+                        {/* Approval & Rejection Row */}
+                        <div className="flex items-center gap-2">
+                          {!isApproved ? (
+                            <button
+                              onClick={() => handleApproveSellerProperty(p.id, p.title)}
+                              disabled={updatingSellerId === p.id}
+                              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-2 px-3 transition shadow-xs"
+                              title="اعتماد الوحدة وإضافتها فورياً لقاعدة بيانات المنصة ومحرك الذكاء الاصطناعي"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                              <span>اعتماد وإضافة للداتا ⚡</span>
+                            </button>
+                          ) : (
+                            <div className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 py-2 text-xs font-bold text-emerald-400">
+                              <CheckCircle2 className="h-4 w-4" />
+                              <span>منشورة ومعتمدة في الداتا</span>
+                            </div>
+                          )}
+
+                          {!isRejected && (
+                            <button
+                              onClick={() => handleRejectSellerProperty(p.id)}
+                              disabled={updatingSellerId === p.id}
+                              className="flex items-center justify-center gap-1 rounded-xl border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold text-xs py-2 px-3 transition"
+                              title="رفض هذا العرض"
+                            >
+                              <XCircle className="h-3.5 w-3.5" />
+                              <span>رفض</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Secondary Actions: Full Preview & Permanent Delete */}
+                        <div className="flex items-center justify-between gap-2 pt-1">
+                          <button
+                            onClick={() => setPreviewProperty(p)}
+                            className="flex items-center gap-1 text-[11px] font-bold text-amber-500 hover:text-amber-400 transition"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            <span>معاينة تفاصيل الوحدة الكاملة</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleDeleteSellerProperty(p.id, p.title)}
+                            disabled={deletingSellerId === p.id}
+                            className="grid h-7 w-7 place-items-center rounded-lg border border-rose-500/30 text-rose-400 hover:bg-rose-500/15 transition"
+                            title="حذف هذا العرض نهائياً من قاعدة البيانات"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         ) : (
           /* ============================================================== */
           /* TAB 2: REGISTERED USERS & ANALYTICS                            */
@@ -1738,6 +2245,15 @@ export default function AdminDashboardPage() {
           </div>
         )}
       </main>
+
+      {/* Full Property Preview Modal for Admin */}
+      {previewProperty && (
+        <PropertyDetailsModal
+          property={previewProperty}
+          isOpen={Boolean(previewProperty)}
+          onClose={() => setPreviewProperty(null)}
+        />
+      )}
     </div>
   );
 }

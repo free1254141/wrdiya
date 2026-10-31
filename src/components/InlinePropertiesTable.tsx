@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { Eye, ArrowUpDown, Building2, ChevronDown, ChevronUp, Sparkles, ExternalLink } from 'lucide-react';
 import { Property } from '@/lib/types';
-import { getDirectPropertyUrl } from '@/lib/property-link';
+import { getDirectPropertyUrl, getPropertyPortalBrand } from '@/lib/property-link';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface InlinePropertiesTableProps {
@@ -200,6 +200,7 @@ export default function InlinePropertiesTable({
                     {(() => {
                       const directUrl = getDirectPropertyUrl(p);
                       if (!directUrl || p.platform === 'SellerListing') return null;
+                      const portalBrand = getPropertyPortalBrand(p);
                       return (
                         <a
                           href={directUrl}
@@ -207,7 +208,7 @@ export default function InlinePropertiesTable({
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
                           className="inline-flex items-center gap-1 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 px-2 py-1.5 text-[11px] font-bold shadow-2xs transition active:scale-95"
-                          title={p.platform === 'TEKCE' ? (isAr ? 'الموقع الرسمي ↗' : 'Official Page ↗') : (isAr ? 'فتح الإعلان على عقارماب ↗' : 'View on Aqarmap ↗')}
+                          title={isAr ? portalBrand.buttonLabelAr : portalBrand.buttonLabelEn}
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
                           <span className="hidden md:inline">{isAr ? 'الموقع ↗' : 'Link ↗'}</span>

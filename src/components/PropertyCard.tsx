@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Property } from '@/lib/types';
-import { getDirectPropertyUrl } from '@/lib/property-link';
+import { getDirectPropertyUrl, getPropertyPortalBrand } from '@/lib/property-link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { 
   Building2, 
@@ -167,6 +167,7 @@ export default function PropertyCard({
   const imageUrl = hasRealImage ? property.images![0] : coverImage;
 
   const directPropertyUrl = getDirectPropertyUrl(property);
+  const portalBrand = getPropertyPortalBrand(property);
 
   return (
     <div 
@@ -413,11 +414,12 @@ export default function PropertyCard({
                 href={directPropertyUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 className="grid h-8 w-8 place-items-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 transition shrink-0"
                 title={
                   isSellerListing
                     ? (isAr ? 'تواصل مع صاحب الإعلان عبر واتساب' : 'WhatsApp Owner')
-                    : (isTekce ? (isAr ? 'الموقع الرسمي' : 'Official Site') : (isAr ? 'فتح الإعلان على عقارماب' : 'View on Aqarmap'))
+                    : (isAr ? portalBrand.buttonLabelAr : portalBrand.buttonLabelEn)
                 }
               >
                 {isSellerListing ? <PhoneCall className="h-3.5 w-3.5" /> : <ExternalLink className="h-3.5 w-3.5" />}

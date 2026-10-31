@@ -54,6 +54,8 @@ export async function GET(req: NextRequest) {
       propertiesCountRes,
       recentSessionsRes,
       leadsCountRes,
+      sellerListingsCountRes,
+      pendingSellerListingsRes,
     ] = await Promise.all([
       // 1. Registered users list from Supabase Auth
       admin.auth.admin.listUsers({ perPage: 1000 }).catch((e) => {
@@ -73,6 +75,10 @@ export async function GET(req: NextRequest) {
         .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
       // 6. Total viewing requests & leads
       admin.from('leads_inquiries').select('*', { count: 'exact', head: true }),
+      // 7. Total user-submitted seller listings
+      admin.from('properties').select('*', { count: 'exact', head: true }).eq('platform', 'SellerListing'),
+      // 8. Pending seller listings needing review
+      admin.from('properties').select('*', { count: 'exact', head: true }).eq('platform', 'SellerListing').eq('status', 'قيد المراجعة'),
     ]);
 
     const rawUsers = (usersRes as any)?.data?.users || [];
@@ -81,6 +87,8 @@ export async function GET(req: NextRequest) {
     const totalProperties = propertiesCountRes.count ?? 0;
     const recentSessions24h = recentSessionsRes.count ?? 0;
     const totalLeads = leadsCountRes.count ?? 0;
+    const totalSellerListings = (sellerListingsCountRes as any)?.count ?? 0;
+    const pendingSellerListings = (pendingSellerListingsRes as any)?.count ?? 0;
 
     // Map registered users with their details
     const usersList = rawUsers.map((u: any) => {
@@ -105,6 +113,8 @@ export async function GET(req: NextRequest) {
         totalProperties,
         recentSessions24h,
         totalLeads,
+        totalSellerListings,
+        pendingSellerListings,
       },
       users: usersList,
       timestamp: now,

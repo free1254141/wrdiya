@@ -108,7 +108,7 @@ async function resolveProjectIdForCity(city?: string, area?: string): Promise<st
     );
     return (matched || allCompounds[0]).id;
   }
-  return 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  return '00000000-0000-0000-0000-000000000005';
 }
 
 export async function createSellerProperty(input: SellerPropertyInput): Promise<Property | null> {
@@ -179,7 +179,7 @@ export async function createSellerProperty(input: SellerPropertyInput): Promise<
     monthly_installment: monthly,
     quarterly_installment: quarterly,
     delivery_date: deliveryVal,
-    status: input.status?.trim() || 'متاح',
+    status: input.status?.trim() || 'قيد المراجعة',
     images: cleanImages, // Strictly only images provided by the user; empty array if none
     featured: false,
     roi_expected_pct: null, // Never fabricate an ROI percentage for a seller listing

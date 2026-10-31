@@ -31,7 +31,9 @@ import {
   ShieldCheck,
   ArrowDown,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Property, ChatSession, ChatMessage, SessionContext, SellerFormPrefill, UsageInfo } from '@/lib/types';
 import { emptySessionContext, toShownUnit } from '@/lib/ai/session-context';
@@ -86,6 +88,7 @@ export default function SkanybotChatPage() {
   const [inputText, setInputText] = useState('');
   const [referencedProperty, setReferencedProperty] = useState<Property | null>(null);
   const [isReferencedCollapsed, setIsReferencedCollapsed] = useState<boolean>(false);
+  const [isDockPeeking, setIsDockPeeking] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -1086,9 +1089,9 @@ export default function SkanybotChatPage() {
               className={`flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pt-4 relative z-10 transition-all duration-200 ${
                 referencedProperty
                   ? isReferencedCollapsed
-                    ? 'pb-44 sm:pb-40'
-                    : 'pb-80 sm:pb-72 md:pb-80'
-                  : 'pb-36 sm:pb-32'
+                    ? 'pb-56 sm:pb-52'
+                    : 'pb-[380px] sm:pb-[360px] md:pb-[400px]'
+                  : 'pb-40 sm:pb-36'
               }`}
               dir={dir}
             >
@@ -1352,9 +1355,24 @@ export default function SkanybotChatPage() {
           </button>
         )}
 
+        {/* Floating Restore Bar Button when Peeking */}
+        {isDockPeeking && (
+          <button
+            type="button"
+            onClick={() => setIsDockPeeking(false)}
+            className="fixed bottom-28 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full border border-amber-500 bg-black/90 px-4 py-2 text-xs font-black text-amber-400 shadow-2xl backdrop-blur-md transition hover:scale-105 active:scale-95 animate-bounce"
+            title={isRtl ? 'إعادة إظهار وتثبيت شريط الشات' : 'Restore chat input dock'}
+          >
+            <EyeOff className="h-4 w-4 text-amber-400" />
+            <span>{isRtl ? '👁️ إعادة تثبيت شريط الشات' : 'Restore Chat Bar'}</span>
+          </button>
+        )}
+
         {/* Floating Input Area (ChatGPT Style) */}
         <div
-          className={`absolute inset-x-0 bottom-0 pt-6 pb-4 px-4 sm:px-6 md:px-8 z-20 ${
+          className={`absolute inset-x-0 bottom-0 pt-6 pb-4 px-4 sm:px-6 md:px-8 z-20 transition-opacity duration-300 ${
+            isDockPeeking ? 'opacity-15 hover:opacity-95' : 'opacity-100'
+          } ${
             wallpaperId === 'watermelon'
               ? 'chat-dock-watermelon'
               : wallpaperId === 'arabesque'
@@ -1407,6 +1425,19 @@ export default function SkanybotChatPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setIsDockPeeking(!isDockPeeking)}
+                        className={`flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold transition ${
+                          isDockPeeking
+                            ? 'bg-amber-500 text-black'
+                            : 'text-slate-600 hover:bg-slate-200 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                        }`}
+                        title={isRtl ? 'معاينة ما خلف الشريط (جعل الشريط شفافاً لرؤية ما خلفه في الشات)' : 'Peek behind bar (translucent)'}
+                      >
+                        {isDockPeeking ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        <span className="hidden sm:inline">{isRtl ? 'إظهار ما خلفه' : 'Peek'}</span>
+                      </button>
                       <button
                         type="button"
                         onClick={() => setIsReferencedCollapsed(!isReferencedCollapsed)}
