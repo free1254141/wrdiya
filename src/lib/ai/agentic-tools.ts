@@ -18,6 +18,8 @@ export interface SearchPropertiesArgs {
   target_price?: number;
   currency?: 'EGP' | 'AED' | 'EUR' | 'USD';
   bedrooms?: number;
+  installment_years?: number;
+  down_payment_pct?: number;
   delivery_type?: 'فوري' | 'تقسيط' | 'جاهز' | 'all';
   compound_name?: string;
   limit?: number;
@@ -84,6 +86,14 @@ export const AGENTIC_TOOLS_SCHEMA = [
           bedrooms: {
             type: 'number',
             description: 'عدد غرف النوم المطلوبة (مثال: 2، 3، 4)'
+          },
+          installment_years: {
+            type: 'number',
+            description: 'عدد سنوات التقسيط المطلوبة إذا ذكرها العميل (مثال: 8 لو طلب تقسيط 8 سنين، أو 5 أو 7 أو 10)'
+          },
+          down_payment_pct: {
+            type: 'number',
+            description: 'نسبة المقدم المطلوبة إذا ذكرها العميل (مثال: 10 لو طلب مقدم 10%)'
           },
           delivery_type: {
             type: 'string',
@@ -293,6 +303,36 @@ export async function executePropertySearch(args: SearchPropertiesArgs): Promise
     }
   }
 
+  // 4.1 Installment years matching (e.g. "بتقسيط 8 سنين")
+  if (args.installment_years && args.installment_years > 0) {
+    const exactYears = results.filter(p => p.installment_years === args.installment_years);
+    if (exactYears.length > 0) {
+      results = exactYears;
+    } else {
+      const nearYears = results.filter(p => (p.installment_years || 0) >= args.installment_years!);
+      if (nearYears.length > 0) results = nearYears;
+    }
+  }
+
+  // 4.2 Down payment percentage matching (e.g. "بمقدم 10%")
+  if (args.down_payment_pct && args.down_payment_pct > 0) {
+    const dpFiltered = results.filter(p => (p.down_payment_pct ?? 10) <= args.down_payment_pct!);
+    if (dpFiltered.length > 0) {
+      results = dpFiltered;
+    }
+  }
+
+  // 4.3 Delivery type matching (e.g. "استلام فوري")
+  if (args.delivery_type === 'فوري' || args.delivery_type === 'جاهز') {
+    const readyFiltered = results.filter(p => {
+      const txt = `${p.delivery_date || ''} ${p.status || ''} ${p.title || ''}`.toLowerCase();
+      return txt.includes('فوري') || txt.includes('جاهز') || txt.includes('ready') || txt.includes('2025') || txt.includes('2026');
+    });
+    if (readyFiltered.length > 0) {
+      results = readyFiltered;
+    }
+  }
+
   // 5. Min / Max price filtering
   if (args.min_price) {
     results = results.filter(p => p.total_price >= args.min_price!);
@@ -301,14 +341,18 @@ export async function executePropertySearch(args: SearchPropertiesArgs): Promise
     results = results.filter(p => p.total_price <= args.max_price!);
   }
 
-  // 6. Target Price Sorting: Crucial for queries like "عايز شقق فى حدود ال 20 مليون" or "ب 3 مليون"
+  // 6. Target Price Filtering & Proximity Sorting:
+  // Restrict results to units actually near the requested budget (not the whole DB!)
   if (args.target_price && args.target_price > 0) {
     const target = args.target_price;
-    results.sort((a, b) => {
-      const diffA = Math.abs(a.total_price - target);
-      const diffB = Math.abs(b.total_price - target);
-      return diffA - diffB;
-    });
+    results.sort((a, b) => Math.abs(a.total_price - target) - Math.abs(b.total_price - target));
+    const tightBand = results.filter(p => p.total_price >= target * 0.75 && p.total_price <= target * 1.25);
+    if (tightBand.length >= 2) {
+      results = tightBand;
+    } else {
+      const wideBand = results.filter(p => p.total_price >= target * 0.60 && p.total_price <= target * 1.40);
+      results = wideBand.length > 0 ? wideBand : results.slice(0, 6);
+    }
   }
 
   // 6.1 Explicit sort requested by the user (cheapest / largest ...)
@@ -329,19 +373,35 @@ export async function executePropertySearch(args: SearchPropertiesArgs): Promise
     }
   }
 
-  const totalMatches = results.length;
-  const finalProperties = results.slice(offset, offset + limit);
+  // 8. Deduplicate identical listings and cap to the relevant search result set (max 12)
+  // so "إظهار الكل" shows only the matching results of this search, never the entire database.
+  const seen = new Set<string>();
+  const deduped: Property[] = [];
+  for (const p of results) {
+    const key = `${(p.title || '').trim().toLowerCase()}|${p.total_price}|${p.area_sqm}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      deduped.push(p);
+    }
+  }
+
+  const MAX_SEARCH_RESULTS = 12;
+  const searchMatches = deduped.slice(0, MAX_SEARCH_RESULTS);
+  const totalMatches = searchMatches.length;
+  const finalProperties = searchMatches.slice(offset, offset + limit);
 
   return {
     found: finalProperties.length,
     total_matches: totalMatches,
-    all_matches: results.slice(0, 100),
+    all_matches: searchMatches,
     offset,
     properties: finalProperties,
     filtersApplied: {
       unit_type: args.unit_type,
       location: args.location,
       target_price: args.target_price,
+      installment_years: args.installment_years,
+      down_payment_pct: args.down_payment_pct,
       currency: targetCurrency,
       min_price: args.min_price,
       max_price: args.max_price

@@ -201,9 +201,10 @@ export async function POST(req: NextRequest) {
       if (isGeneral) {
         propertiesToReturn = [];
       } else if (matchedProperties.length > 0) {
-        propertiesToReturn = matchedProperties.slice(0, 4);
-        totalMatches = matchedProperties.length;
-        if (matchedProperties.length > 4) allPropertiesToReturn = matchedProperties.slice(0, 100);
+        const capped = matchedProperties.slice(0, 12);
+        propertiesToReturn = capped.slice(0, 4);
+        totalMatches = capped.length;
+        allPropertiesToReturn = capped;
       } else if (!hasSpecificFilter) {
         propertiesToReturn = featuredOpportunities.slice(0, 4);
       } else {

@@ -9,7 +9,7 @@ import { Property, SessionContext, ShownUnit } from '@/lib/types';
  * so it is session-scoped without any DB migration.
  */
 
-const SEARCH_KEYS = ['unit_type', 'location', 'target_price', 'min_price', 'max_price', 'currency', 'bedrooms', 'query', 'delivery_type', 'sort'] as const;
+const SEARCH_KEYS = ['unit_type', 'location', 'target_price', 'min_price', 'max_price', 'currency', 'bedrooms', 'installment_years', 'down_payment_pct', 'query', 'delivery_type', 'sort'] as const;
 
 export function emptySessionContext(): SessionContext {
   return { last_search: null, shown: [], total_matches: 0, focus: null, profile: {}, turns: 0 };

@@ -40,6 +40,7 @@ import PricingModal from '@/components/PricingModal';
 import AuthModal from '@/components/AuthModal';
 import PropertyDetailsModal from '@/components/PropertyDetailsModal';
 import PropertiesTableModal from '@/components/PropertiesTableModal';
+import InlinePropertiesTable from '@/components/InlinePropertiesTable';
 
 export default function SkanybotChatPage() {
   const { locale, t, dir, isRtl } = useLanguage();
@@ -806,16 +807,13 @@ export default function SkanybotChatPage() {
                             </div>
                           )}
 
-                          {/* Programmatic "view all results" button when there are more than the 4 cards */}
-                          {msg.all_properties && msg.all_properties.length > (msg.properties?.length || 0) && (
-                            <button
-                              onClick={() => setTableProps({ list: msg.all_properties!, total: msg.total_matches || msg.all_properties!.length })}
-                              className="mt-3 inline-flex items-center gap-2 rounded-xl border border-amber-500/60 bg-amber-500/10 px-4 py-2 text-xs font-bold text-amber-700 transition hover:bg-amber-500 hover:text-black dark:text-amber-300"
-                            >
-                              <Building2 className="h-4 w-4" />
-                              {({ ar: 'عرض كل النتائج', en: 'View all results', tr: 'Tüm sonuçları gör', ru: 'Показать все результаты', de: 'Alle Ergebnisse anzeigen', fr: 'Voir tous les résultats', es: 'Ver todos los resultados' } as Record<string, string>)[locale] || 'View all results'}
-                              {' '}({msg.total_matches || msg.all_properties.length})
-                            </button>
+                          {/* Inline Results Table with per-row "View Details" button and "Show All" button right underneath the table */}
+                          {((msg.all_properties && msg.all_properties.length > 0) || (msg.properties && msg.properties.length > 0)) && (
+                            <InlinePropertiesTable
+                              properties={(msg.all_properties && msg.all_properties.length > 0) ? msg.all_properties : (msg.properties || [])}
+                              initialCount={4}
+                              onViewDetails={openPropertyDetails}
+                            />
                           )}
 
                           {/* Suggested Action Chips */}
