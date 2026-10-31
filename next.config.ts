@@ -30,6 +30,20 @@ const nextConfig: NextConfig = {
     ],
   },
   // Edge CDN caching headers for static assets and public APIs
+  async redirects() {
+    return [
+      {
+        source: '/sitemap.xm',
+        destination: '/sitemap.xml',
+        permanent: true,
+      },
+      {
+        source: '/sitemap.xm/BingSiteAuth.xml',
+        destination: '/BingSiteAuth.xml',
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [
       {
