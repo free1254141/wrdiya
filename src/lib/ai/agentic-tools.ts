@@ -1,6 +1,7 @@
 import { Property, SellerFormPrefill } from '@/lib/types';
 import { getAllCachedProperties } from '@/lib/real-estate-engine';
 import { createSellerProperty, updateSellerProperty } from '@/lib/seller-listings';
+import { notifyNewLead } from '@/lib/notify';
 import { calculateAnalyticalValuation } from '../engine/valuation-model';
 import { calculatePropertyDealScore } from '../engine/deal-scoring';
 import { getAreaIntelligence, compareTwoAreas } from '../knowledge/area-intelligence';
@@ -709,6 +710,15 @@ export async function executeLeadRecording(args: LeadCaptureArgs) {
     if (error) {
       console.warn('Lead insert error:', error);
     }
+
+    // Trigger instant Telegram alert to admin
+    notifyNewLead({
+      name: args.customer_name || 'عميل مهتم من الشات الذكي',
+      phone: args.phone_or_whatsapp,
+      location: args.preferred_location || null,
+      notes: args.notes || null,
+      source: 'محادثة الشات بوت الذكي (أداة حجز معاينة)',
+    }).catch(e => console.warn('[notify] Failed to send Telegram lead alert:', e));
 
     return {
       success: true,

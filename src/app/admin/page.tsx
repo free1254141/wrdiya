@@ -218,6 +218,16 @@ export default function AdminDashboardPage() {
   // User search
   const [userSearch, setUserSearch] = useState('');
 
+  // Telegram bot notifications state
+  const [telegramStatus, setTelegramStatus] = useState<{
+    hasToken: boolean;
+    botUsername: string;
+    chatId: string | null;
+    status: 'connected' | 'waiting_start' | 'missing_token';
+  } | null>(null);
+  const [testingTelegram, setTestingTelegram] = useState(false);
+  const [telegramMessage, setTelegramMessage] = useState<string | null>(null);
+
   // Load saved admin theme
   useEffect(() => {
     try {
@@ -250,6 +260,33 @@ export default function AdminDashboardPage() {
       console.error('Failed to fetch admin stats:', err);
     } finally {
       setLoadingStats(false);
+    }
+  };
+
+  const fetchTelegramStatus = async () => {
+    try {
+      const res = await fetch('/api/admin/telegram-status');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.diagnostics) {
+          setTelegramStatus(data.diagnostics);
+        }
+      }
+    } catch {}
+  };
+
+  const handleTestTelegram = async () => {
+    setTestingTelegram(true);
+    setTelegramMessage(null);
+    try {
+      const res = await fetch('/api/admin/telegram-status', { method: 'POST' });
+      const data = await res.json();
+      setTelegramMessage(data.message || (data.success ? 'تم إرسال الإشعار بنجاح!' : 'تعذر إرسال الإشعار'));
+      fetchTelegramStatus();
+    } catch {
+      setTelegramMessage('حدث خطأ أثناء محاولة الإرسال');
+    } finally {
+      setTestingTelegram(false);
     }
   };
 
@@ -640,6 +677,7 @@ export default function AdminDashboardPage() {
     fetchSessions(1, false);
     fetchLeads();
     fetchSellerProperties();
+    fetchTelegramStatus();
   }, []);
 
   useEffect(() => {
@@ -939,6 +977,100 @@ export default function AdminDashboardPage() {
               ) : (
                 <span className="text-[11px] text-zinc-500">معروضة</span>
               )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Telegram Live Notification Banner */}
+      <section className="px-4 sm:px-6 pt-1 pb-3">
+        <div className="max-w-7xl mx-auto">
+          <div
+            className={`rounded-2xl border p-3.5 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 transition ${
+              telegramStatus?.status === 'connected'
+                ? isDark
+                  ? 'border-emerald-500/30 bg-emerald-950/20'
+                  : 'border-emerald-200 bg-emerald-50/70'
+                : isDark
+                ? 'border-amber-500/30 bg-amber-950/20'
+                : 'border-amber-200 bg-amber-50/70'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className={`p-2.5 rounded-xl shrink-0 ${
+                  telegramStatus?.status === 'connected'
+                    ? 'bg-emerald-500/15 text-emerald-400'
+                    : 'bg-amber-500/15 text-amber-400'
+                }`}
+              >
+                <Send className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                    إشعارات تليجرام الفورية (@{telegramStatus?.botUsername || 'sakanyBOT_SUPPORT_BOT'})
+                  </span>
+                  {telegramStatus?.status === 'connected' ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      متصل ونشط ✅
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                      في انتظار الضغط على /start 📲
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-zinc-400 mt-1">
+                  {telegramStatus?.status === 'connected'
+                    ? 'تصلك تنبيهات فورية مباشرة على تليجرام عند طلب معاينة أو إضافة وحدة جديدة للبيع مع أرقام الواتساب وروابط الإدارة.'
+                    : 'افتح البوت واضغط /start مرة واحدة لربط حسابك وتلقي الإشعارات الفورية لكل طلب معاينة أو إضافة وحدة.'}
+                </p>
+                {telegramMessage && (
+                  <p className="text-xs mt-1.5 font-medium text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md inline-block">
+                    {telegramMessage}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+              <a
+                href={`https://t.me/${telegramStatus?.botUsername || 'sakanyBOT_SUPPORT_BOT'}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-sky-500 hover:bg-sky-600 text-white shadow-xs transition"
+              >
+                <span>فتح البوت على تليجرام</span>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+
+              <button
+                onClick={handleTestTelegram}
+                disabled={testingTelegram}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition ${
+                  isDark
+                    ? 'border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700'
+                    : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100'
+                } disabled:opacity-50`}
+              >
+                <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                <span>{testingTelegram ? 'جاري الإرسال...' : 'تجربة إرسال إشعار'}</span>
+              </button>
+
+              <button
+                onClick={fetchTelegramStatus}
+                title="تحديث حالة البوت"
+                className={`p-2 rounded-xl border transition ${
+                  isDark
+                    ? 'border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800'
+                    : 'border-zinc-200 text-zinc-600 hover:bg-zinc-100'
+                }`}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
         </div>

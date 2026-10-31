@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Property } from './types';
 import { invalidatePropertiesCache } from './real-estate-engine';
+import { notifySellerListing } from './notify';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://csuifvyghfsibkrnxrby.supabase.co';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -215,6 +216,28 @@ export async function createSellerProperty(input: SellerPropertyInput): Promise<
         status: 'جديد',
       }]);
     } catch {}
+  }
+
+  // Send instant Telegram notification to admin
+  try {
+    notifySellerListing({
+      id: data.id,
+      title: autoTitle,
+      unitType,
+      areaSqm,
+      totalPrice,
+      city,
+      location: locationText,
+      paymentMethod: years > 0 ? `تقسيط ${years} سنوات (مقدم ${dpPct}%)` : 'كاش فوري',
+      downPayment: dpAmount,
+      monthlyInstallment: monthly,
+      sellerName: input.seller_name,
+      sellerPhone: input.seller_phone,
+      saleCircumstances: input.sale_circumstances,
+      imagesCount: cleanImages.length,
+    }).catch(e => console.warn('[notify] Failed to dispatch seller telegram alert:', e));
+  } catch (err) {
+    console.warn('[notify] Telegram seller error:', err);
   }
 
   invalidatePropertiesCache();
