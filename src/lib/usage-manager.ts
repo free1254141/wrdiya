@@ -1,5 +1,6 @@
 import 'server-only';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { isAllowedAdminEmail } from '@/lib/admin-auth-client';
 
 /**
  * sakanybot Usage & Quota Manager (persistent, server-enforced)
@@ -22,7 +23,7 @@ export const PRO_DAILY_CAP = 60;
 export const PRO_PERIOD_DAYS = 30;
 export const PRO_PRICE_USD = '15.00';
 
-export type Plan = 'guest' | 'free' | 'pro';
+export type Plan = 'guest' | 'free' | 'pro' | 'admin';
 
 export interface UsageState {
   plan: Plan;
@@ -46,6 +47,20 @@ export interface QuotaIdentity {
   userId: string | null;
   guestId: string | null;
   ipHash: string;
+  email?: string | null;
+}
+
+export async function isUserAdmin(id: QuotaIdentity): Promise<boolean> {
+  if (id.email && isAllowedAdminEmail(id.email)) return true;
+  if (!id.userId) return false;
+  const admin = getSupabaseAdmin();
+  if (admin) {
+    try {
+      const { data } = await admin.auth.admin.getUserById(id.userId);
+      if (data?.user?.email && isAllowedAdminEmail(data.user.email)) return true;
+    } catch {}
+  }
+  return false;
 }
 
 interface UserPlanRow {
@@ -163,6 +178,19 @@ function proPeriodKey(periodStart: string | null): string {
 
 /** Read-only status for the UI (does NOT consume). */
 export async function getUsageStatus(id: QuotaIdentity): Promise<UsageState> {
+  // ── Admin: Unlimited inquiries lifetime ──
+  if (await isUserAdmin(id)) {
+    return {
+      plan: 'admin',
+      used: 0,
+      limit: 999999,
+      remaining: 999999,
+      window: 'period',
+      resetDate: '∞',
+      proUntil: null,
+    };
+  }
+
   const today = cairoDateKey();
 
   if (!id.userId) {
@@ -192,6 +220,21 @@ export async function getUsageStatus(id: QuotaIdentity): Promise<UsageState> {
 
 /** Atomically consume one query for this identity. */
 export async function consumeQuery(id: QuotaIdentity): Promise<ConsumeResult> {
+  // ── Admin: Unlimited inquiries lifetime (never blocked, never counted against quota) ──
+  if (await isUserAdmin(id)) {
+    return {
+      plan: 'admin',
+      allowed: true,
+      used: 0,
+      limit: 999999,
+      remaining: 999999,
+      window: 'period',
+      resetDate: '∞',
+      proUntil: null,
+      refund: async () => {},
+    };
+  }
+
   const today = cairoDateKey();
   const consumed: Array<[string, string]> = [];
   const doRefund = async () => {

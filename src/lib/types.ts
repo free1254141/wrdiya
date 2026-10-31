@@ -189,7 +189,7 @@ export interface SessionContext {
 
 /** Quota/plan info returned by /api/usage and /api/chat (server-enforced). */
 export interface UsageInfo {
-  plan: 'guest' | 'free' | 'pro';
+  plan: 'guest' | 'free' | 'pro' | 'admin';
   used: number;
   limit: number;
   remaining: number;

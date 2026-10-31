@@ -135,8 +135,8 @@ export async function POST(req: NextRequest) {
       ));
     }
 
-    // 1. Strict, persistent usage enforcement (guest 3/day, free 10/day, Pro 300/period)
-    usage = await consumeQuery({ userId, guestId: userId ? null : guestId, ipHash: getClientIpHash(req) });
+    // 1. Strict, persistent usage enforcement (Admin: unlimited, guest 3/day, free 10/day, Pro 300/period)
+    usage = await consumeQuery({ userId, guestId: userId ? null : guestId, ipHash: getClientIpHash(req), email: userEmail });
 
     if (!usage.allowed) {
       const publicUsage = toPublicUsage(usage);

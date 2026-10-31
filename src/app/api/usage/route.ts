@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
     userId: user?.id || null,
     guestId: user ? null : guestId,
     ipHash: getClientIpHash(req),
+    email: user?.email || null,
   });
 
   const res = NextResponse.json({ success: true, usage }, { headers: { 'Cache-Control': 'no-store' } });

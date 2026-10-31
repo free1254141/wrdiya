@@ -584,7 +584,8 @@ export default function SkanybotChatPage() {
     if ((!query && imagesToSend.length === 0) || loading) return;
 
     // ── Quick UI pre-check (the server is the real gatekeeper) ──
-    if (usage.remaining <= 0) {
+    const isAdminUser = Boolean((user?.email && isAllowedAdminEmail(user.email)) || usage.plan === 'admin');
+    if (!isAdminUser && usage.remaining <= 0) {
       if (!user) {
         setAuthModalOpen(true);
         return;
@@ -941,12 +942,26 @@ export default function SkanybotChatPage() {
             {/* Daily Protection Quota Pill */}
             {user ? (
               <div
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/90 px-2 sm:px-2.5 py-1 text-xs font-bold text-slate-700 dark:border-zinc-800/80 dark:bg-zinc-900/90 dark:text-zinc-200 shadow-2xs whitespace-nowrap"
-                title={isRtl ? 'استفساراتك اليومية المجانية المتبقية (تتجدد كل ليلة)' : 'Free daily inquiries left (resets nightly)'}
+                className={`flex items-center gap-1.5 rounded-xl border px-2 sm:px-2.5 py-1 text-xs font-bold shadow-2xs whitespace-nowrap ${
+                  isAllowedAdminEmail(user.email) || usage.plan === 'admin'
+                    ? 'border-amber-500/40 bg-amber-500/15 text-amber-500 font-black'
+                    : 'border-slate-200/80 bg-slate-50/90 text-slate-700 dark:border-zinc-800/80 dark:bg-zinc-900/90 dark:text-zinc-200'
+                }`}
+                title={
+                  isAllowedAdminEmail(user.email) || usage.plan === 'admin'
+                    ? (isRtl ? 'حساب الإدارة: محادثات واستفسارات غير محدودة مدى الحياة ⚡' : 'Admin Account: Unlimited Inquiries ⚡')
+                    : (isRtl ? 'استفساراتك اليومية المجانية المتبقية (تتجدد كل ليلة)' : 'Free daily inquiries left (resets nightly)')
+                }
               >
                 <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                <span className="font-mono text-xs font-bold">{usage.remaining}/{usage.limit}</span>
-                <span className="hidden sm:inline text-[11px] font-normal text-slate-500 dark:text-zinc-400">{isRtl ? 'اليوم' : 'today'}</span>
+                {isAllowedAdminEmail(user.email) || usage.plan === 'admin' ? (
+                  <span className="font-mono text-xs font-black">∞ {isRtl ? 'غير محدود' : 'Unlimited'}</span>
+                ) : (
+                  <>
+                    <span className="font-mono text-xs font-bold">{usage.remaining}/{usage.limit}</span>
+                    <span className="hidden sm:inline text-[11px] font-normal text-slate-500 dark:text-zinc-400">{isRtl ? 'اليوم' : 'today'}</span>
+                  </>
+                )}
               </div>
             ) : (
               <button
