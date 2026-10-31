@@ -25,7 +25,19 @@ import {
   Sun,
   Moon,
   ArrowDown,
-  ChevronDown
+  ChevronDown,
+  ClipboardList,
+  Phone,
+  PhoneCall,
+  MessageCircle,
+  MapPin,
+  Download,
+  Filter,
+  CheckCircle2,
+  AlertCircle,
+  CheckCheck,
+  Coins,
+  Send
 } from 'lucide-react';
 
 interface AdminStats {
@@ -34,6 +46,26 @@ interface AdminStats {
   totalMessages: number;
   totalProperties: number;
   recentSessions24h: number;
+  totalLeads?: number;
+}
+
+interface AdminLead {
+  id: string;
+  user_name: string;
+  phone: string;
+  email: string | null;
+  unit_title: string | null;
+  developer_name: string | null;
+  preferred_location: string | null;
+  preferred_unit_type: string | null;
+  budget_max: number | null;
+  payment_method: string | null;
+  notes: string | null;
+  source: string | null;
+  status: string;
+  created_at: string;
+  session_id: string | null;
+  user_id: string | null;
 }
 
 interface AdminUser {
@@ -80,13 +112,27 @@ export default function AdminDashboardPage() {
   // Fullscreen / Maximize Window Toggle
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Active Tab
-  const [activeTab, setActiveTab] = useState<'chats' | 'users'>('chats');
+  // Active Tab: 'chats' | 'leads' | 'users'
+  const [activeTab, setActiveTab] = useState<'chats' | 'leads' | 'users'>('chats');
 
   // Stats & Users state
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [usersList, setUsersList] = useState<AdminUser[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
+
+  // Viewing Requests (Leads) state
+  const [leads, setLeads] = useState<AdminLead[]>([]);
+  const [loadingLeads, setLoadingLeads] = useState(false);
+  const [leadsSearch, setLeadsSearch] = useState('');
+  const [leadsStatusFilter, setLeadsStatusFilter] = useState<string>('all');
+  const [leadsCounts, setLeadsCounts] = useState<{ all: number; new: number; contacted: number; viewed: number }>({
+    all: 0,
+    new: 0,
+    contacted: 0,
+    viewed: 0,
+  });
+  const [updatingLeadId, setUpdatingLeadId] = useState<string | null>(null);
+  const [deletingLeadId, setDeletingLeadId] = useState<string | null>(null);
 
   // Chat Sessions state (Paginated)
   const [sessions, setSessions] = useState<ChatSessionItem[]>([]);
@@ -328,10 +374,145 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // 5. Fetch Viewing Requests (Leads)
+  const fetchLeads = async () => {
+    try {
+      setLoadingLeads(true);
+      const params = new URLSearchParams();
+      if (leadsSearch) params.set('q', leadsSearch);
+      if (leadsStatusFilter !== 'all') params.set('status', leadsStatusFilter);
+
+      const res = await fetch(`/api/admin/leads?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        setLeads(data.leads || []);
+        if (data.counts) {
+          setLeadsCounts(data.counts);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch leads:', err);
+    } finally {
+      setLoadingLeads(false);
+    }
+  };
+
+  // Update Lead Status (e.g. 'جديد', 'تم التواصل', 'تمت المعاينة', 'ملغي')
+  const handleUpdateLeadStatus = async (id: string, newStatus: string) => {
+    try {
+      setUpdatingLeadId(id);
+      const res = await fetch('/api/admin/leads', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: newStatus }),
+      });
+      if (res.ok) {
+        setLeads((prev) =>
+          prev.map((lead) => (lead.id === id ? { ...lead, status: newStatus } : lead))
+        );
+        fetchLeads();
+      }
+    } catch (err) {
+      console.error('Failed to update lead status:', err);
+    } finally {
+      setUpdatingLeadId(null);
+    }
+  };
+
+  // Hard Delete Lead
+  const handleDeleteLead = async (id: string, customerName: string) => {
+    if (!window.confirm(`⚠️ تأكيد حذف طلب المعاينة الخاص بالعميل (${customerName}) نهائياً؟\n\nلن يمكن استرجاع بيانات هذا الطلب.`)) {
+      return;
+    }
+    try {
+      setDeletingLeadId(id);
+      const res = await fetch(`/api/admin/leads?id=${id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setLeads((prev) => prev.filter((lead) => lead.id !== id));
+        setLeadsCounts((prev) => ({
+          ...prev,
+          all: Math.max(0, prev.all - 1),
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to delete lead:', err);
+    } finally {
+      setDeletingLeadId(null);
+    }
+  };
+
+  // Export Leads to CSV
+  const exportLeadsToCsv = () => {
+    if (leads.length === 0) return;
+    const headers = [
+      'اسم العميل',
+      'رقم الهاتف',
+      'البريد الإلكتروني',
+      'الوحدة المطلوبة',
+      'المطور / الكمبوند',
+      'المنطقة المفضلة',
+      'نوع الوحدة',
+      'الميزانية القصوى (جنيه)',
+      'طريقة السداد',
+      'الحالة',
+      'ملاحظات وموعد المعاينة',
+      'المصدر',
+      'تاريخ الطلب'
+    ];
+
+    const rows = leads.map((l) => [
+      `"${(l.user_name || '').replace(/"/g, '""')}"`,
+      `"${(l.phone || '').replace(/"/g, '""')}"`,
+      `"${(l.email || '').replace(/"/g, '""')}"`,
+      `"${(l.unit_title || '').replace(/"/g, '""')}"`,
+      `"${(l.developer_name || '').replace(/"/g, '""')}"`,
+      `"${(l.preferred_location || '').replace(/"/g, '""')}"`,
+      `"${(l.preferred_unit_type || '').replace(/"/g, '""')}"`,
+      `"${l.budget_max || ''}"`,
+      `"${(l.payment_method || '').replace(/"/g, '""')}"`,
+      `"${(l.status || '').replace(/"/g, '""')}"`,
+      `"${(l.notes || '').replace(/"/g, '""')}"`,
+      `"${(l.source || '').replace(/"/g, '""')}"`,
+      `"${new Date(l.created_at).toLocaleString('ar-EG')}"`
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `skanybot-leads-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Helper: Direct WhatsApp link with prefilled Egyptian greeting
+  const getWhatsAppUrl = (lead: AdminLead) => {
+    const raw = (lead.phone || '').replace(/[^0-9]/g, '');
+    let clean = raw;
+    if (clean.startsWith('0')) clean = clean.slice(1);
+    if (!clean.startsWith('20')) clean = `20${clean}`;
+    const text = encodeURIComponent(
+      `السلام عليكم أ/ ${lead.user_name || 'العميل العزيز'}، معاك من إدارة سكنى بوت بخصوص طلب معاينة وحدة ${lead.unit_title ? `"${lead.unit_title}"` : 'العقارية'}`
+    );
+    return `https://wa.me/${clean}?text=${text}`;
+  };
+
   useEffect(() => {
     fetchStats();
     fetchSessions(1, false);
+    fetchLeads();
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchLeads();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [leadsSearch, leadsStatusFilter]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -486,7 +667,7 @@ export default function AdminDashboardPage() {
           isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-white'
         }`}
       >
-        <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {/* Card 1: Users */}
           <div
             className={`rounded-2xl border p-3.5 transition ${
@@ -560,6 +741,35 @@ export default function AdminDashboardPage() {
               <span className="text-[11px] text-zinc-500">وحدة معتمدة</span>
             </div>
           </div>
+
+          {/* Card 5: Viewing Requests & Leads */}
+          <div
+            onClick={() => setActiveTab('leads')}
+            className={`rounded-2xl border p-3.5 transition cursor-pointer hover:border-amber-500/50 ${
+              activeTab === 'leads'
+                ? 'border-amber-500 bg-amber-500/10'
+                : isDark
+                ? 'border-zinc-800 bg-black'
+                : 'border-zinc-200 bg-zinc-50 shadow-xs'
+            }`}
+          >
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>طلبات المعاينة (Leads)</span>
+              <ClipboardList className="h-4 w-4 text-amber-500" />
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className={`text-2xl font-black font-mono ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                {stats?.totalLeads ?? leadsCounts.all ?? 0}
+              </span>
+              {leadsCounts.new > 0 ? (
+                <span className="text-[11px] text-emerald-400 font-black">
+                  +{leadsCounts.new} جديد
+                </span>
+              ) : (
+                <span className="text-[11px] text-zinc-500">طلب حجز</span>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -569,10 +779,11 @@ export default function AdminDashboardPage() {
           isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-zinc-50'
         }`}
       >
-        <div className="max-w-7xl mx-auto flex items-center gap-2">
+        <div className="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto">
+          {/* Tab 1: Chats */}
           <button
             onClick={() => setActiveTab('chats')}
-            className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition ${
+            className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition whitespace-nowrap shrink-0 ${
               activeTab === 'chats'
                 ? 'border-amber-500 text-amber-500'
                 : 'border-transparent text-zinc-400 hover:text-white'
@@ -589,9 +800,39 @@ export default function AdminDashboardPage() {
             </span>
           </button>
 
+          {/* Tab 2: Viewing Requests (Leads) */}
+          <button
+            onClick={() => setActiveTab('leads')}
+            className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition whitespace-nowrap shrink-0 ${
+              activeTab === 'leads'
+                ? 'border-amber-500 text-amber-500'
+                : 'border-transparent text-zinc-400 hover:text-white'
+            }`}
+          >
+            <ClipboardList className="h-4 w-4" />
+            <span>طلبات المعاينة والعملاء (Leads)</span>
+            {leadsCounts.new > 0 && (
+              <span className="rounded-full bg-emerald-500 text-black px-1.5 py-0.2 text-[10px] font-black">
+                {leadsCounts.new} جديد
+              </span>
+            )}
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs ${
+                activeTab === 'leads'
+                  ? 'bg-amber-500/20 text-amber-500 font-bold'
+                  : isDark
+                  ? 'bg-zinc-900 text-zinc-300 border border-zinc-800'
+                  : 'bg-zinc-200 text-zinc-700'
+              }`}
+            >
+              {leadsCounts.all}
+            </span>
+          </button>
+
+          {/* Tab 3: Users */}
           <button
             onClick={() => setActiveTab('users')}
-            className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition ${
+            className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition whitespace-nowrap shrink-0 ${
               activeTab === 'users'
                 ? 'border-amber-500 text-amber-500'
                 : 'border-transparent text-zinc-400 hover:text-white'
@@ -1058,11 +1299,10 @@ export default function AdminDashboardPage() {
                     {showScrollBottom && (
                       <button
                         onClick={scrollToBottom}
-                        className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-black/90 text-amber-400 hover:text-white px-3.5 py-1.5 text-xs font-bold shadow-xl backdrop-blur-md transition-all hover:scale-105 active:scale-95 animate-bounce"
+                        className="absolute bottom-4 left-4 z-30 flex h-9 w-9 items-center justify-center rounded-full border border-amber-500/40 bg-zinc-900/95 text-amber-400 hover:text-white shadow-xl backdrop-blur-md transition-all hover:scale-105 active:scale-95"
                         title="الانتقال لآخر رسالة"
                       >
-                        <ArrowDown className="h-3.5 w-3.5" />
-                        <span>الانتقال لآخر رسالة</span>
+                        <ChevronDown className="h-4 w-4" />
                       </button>
                     )}
                   </>
@@ -1079,6 +1319,301 @@ export default function AdminDashboardPage() {
                 )}
               </div>
             </div>
+          </div>
+        ) : activeTab === 'leads' ? (
+          /* ============================================================== */
+          /* TAB 2: VIEWING REQUESTS & LEADS (طلبات المعاينة والعملاء)     */
+          /* ============================================================== */
+          <div className="space-y-4 flex-1 flex flex-col min-h-0">
+            {/* Leads Search & Filter Toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[260px]">
+                {/* Search Input */}
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                  <input
+                    type="text"
+                    value={leadsSearch}
+                    onChange={(e) => setLeadsSearch(e.target.value)}
+                    placeholder="ابحث باسم العميل، الهاتف، العقار، المنطقة..."
+                    className={`w-full rounded-xl border pr-10 pl-4 py-2 text-xs focus:outline-hidden focus:border-amber-500 transition ${
+                      isDark
+                        ? 'border-zinc-800 bg-black text-white placeholder-zinc-500'
+                        : 'border-zinc-300 bg-white text-zinc-900 placeholder-zinc-400'
+                    }`}
+                  />
+                  {leadsSearch && (
+                    <button
+                      onClick={() => setLeadsSearch('')}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-xs"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                {/* Status Filter Chips */}
+                <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                  {[
+                    { id: 'all', label: 'الكل', count: leadsCounts.all },
+                    { id: 'جديد', label: 'جديد', count: leadsCounts.new },
+                    { id: 'تم التواصل', label: 'تم التواصل', count: leadsCounts.contacted },
+                    { id: 'تمت المعاينة', label: 'تمت المعاينة', count: leadsCounts.viewed },
+                    { id: 'ملغي', label: 'ملغي', count: 0 },
+                  ].map((filter) => (
+                    <button
+                      key={filter.id}
+                      onClick={() => setLeadsStatusFilter(filter.id)}
+                      className={`flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                        leadsStatusFilter === filter.id
+                          ? 'bg-amber-500 text-black shadow-xs font-black'
+                          : isDark
+                          ? 'border border-zinc-800 bg-black text-zinc-300 hover:bg-zinc-900'
+                          : 'border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50'
+                      }`}
+                    >
+                      <span>{filter.label}</span>
+                      {filter.count > 0 && (
+                        <span
+                          className={`rounded-full px-1.5 py-0.2 text-[10px] ${
+                            leadsStatusFilter === filter.id
+                              ? 'bg-black/20 text-black font-black'
+                              : 'bg-zinc-800 text-zinc-300'
+                          }`}
+                        >
+                          {filter.count}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons: Export CSV & Refresh */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={exportLeadsToCsv}
+                  disabled={leads.length === 0}
+                  className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-50 ${
+                    isDark
+                      ? 'border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900'
+                      : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50'
+                  }`}
+                  title="تصدير جميع طلبات المعاينة إلى ملف Excel / CSV"
+                >
+                  <Download className="h-3.5 w-3.5 text-emerald-500" />
+                  <span>تصدير Excel/CSV</span>
+                </button>
+
+                <button
+                  onClick={fetchLeads}
+                  disabled={loadingLeads}
+                  className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${
+                    isDark
+                      ? 'border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900'
+                      : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50'
+                  }`}
+                  title="تحديث طلبات المعاينة"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${loadingLeads ? 'animate-spin text-amber-500' : ''}`} />
+                  <span className="hidden sm:inline">تحديث</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Leads Cards Grid */}
+            {loadingLeads ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-12 text-zinc-400 text-xs">
+                <RefreshCw className="h-6 w-6 animate-spin text-amber-500 mb-3" />
+                <span>جاري تحميل طلبات المعاينة والعملاء...</span>
+              </div>
+            ) : leads.length === 0 ? (
+              <div
+                className={`flex-1 flex flex-col items-center justify-center p-12 text-zinc-400 text-xs rounded-2xl border ${
+                  isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-white'
+                }`}
+              >
+                <ClipboardList className="h-10 w-10 text-zinc-700 mb-3" />
+                <p className="font-bold text-sm text-zinc-300">لا توجد طلبات معاينة حالياً</p>
+                <p className="mt-1 text-zinc-500 text-center max-w-sm">
+                  {leadsSearch
+                    ? 'لم يتم العثور على أي طلبات تطابق معايير البحث الحالية.'
+                    : 'عندما يقوم أي عميل بطلب معاينة أو حجز وحدة، ستظهر كافة تفاصيله فورياً هنا.'}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 overflow-y-auto flex-1 pr-1">
+                {leads.map((lead) => {
+                  const statusColors: Record<string, string> = {
+                    'جديد': 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400',
+                    'تم التواصل': 'border-sky-500/40 bg-sky-500/10 text-sky-400',
+                    'تمت المعاينة': 'border-amber-500/40 bg-amber-500/10 text-amber-400',
+                    'ملغي': 'border-rose-500/40 bg-rose-500/10 text-rose-400',
+                  };
+                  const currentStatusClass = statusColors[lead.status] || 'border-zinc-700 bg-zinc-800 text-zinc-300';
+
+                  return (
+                    <div
+                      key={lead.id}
+                      className={`rounded-2xl border p-4 flex flex-col justify-between transition-all hover:border-amber-500/40 shadow-xs ${
+                        isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-white'
+                      }`}
+                    >
+                      {/* Customer Info & Status Bar */}
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-500/15 text-amber-500 font-black text-sm shrink-0 border border-amber-500/30">
+                              {lead.user_name?.charAt(0)?.toUpperCase() || 'ع'}
+                            </div>
+                            <div>
+                              <h3 className={`text-sm font-black ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                                {lead.user_name || 'عميل بدون اسم'}
+                              </h3>
+                              <div className="flex items-center gap-1.5 text-[10px] text-zinc-400">
+                                <Clock className="h-3 w-3" />
+                                <span>{formatDate(lead.created_at)}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Quick Status Selector */}
+                          <select
+                            value={lead.status || 'جديد'}
+                            disabled={updatingLeadId === lead.id}
+                            onChange={(e) => handleUpdateLeadStatus(lead.id, e.target.value)}
+                            className={`rounded-xl border px-2.5 py-1 text-xs font-bold cursor-pointer transition focus:outline-hidden ${currentStatusClass}`}
+                          >
+                            <option value="جديد" className="bg-zinc-900 text-emerald-400">جديد</option>
+                            <option value="تم التواصل" className="bg-zinc-900 text-sky-400">تم التواصل</option>
+                            <option value="تمت المعاينة" className="bg-zinc-900 text-amber-400">تمت المعاينة</option>
+                            <option value="ملغي" className="bg-zinc-900 text-rose-400">ملغي</option>
+                          </select>
+                        </div>
+
+                        {/* Direct Communication Buttons (WhatsApp & Call) */}
+                        <div className="mt-3.5 grid grid-cols-2 gap-2">
+                          {/* Direct WhatsApp */}
+                          <a
+                            href={getWhatsAppUrl(lead)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 text-xs font-bold transition shadow-xs hover:shadow-emerald-600/30"
+                            title={`محادثة فورية على واتساب: ${lead.phone}`}
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                            <span>واتساب مباشر</span>
+                          </a>
+
+                          {/* Direct Call */}
+                          <a
+                            href={`tel:${lead.phone}`}
+                            className="flex items-center justify-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 px-3 py-2 text-xs font-bold transition"
+                            title={`اتصال هاتفي بالعميل: ${lead.phone}`}
+                          >
+                            <Phone className="h-3.5 w-3.5" />
+                            <span dir="ltr" className="font-mono text-[11px] font-bold">{lead.phone || 'اتصال'}</span>
+                          </a>
+                        </div>
+
+                        {/* Requested Property & Developer Info Card */}
+                        <div className={`mt-3.5 rounded-xl border p-2.5 text-xs ${
+                          isDark ? 'border-zinc-800/80 bg-zinc-950/60' : 'border-zinc-200/80 bg-zinc-50'
+                        }`}>
+                          <div className="flex items-start gap-1.5">
+                            <Building2 className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                            <div className="min-w-0">
+                              <span className="text-[10px] text-zinc-400">الوحدة المطلوبة للمعاينة:</span>
+                              <p className={`font-bold text-xs truncate ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                                {lead.unit_title || 'طلب عام بدون تحديد وحدة'}
+                              </p>
+                              {lead.developer_name && (
+                                <p className="text-[10px] text-zinc-400 mt-0.5">
+                                  المطور / الكمبوند: <span className="text-zinc-200 font-bold">{lead.developer_name}</span>
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Preferred Location & Unit Type */}
+                          {(lead.preferred_location || lead.preferred_unit_type) && (
+                            <div className="mt-2 pt-2 border-t border-zinc-800/60 flex items-center justify-between text-[11px] text-zinc-400">
+                              {lead.preferred_location && (
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3 text-zinc-500" />
+                                  <span>{lead.preferred_location}</span>
+                                </span>
+                              )}
+                              {lead.preferred_unit_type && (
+                                <span className="font-bold text-zinc-300">
+                                  {lead.preferred_unit_type}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Budget & Payment Method */}
+                          {(lead.budget_max || lead.payment_method) && (
+                            <div className="mt-2 pt-2 border-t border-zinc-800/60 flex items-center justify-between text-[11px]">
+                              {lead.budget_max ? (
+                                <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                                  <Coins className="h-3 w-3" />
+                                  <span>{Number(lead.budget_max).toLocaleString('en-US')} ج.م</span>
+                                </span>
+                              ) : <span />}
+                              {lead.payment_method && (
+                                <span className="rounded-md bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
+                                  {lead.payment_method}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Customer Notes / Timing */}
+                        {lead.notes && (
+                          <div className="mt-2.5 px-1 text-xs">
+                            <span className="text-[10px] font-bold text-zinc-400">ملاحظات وموعد المعاينة:</span>
+                            <p className={`mt-0.5 text-xs line-clamp-3 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                              {lead.notes}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Card Footer: View Chat & Delete */}
+                      <div className="mt-3.5 pt-3 border-t border-zinc-800/60 flex items-center justify-between gap-2">
+                        {lead.session_id ? (
+                          <button
+                            onClick={() => {
+                              setSelectedSessionId(lead.session_id);
+                              setActiveTab('chats');
+                            }}
+                            className="flex items-center gap-1 text-[11px] font-bold text-amber-500 hover:text-amber-400 transition"
+                          >
+                            <MessageSquare className="h-3.5 w-3.5" />
+                            <span>عرض محادثة العميل</span>
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-zinc-500">
+                            المصدر: {lead.source || 'استمارة مباشرة'}
+                          </span>
+                        )}
+
+                        <button
+                          onClick={() => handleDeleteLead(lead.id, lead.user_name)}
+                          disabled={deletingLeadId === lead.id}
+                          className="grid h-7 w-7 place-items-center rounded-lg border border-rose-500/30 text-rose-400 hover:bg-rose-500/15 transition"
+                          title="حذف هذا الطلب نهائياً"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ) : (
           /* ============================================================== */

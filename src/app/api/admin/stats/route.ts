@@ -10,6 +10,7 @@ let cachedStatsData: {
     totalMessages: number;
     totalProperties: number;
     recentSessions24h: number;
+    totalLeads: number;
   };
   users: any[];
   timestamp: number;
@@ -52,6 +53,7 @@ export async function GET(req: NextRequest) {
       messagesCountRes,
       propertiesCountRes,
       recentSessionsRes,
+      leadsCountRes,
     ] = await Promise.all([
       // 1. Registered users list from Supabase Auth
       admin.auth.admin.listUsers({ perPage: 1000 }).catch((e) => {
@@ -69,6 +71,8 @@ export async function GET(req: NextRequest) {
         .from('chat_sessions')
         .select('id', { count: 'exact', head: true })
         .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
+      // 6. Total viewing requests & leads
+      admin.from('leads_inquiries').select('*', { count: 'exact', head: true }),
     ]);
 
     const rawUsers = (usersRes as any)?.data?.users || [];
@@ -76,6 +80,7 @@ export async function GET(req: NextRequest) {
     const totalMessages = messagesCountRes.count ?? 0;
     const totalProperties = propertiesCountRes.count ?? 0;
     const recentSessions24h = recentSessionsRes.count ?? 0;
+    const totalLeads = leadsCountRes.count ?? 0;
 
     // Map registered users with their details
     const usersList = rawUsers.map((u: any) => {
@@ -99,6 +104,7 @@ export async function GET(req: NextRequest) {
         totalMessages,
         totalProperties,
         recentSessions24h,
+        totalLeads,
       },
       users: usersList,
       timestamp: now,

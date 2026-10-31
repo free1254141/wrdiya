@@ -276,7 +276,7 @@ export default function SkanybotChatPage() {
     const el = chatScrollContainerRef.current;
     if (!el) return;
     const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    setShowScrollBottom(distanceToBottom > 160);
+    setShowScrollBottom(distanceToBottom > 450);
   };
 
   const scrollToBottom = () => {
@@ -965,27 +965,27 @@ export default function SkanybotChatPage() {
               </span>
             </div>
 
-            {/* Dual Mode Switcher for Tablet & Desktop (>= md) */}
-            <div className="hidden md:flex items-center rounded-xl border border-slate-200/80 bg-slate-100/90 p-0.5 dark:border-zinc-800/80 dark:bg-zinc-900/90 shadow-2xs shrink-0 whitespace-nowrap">
+            {/* Dual Mode Switcher inside Header (Clean & Responsive on all screens) */}
+            <div className="flex items-center rounded-xl border border-slate-200/80 bg-slate-100/90 p-0.5 dark:border-zinc-800/80 dark:bg-zinc-900/90 shadow-2xs shrink-0 whitespace-nowrap">
               <button
                 type="button"
                 onClick={() => setAppMode('chat')}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
+                className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-2.5 py-1 text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   appMode === 'chat'
-                    ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-amber-400 shadow-2xs'
+                    ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-amber-400 shadow-2xs font-black'
                     : 'text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200'
                 }`}
                 title={isRtl ? 'مستشار العقارات بالذكاء الاصطناعي' : 'AI Broker Chat'}
               >
                 <Bot className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                <span className="hidden xl:inline">{isRtl ? 'مستشار الشات' : 'AI Broker'}</span>
-                <span className="xl:hidden">{isRtl ? 'شات' : 'Chat'}</span>
+                <span className="hidden sm:inline">{isRtl ? 'مستشار الشات' : 'AI Broker'}</span>
+                <span className="sm:hidden text-[11px]">{isRtl ? 'شات' : 'Chat'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setAppMode('direct_search')}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
+                className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-2.5 py-1 text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   appMode === 'direct_search'
                     ? 'bg-amber-500 text-black shadow-2xs font-black'
                     : 'text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200'
@@ -993,8 +993,8 @@ export default function SkanybotChatPage() {
                 title={isRtl ? 'بحث وفلترة فورية لكافة العقارات مجاناً وبدون خصم رسائل' : 'Off-Agent Direct Search'}
               >
                 <Zap className="h-3.5 w-3.5 shrink-0" />
-                <span className="hidden xl:inline">{isRtl ? 'البحث المباشر ⚡' : 'Off-Agent ⚡'}</span>
-                <span className="xl:hidden">{isRtl ? 'بحث ⚡' : 'Search ⚡'}</span>
+                <span className="hidden sm:inline">{isRtl ? 'البحث المباشر ⚡' : 'Off-Agent ⚡'}</span>
+                <span className="sm:hidden text-[11px]">{isRtl ? 'بحث ⚡' : 'Search ⚡'}</span>
               </button>
             </div>
           </div>
@@ -1051,37 +1051,6 @@ export default function SkanybotChatPage() {
             )}
           </div>
         </header>
-
-        {/* Mobile Sub-Header Mode Switcher (< md) - Completely eliminates any header crowding on small mobile & tablet screens */}
-        <div className="md:hidden flex items-center justify-center border-b border-slate-200/70 bg-slate-50/80 px-2.5 py-1.5 backdrop-blur-md dark:border-zinc-800/70 dark:bg-zinc-950/80 z-10 shrink-0">
-          <div className="grid grid-cols-2 w-full max-w-xs rounded-xl border border-slate-200/80 bg-slate-200/50 dark:border-zinc-800/80 dark:bg-zinc-900 p-0.5 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setAppMode('chat')}
-              className={`flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-bold transition-all ${
-                appMode === 'chat'
-                  ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-amber-400 shadow-2xs font-black'
-                  : 'text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200'
-              }`}
-            >
-              <Bot className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-              <span>{isRtl ? 'مستشار الشات' : 'AI Broker'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setAppMode('direct_search')}
-              className={`flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-bold transition-all ${
-                appMode === 'direct_search'
-                  ? 'bg-amber-500 text-black shadow-2xs font-black'
-                  : 'text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200'
-              }`}
-            >
-              <Zap className="h-3.5 w-3.5 shrink-0" />
-              <span>{isRtl ? 'البحث المباشر ⚡' : 'Off-Agent ⚡'}</span>
-            </button>
-          </div>
-        </div>
 
         {appMode === 'direct_search' ? (
           <DirectSearchPanel
@@ -1368,16 +1337,15 @@ export default function SkanybotChatPage() {
           </div>
         </div>
 
-        {/* Floating Scroll to Bottom Button */}
+        {/* Floating Scroll to Bottom Button (Discreet, off-center & unobtrusive) */}
         {showScrollBottom && (
           <button
             type="button"
             onClick={scrollToBottom}
-            className="fixed sm:absolute bottom-32 sm:bottom-28 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 rounded-full border border-amber-500/50 bg-black/90 dark:bg-zinc-900/95 text-amber-400 hover:text-white px-4 py-2 text-xs font-bold shadow-2xl backdrop-blur-md transition-all hover:scale-105 active:scale-95 animate-bounce"
+            className="fixed bottom-24 ltr:right-6 rtl:left-6 z-30 flex h-9 w-9 items-center justify-center rounded-full border border-amber-500/40 bg-zinc-900/95 text-amber-400 shadow-xl backdrop-blur-md transition-all hover:scale-110 active:scale-95 hover:bg-black hover:text-amber-300"
             title={isRtl ? 'الانتقال لآخر رسالة' : 'Jump to latest message'}
           >
-            <ArrowDown className="h-4 w-4" />
-            <span>{isRtl ? 'الانتقال لآخر رسالة' : 'Jump to latest message'}</span>
+            <ChevronDown className="h-4 w-4" />
           </button>
         )}
 
