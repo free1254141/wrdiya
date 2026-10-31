@@ -1,8 +1,16 @@
 import type { Metadata, Viewport } from "next";
+import { Cairo } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+
+const cairo = Cairo({
+  subsets: ["arabic", "latin"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  variable: "--font-cairo",
+  display: "swap",
+});
 
 const siteUrl = "https://sakanybot.vercel.app";
 
@@ -320,7 +328,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ar" dir="rtl" className="h-full antialiased dark" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" className={`h-full antialiased dark ${cairo.variable}`} suppressHydrationWarning>
       <head>
         <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM Summary Documentation" />
         <link rel="alternate" type="text/plain" href="/llms-full.txt" title="LLM Full Reference Documentation" />
@@ -329,7 +337,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdData) }}
         />
       </head>
-      <body className="h-full w-full overflow-hidden font-sans transition-colors duration-200 bg-white dark:bg-black" suppressHydrationWarning>
+      <body className={`h-full w-full overflow-hidden ${cairo.className} transition-colors duration-200 bg-white dark:bg-black`} suppressHydrationWarning>
         <ThemeProvider>
           <LanguageProvider>
             <AuthProvider>
