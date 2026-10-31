@@ -17,7 +17,7 @@ import { isAllowedAdminEmail } from '@/lib/admin-auth-client';
 
 export const GUEST_LIMIT = 3;
 export const GUEST_IP_LIMIT = 15;
-export const DAILY_LIMIT = 10;
+export const DAILY_LIMIT = 20;
 export const PRO_PERIOD_LIMIT = 300;
 export const PRO_DAILY_CAP = 60;
 export const PRO_PERIOD_DAYS = 30;

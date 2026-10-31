@@ -165,7 +165,7 @@ export default function PricingModal({
             <ul className="space-y-2.5 text-xs text-slate-600 dark:text-zinc-300 mb-6">
               <li className="flex items-center gap-2">
                 <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                <span><strong>30 {isAr ? 'استفسار شهرياً' : 'queries / month'}</strong></span>
+                <span><strong>20 {isAr ? 'استفساراً يومياً مجاناً' : 'free queries / day'}</strong></span>
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
@@ -201,7 +201,7 @@ export default function PricingModal({
             <ul className="space-y-2.5 text-xs text-slate-600 dark:text-zinc-300 mb-6">
               <li className="flex items-center gap-2">
                 <Check className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                <span><strong>300 {isAr ? 'استفسار شهرياً (10 أضعاف)' : 'queries / month (10x)'}</strong></span>
+                <span><strong>300 {isAr ? 'استفسار شهرياً' : 'queries / month'}</strong></span>
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-3.5 w-3.5 text-amber-500 shrink-0" />

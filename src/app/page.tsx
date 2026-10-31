@@ -90,9 +90,9 @@ export default function SkanybotChatPage() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   // Daily Free Quota — enforced on the server to protect AI costs and keep service fast
-  // Guest: 3 free trials · Registered: 10 free inquiries / day (resets daily at midnight)
+  // Guest: 3 free trials · Registered: 20 free inquiries / day (resets daily at midnight)
   const GUEST_MSG_LIMIT = 3;
-  const DAILY_LIMIT = 10;
+  const DAILY_LIMIT = 20;
   const [usage, setUsage] = useState<UsageInfo>({
     plan: 'guest',
     used: 0,
@@ -675,7 +675,7 @@ export default function SkanybotChatPage() {
       }
 
       if (response.status === 429) {
-        throw new Error(data.message || (isRtl ? 'وصلت للحد الأقصى اليومي (10 استفسارات). يتجدد رصيدك تلقائياً عند منتصف الليل!' : 'Daily limit reached. Resets tomorrow!'));
+        throw new Error(data.message || (isRtl ? 'وصلت للحد الأقصى اليومي (20 استفساراً). يتجدد رصيدك تلقائياً عند منتصف الليل!' : 'Daily limit reached (20 queries). Resets tomorrow!'));
       }
 
       if (!response.ok) {
@@ -968,7 +968,7 @@ export default function SkanybotChatPage() {
                 type="button"
                 onClick={() => setAuthModalOpen(true)}
                 className="flex items-center gap-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2 sm:px-2.5 py-1 text-xs font-bold text-amber-600 transition hover:bg-amber-500/20 dark:text-amber-400 shadow-2xs whitespace-nowrap"
-                title={isRtl ? 'سجّل دخولك مجاناً لتحصل على 10 استفسارات يومياً' : 'Sign in free for 10 daily queries'}
+                title={isRtl ? 'سجّل دخولك مجاناً لتحصل على 20 استفساراً يومياً' : 'Sign in free for 20 daily queries'}
               >
                 <Sparkles className="h-3.5 w-3.5 shrink-0" />
                 <span className="font-mono text-xs">{usage.remaining}</span>

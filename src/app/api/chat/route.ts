@@ -146,8 +146,8 @@ export async function POST(req: NextRequest) {
             success: false,
             error: 'login_required',
             message: locale === 'ar'
-              ? 'لقد استهلكت رسائلك التجريبية كزائر. سجّل دخولك مجاناً واحصل على 10 استفسارات يومياً!'
-              : 'You have used your free guest messages. Sign in for free to get 10 queries per day!',
+              ? 'لقد استهلكت رسائلك التجريبية كزائر. سجّل دخولك مجاناً واحصل على 20 استفساراً يومياً!'
+              : 'You have used your free guest messages. Sign in for free to get 20 queries per day!',
             usage: publicUsage,
           },
           { status: 401 }
@@ -158,8 +158,8 @@ export async function POST(req: NextRequest) {
           success: false,
           error: usage.reason || 'daily_limit_reached',
           message: locale === 'ar'
-            ? 'وصلت للحد الأقصى اليومي (10 استفسارات مجانية). يتجدد رصيدك تلقائياً عند منتصف الليل لضمان جودة وسرعة الخدمة للجميع!'
-            : 'You have reached your daily limit of 10 free queries. Your quota resets automatically tomorrow at midnight!',
+            ? 'وصلت للحد الأقصى اليومي (20 استفساراً مجانياً). يتجدد رصيدك تلقائياً عند منتصف الليل لضمان جودة وسرعة الخدمة للجميع!'
+            : 'You have reached your daily limit of 20 free queries. Your quota resets automatically tomorrow at midnight!',
           usage: publicUsage,
         },
         { status: 429 }
