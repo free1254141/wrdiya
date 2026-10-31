@@ -804,12 +804,12 @@ export default function SkanybotChatPage() {
               </span>
             </div>
 
-            {/* Dual Mode Switcher: AI Chatbot vs Off-Agent Instant Direct Search */}
-            <div className="flex items-center rounded-xl border border-slate-200/80 bg-slate-100/90 p-0.5 dark:border-zinc-800/80 dark:bg-zinc-900/90 shadow-2xs">
+            {/* Dual Mode Switcher for Tablet & Desktop (>= sm) */}
+            <div className="hidden sm:flex items-center rounded-xl border border-slate-200/80 bg-slate-100/90 p-0.5 dark:border-zinc-800/80 dark:bg-zinc-900/90 shadow-2xs">
               <button
                 type="button"
                 onClick={() => setAppMode('chat')}
-                className={`flex items-center gap-1.5 rounded-lg px-2 sm:px-2.5 py-1 text-xs font-bold transition-all ${
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 sm:px-3 py-1 text-xs font-bold transition-all ${
                   appMode === 'chat'
                     ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-amber-400 shadow-2xs'
                     : 'text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200'
@@ -817,14 +817,13 @@ export default function SkanybotChatPage() {
                 title={isRtl ? 'مستشار العقارات بالذكاء الاصطناعي' : 'AI Broker Chat'}
               >
                 <Bot className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                <span className="hidden md:inline">{isRtl ? 'مستشار الشات' : 'AI Broker'}</span>
-                <span className="md:hidden text-[11px]">{isRtl ? 'شات' : 'Chat'}</span>
+                <span>{isRtl ? 'مستشار الشات' : 'AI Broker'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setAppMode('direct_search')}
-                className={`flex items-center gap-1.5 rounded-lg px-2 sm:px-2.5 py-1 text-xs font-bold transition-all ${
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 sm:px-3 py-1 text-xs font-bold transition-all ${
                   appMode === 'direct_search'
                     ? 'bg-amber-500 text-black shadow-2xs font-black'
                     : 'text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200'
@@ -832,8 +831,7 @@ export default function SkanybotChatPage() {
                 title={isRtl ? 'بحث وفلترة فورية لكافة العقارات مجاناً وبدون خصم رسائل' : 'Off-Agent Direct Search'}
               >
                 <Zap className="h-3.5 w-3.5 shrink-0" />
-                <span className="hidden md:inline">{isRtl ? 'البحث المباشر ⚡' : 'Off-Agent ⚡'}</span>
-                <span className="md:hidden text-[11px]">{isRtl ? 'بحث ⚡' : 'Search ⚡'}</span>
+                <span>{isRtl ? 'البحث المباشر ⚡' : 'Off-Agent ⚡'}</span>
               </button>
             </div>
           </div>
@@ -925,6 +923,37 @@ export default function SkanybotChatPage() {
             )}
           </div>
         </header>
+
+        {/* Mobile Sub-Header Mode Switcher (< sm) - Completely eliminates any header crowding on small mobile screens */}
+        <div className="sm:hidden flex items-center justify-center border-b border-slate-200/70 bg-slate-50/80 px-2.5 py-1.5 backdrop-blur-md dark:border-zinc-800/70 dark:bg-zinc-950/80 z-10 shrink-0">
+          <div className="grid grid-cols-2 w-full max-w-xs rounded-xl border border-slate-200/80 bg-slate-200/50 dark:border-zinc-800/80 dark:bg-zinc-900 p-0.5 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setAppMode('chat')}
+              className={`flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-bold transition-all ${
+                appMode === 'chat'
+                  ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-amber-400 shadow-2xs font-black'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200'
+              }`}
+            >
+              <Bot className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+              <span>{isRtl ? 'مستشار الشات' : 'AI Broker'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAppMode('direct_search')}
+              className={`flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-bold transition-all ${
+                appMode === 'direct_search'
+                  ? 'bg-amber-500 text-black shadow-2xs font-black'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200'
+              }`}
+            >
+              <Zap className="h-3.5 w-3.5 shrink-0" />
+              <span>{isRtl ? 'البحث المباشر ⚡' : 'Off-Agent ⚡'}</span>
+            </button>
+          </div>
+        </div>
 
         {appMode === 'direct_search' ? (
           <DirectSearchPanel
