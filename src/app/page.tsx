@@ -530,9 +530,6 @@ export default function SkanybotChatPage() {
       updated = favorites.filter(f => f.id !== prop.id);
     } else {
       updated = [...favorites, prop];
-      // When added to Watchlist: open lead booking modal so they can connect with the owner/developer
-      setSelectedPropertyForLead(prop);
-      setBookingModalOpen(true);
     }
     setFavorites(updated);
     try {

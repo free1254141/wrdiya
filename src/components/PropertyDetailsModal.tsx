@@ -20,8 +20,6 @@ import {
   ExternalLink,
   ShieldCheck,
   TrendingUp,
-  Share2,
-  Check,
   Sparkles,
   PhoneCall
 } from 'lucide-react';
@@ -50,7 +48,6 @@ export default function PropertyDetailsModal({
 
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   if (!isOpen || !property) return null;
 
@@ -74,13 +71,6 @@ export default function PropertyDetailsModal({
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
     setActiveImageIdx((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
-  };
-
-  const handleShare = () => {
-    const text = `${property.title} - ${compound?.name || ''}\n${property.total_price.toLocaleString()} ${curr}`;
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const isSellerListing = property.platform === 'SellerListing';
@@ -137,15 +127,6 @@ export default function PropertyDetailsModal({
               title={isAr ? 'حفظ في المفضلة' : 'Favorite'}
             >
               <Star className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
-            </button>
-
-            {/* Share button */}
-            <button
-              onClick={handleShare}
-              className="grid h-8 w-8 place-items-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800"
-              title={isAr ? 'نسخ الرابط' : 'Copy link'}
-            >
-              {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Share2 className="h-4 w-4" />}
             </button>
 
             {/* Close button */}

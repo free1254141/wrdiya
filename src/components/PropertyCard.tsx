@@ -13,8 +13,6 @@ import {
   Star, 
   ShieldCheck, 
   TrendingUp, 
-  Share2, 
-  Check,
   Globe,
   Images,
   Eye,
@@ -60,7 +58,6 @@ export default function PropertyCard({
   isCompared = false,
   onToggleCompare
 }: PropertyCardProps) {
-  const [copied, setCopied] = useState(false);
   const [showInstallmentPlans, setShowInstallmentPlans] = useState(false);
   const [selectedScheduleId, setSelectedScheduleId] = useState<string>('monthly');
 
@@ -176,17 +173,6 @@ export default function PropertyCard({
           : 'https://launches.aqarmap.com/ar/expos/saudi-projects?utm_source=partners&utm_medium=dynamic&utm_campaign=affiliate_759279&partner_code=759279'
       );
 
-  const handleShare = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const shareUrl = affiliateUrl || (typeof window !== 'undefined' ? `${window.location.origin}?property=${property.id}` : '');
-    const text = isAr 
-      ? `فرصة عقارية: ${property.title}\nالمشروع: ${compound?.name || ''}\nالسعر: ${basePrice.toLocaleString('ar-EG')} ${curr}${shareUrl ? `\nالرابط: ${shareUrl}` : ''}`
-      : `Property Opportunity: ${property.title}\nProject: ${compound?.name || ''}\nPrice: ${basePrice.toLocaleString('en-US')} ${curr}${shareUrl ? `\nLink: ${shareUrl}` : ''}`;
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
     <div 
       onClick={() => onViewDetails && onViewDetails(property)}
@@ -267,13 +253,6 @@ export default function PropertyCard({
               title={isAr ? 'حفظ في المفضلة' : 'Save to Favorites'}
             >
               <Star className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
-            </button>
-            <button
-              onClick={handleShare}
-              className="grid h-8 w-8 place-items-center rounded-full bg-black/50 text-white backdrop-blur-md transition hover:bg-black/80"
-              title={isAr ? 'مشاركة تفاصيل الوحدة' : 'Share property details'}
-            >
-              {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Share2 className="h-4 w-4" />}
             </button>
           </div>
         </div>
