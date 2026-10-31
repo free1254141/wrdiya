@@ -51,6 +51,8 @@ import PropertiesTableModal from '@/components/PropertiesTableModal';
 import InlinePropertiesTable from '@/components/InlinePropertiesTable';
 import SellerPropertiesModal from '@/components/SellerPropertiesModal';
 import DirectSearchPanel from '@/components/DirectSearchPanel';
+import WallpaperSelector, { ChatWallpaper } from '@/components/WallpaperSelector';
+import PalestineRibbon from '@/components/PalestineRibbon';
 import { Locale } from '@/lib/i18n';
 
 const OPEN_FORM_BTN_LABELS: Record<Locale, string> = {
@@ -85,6 +87,24 @@ export default function SkanybotChatPage() {
 
   // Application Mode: 'chat' (AI Agent) vs 'direct_search' (Off-Agent Instant Filter)
   const [appMode, setAppMode] = useState<'chat' | 'direct_search'>('chat');
+
+  // Chat Wallpaper: 'whatsapp' (Classic Doodles), 'watermelon' (Palestine Solidarity), 'none' (Clean)
+  const [chatWallpaper, setChatWallpaper] = useState<ChatWallpaper>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('skanybot_chat_wallpaper');
+      if (saved === 'whatsapp' || saved === 'watermelon' || saved === 'none') {
+        return saved as ChatWallpaper;
+      }
+    }
+    return 'whatsapp';
+  });
+
+  const handleSelectWallpaper = (wp: ChatWallpaper) => {
+    setChatWallpaper(wp);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('skanybot_chat_wallpaper', wp);
+    }
+  };
 
   // Auth modal state
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -857,10 +877,20 @@ export default function SkanybotChatPage() {
           setSellerModalOpen(true);
         }}
         onOpenAuthModal={() => setAuthModalOpen(true)}
+        wallpaper={chatWallpaper}
+        onSelectWallpaper={handleSelectWallpaper}
       />
 
       {/* Main Chat Area */}
-      <main className="relative flex flex-1 flex-col h-full min-w-0 overflow-hidden bg-white dark:bg-zinc-950">
+      <main
+        className={`relative flex flex-1 flex-col h-full min-w-0 overflow-hidden transition-colors duration-300 ${
+          appMode === 'chat' && chatWallpaper === 'whatsapp'
+            ? 'chat-theme-whatsapp'
+            : appMode === 'chat' && chatWallpaper === 'watermelon'
+            ? 'chat-theme-watermelon'
+            : 'bg-white dark:bg-zinc-950'
+        }`}
+      >
         {/* Top Header Bar with Theme & Language controls */}
         <header className="relative flex h-14 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/80 px-2 sm:px-4 backdrop-blur-xl dark:border-zinc-800/80 dark:bg-zinc-950/80 z-20">
           <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
@@ -926,6 +956,13 @@ export default function SkanybotChatPage() {
 
           {/* Quick Header Controls */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Chat Wallpaper Selector (WhatsApp Doodle / Palestine Watermelon) */}
+            <WallpaperSelector
+              currentWallpaper={chatWallpaper}
+              onSelectWallpaper={handleSelectWallpaper}
+              isRtl={isRtl}
+            />
+
             {/* Contact Broker CTA (shown on large screens only to prevent header clutter) */}
             <button
               onClick={() => {
@@ -1036,11 +1073,28 @@ export default function SkanybotChatPage() {
           />
         ) : (
           <>
+            {/* Chat Wallpaper Layer (WhatsApp Doodle / Palestine Watermelon) */}
+            {chatWallpaper !== 'none' && (
+              <div
+                className={`absolute inset-0 pointer-events-none z-0 ${
+                  chatWallpaper === 'whatsapp'
+                    ? 'chat-wallpaper-whatsapp'
+                    : 'chat-wallpaper-watermelon'
+                }`}
+                aria-hidden="true"
+              />
+            )}
+
+            {/* Palestine Solidarity Hanging Ribbon Badge (egxbots design) */}
+            {chatWallpaper === 'watermelon' && (
+              <PalestineRibbon />
+            )}
+
             {/* Scrollable Conversation Stream */}
             <div
               ref={chatScrollContainerRef}
               onScroll={handleChatScroll}
-              className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pt-4 pb-36 sm:pb-32 relative"
+              className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pt-4 pb-36 sm:pb-32 relative z-10"
               dir={dir}
             >
           <div className="mx-auto max-w-3xl">
@@ -1143,10 +1197,10 @@ export default function SkanybotChatPage() {
                         </div>
 
                         {/* Bubble */}
-                        <div className={`rounded-2xl p-4 ${
+                        <div className={`rounded-2xl p-4 sm:p-5 transition-all ${
                           isUser 
-                            ? 'bg-slate-100 text-slate-900 dark:bg-zinc-900 dark:text-zinc-100 font-medium'
-                            : 'bg-transparent text-slate-800 dark:text-zinc-200'
+                            ? 'bg-amber-500/10 text-slate-900 dark:bg-zinc-800/90 dark:text-zinc-100 font-medium border border-amber-500/25 dark:border-zinc-700/80 shadow-2xs'
+                            : 'bg-white/95 dark:bg-zinc-900/90 text-slate-800 dark:text-zinc-200 border border-slate-200/80 dark:border-zinc-800/80 shadow-xs backdrop-blur-xs'
                         }`}>
                           <MarkdownRenderer content={msg.content} />
 
@@ -1293,7 +1347,15 @@ export default function SkanybotChatPage() {
         )}
 
         {/* Floating Input Area (ChatGPT Style) */}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white/95 to-transparent pt-6 pb-4 px-4 sm:px-6 md:px-8 dark:from-zinc-950 dark:via-zinc-950/95">
+        <div
+          className={`absolute inset-x-0 bottom-0 pt-6 pb-4 px-4 sm:px-6 md:px-8 z-20 ${
+            chatWallpaper === 'whatsapp'
+              ? 'chat-dock-whatsapp'
+              : chatWallpaper === 'watermelon'
+              ? 'chat-dock-watermelon'
+              : 'bg-gradient-to-t from-white via-white/95 to-transparent dark:from-zinc-950 dark:via-zinc-950/95'
+          }`}
+        >
           <div className="mx-auto max-w-3xl">
             <div className="rounded-3xl border border-slate-300/80 bg-white shadow-lg transition-all focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/20 dark:border-zinc-800 dark:bg-zinc-900/90 dark:focus-within:border-amber-400">
               {/* Preview strip when photos are attached in chat */}

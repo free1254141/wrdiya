@@ -24,6 +24,7 @@ import { isAllowedAdminEmail } from '@/lib/admin-auth-client';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import LanguageSelector from '@/components/LanguageSelector';
+import WallpaperSelector, { ChatWallpaper } from '@/components/WallpaperSelector';
 import { Locale } from '@/lib/i18n';
 
 interface BrokerChatSidebarProps {
@@ -41,6 +42,8 @@ interface BrokerChatSidebarProps {
   myListings?: Property[];
   onOpenSellerModal?: (mode?: 'list' | 'create', editProp?: Property | null) => void;
   onOpenAuthModal?: () => void;
+  wallpaper?: ChatWallpaper;
+  onSelectWallpaper?: (wp: ChatWallpaper) => void;
 }
 
 const SIDEBAR_SELLER_COPY: Record<
@@ -106,6 +109,8 @@ export default function BrokerChatSidebar({
   myListings = [],
   onOpenSellerModal,
   onOpenAuthModal,
+  wallpaper,
+  onSelectWallpaper,
 }: BrokerChatSidebarProps) {
   const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -427,13 +432,21 @@ export default function BrokerChatSidebar({
             </button>
           )}
 
-          {/* Controls row: Language Selector + Theme Toggle */}
-          <div className="flex items-center justify-between gap-2 pt-0.5">
+          {/* Controls row: Language Selector + Wallpaper + Theme Toggle */}
+          <div className="flex items-center justify-between gap-1.5 pt-0.5">
             <LanguageSelector />
+
+            {wallpaper && onSelectWallpaper && (
+              <WallpaperSelector
+                currentWallpaper={wallpaper}
+                onSelectWallpaper={onSelectWallpaper}
+                isRtl={isRtl}
+              />
+            )}
 
             <button
               onClick={toggleTheme}
-              className="grid h-8 w-8 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-2xs transition hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="grid h-8 w-8 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-2xs transition hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 shrink-0"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
               {theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-700" />}
