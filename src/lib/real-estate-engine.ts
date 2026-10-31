@@ -239,7 +239,7 @@ function hydrateSellerListing(raw: Property): Property {
       : p.compound?.description || 'وحدة معروضة للبيع مباشرة من المالك عبر منصة سكنى بوت.',
     amenities: p.compound?.amenities?.length ? p.compound.amenities : ['معروض من المالك مباشرة', 'معاينة بالتنسيق المباشر'],
     delivery_year: p.compound?.delivery_year || new Date().getFullYear(),
-    cover_image: p.images?.[0] || p.compound?.cover_image,
+    cover_image: p.images?.[0] || undefined,
     developer: {
       id: p.compound?.developer?.id || 'seller-direct',
       name: meta.seller_name ? `المالك: ${meta.seller_name}` : 'مالك مباشر (عروض الأفراد)',

@@ -687,8 +687,8 @@ export async function executeListPropertyForSale(ownerId: string, args: any, upl
     city: args.city,
     area_name: args.location_text || args.city,
     location_text: args.location_text,
-    area_sqm: Number(args.area_sqm) || 120,
-    total_price: Number(args.total_price) || 1000000,
+    area_sqm: Number(args.area_sqm) || 0,
+    total_price: Number(args.total_price) || 0,
     currency: args.currency || 'EGP',
     bedrooms: args.bedrooms,
     bathrooms: args.bathrooms,
@@ -699,7 +699,7 @@ export async function executeListPropertyForSale(ownerId: string, args: any, upl
     sale_circumstances: args.sale_circumstances,
     seller_name: args.seller_name,
     seller_phone: args.seller_phone,
-    images: uploadedImages.length > 0 ? uploadedImages : undefined,
+    images: uploadedImages && uploadedImages.length > 0 ? uploadedImages : [],
   });
 
   if (!created) {

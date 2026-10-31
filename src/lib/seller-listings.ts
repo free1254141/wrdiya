@@ -32,28 +32,6 @@ export interface SellerPropertyInput {
   sale_circumstances?: string;
 }
 
-const DEFAULT_IMAGES_BY_TYPE: Record<string, string[]> = {
-  أرض: [
-    'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80',
-  ],
-  فيلا: [
-    'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
-  ],
-  شقة: [
-    'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80',
-  ],
-};
-
-function pickDefaultImages(unitType: string): string[] {
-  const t = (unitType || '').toLowerCase();
-  if (t.includes('أرض') || t.includes('ارض') || t.includes('land')) return DEFAULT_IMAGES_BY_TYPE['أرض'];
-  if (t.includes('فيلا') || t.includes('تاون') || t.includes('villa')) return DEFAULT_IMAGES_BY_TYPE['فيلا'];
-  return DEFAULT_IMAGES_BY_TYPE['شقة'];
-}
-
 /**
  * Unpack seller metadata stored in `affiliate_url` when `platform === 'SellerListing'`.
  */
@@ -101,7 +79,7 @@ export function enrichSellerProperty(raw: Property): Property {
       ? p.compound.amenities
       : ['معروض من المالك مباشرة', 'معاينة بالتنسيق المباشر'],
     delivery_year: p.compound?.delivery_year || new Date().getFullYear(),
-    cover_image: p.images?.[0] || p.compound?.cover_image,
+    cover_image: p.images?.[0] || undefined,
     developer: {
       id: p.compound?.developer?.id || 'seller-direct',
       name: meta.seller_name ? `المالك: ${meta.seller_name}` : 'مالك مباشر (عروض الأفراد)',
@@ -170,14 +148,29 @@ export async function createSellerProperty(input: SellerPropertyInput): Promise<
     sale_circumstances: input.sale_circumstances?.trim() || undefined,
   };
 
+  const bedroomsVal = isLand
+    ? 0
+    : input.bedrooms !== undefined && input.bedrooms !== null && String(input.bedrooms).trim() !== ''
+      ? Math.max(Number(input.bedrooms), 0)
+      : 0;
+
+  const bathroomsVal = isLand
+    ? 0
+    : input.bathrooms !== undefined && input.bathrooms !== null && String(input.bathrooms).trim() !== ''
+      ? Math.max(Number(input.bathrooms), 0)
+      : 0;
+
+  const finishingVal = input.finishing_type?.trim() || 'غير محدد';
+  const deliveryVal = input.delivery_date?.trim() || 'غير محدد';
+
   const payload = {
     project_id: projectId,
     title: autoTitle,
     unit_type: isLand ? 'أرض' : unitType,
-    bedrooms: isLand ? 0 : Math.max(Number(input.bedrooms ?? 2), 0),
-    bathrooms: isLand ? 0 : Math.max(Number(input.bathrooms ?? 1), 0),
+    bedrooms: bedroomsVal,
+    bathrooms: bathroomsVal,
     area_sqm: areaSqm,
-    finishing_type: input.finishing_type?.trim() || (isLand ? 'أرض فضاء مرخصة' : 'تشطيب كامل'),
+    finishing_type: finishingVal,
     total_price: totalPrice,
     currency,
     down_payment_pct: dpPct,
@@ -185,11 +178,11 @@ export async function createSellerProperty(input: SellerPropertyInput): Promise<
     installment_years: years,
     monthly_installment: monthly,
     quarterly_installment: quarterly,
-    delivery_date: input.delivery_date?.trim() || 'استلام فوري',
+    delivery_date: deliveryVal,
     status: input.status?.trim() || 'متاح',
-    images: cleanImages.length > 0 ? cleanImages : pickDefaultImages(unitType),
-    featured: true,
-    roi_expected_pct: isLand ? 18.0 : 14.5,
+    images: cleanImages, // Strictly only images provided by the user; empty array if none
+    featured: false,
+    roi_expected_pct: null, // Never fabricate an ROI percentage for a seller listing
     platform: 'SellerListing',
     partner_code: `seller:${ownerId}`,
     affiliate_url: JSON.stringify(meta),
@@ -290,7 +283,7 @@ export async function updateSellerProperty(
     quarterly_installment: quarterly,
     delivery_date: patch.delivery_date !== undefined ? patch.delivery_date.trim() : existing.delivery_date,
     status: patch.status !== undefined ? patch.status.trim() : existing.status,
-    images: cleanImages && cleanImages.length > 0 ? cleanImages : pickDefaultImages(unitType),
+    images: Array.isArray(cleanImages) ? cleanImages : (existing.images || []),
     affiliate_url: JSON.stringify(meta),
   };
 

@@ -171,9 +171,10 @@ export default function PropertyCard({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const imageUrl = property.images && property.images.length > 0 
-    ? property.images[0] 
-    : compound?.cover_image || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&auto=format&fit=crop&q=80';
+  const isSellerListing = property.platform === 'SellerListing';
+  const hasRealImage = Boolean(property.images && property.images.length > 0 && property.images[0]);
+  const coverImage = isSellerListing ? undefined : compound?.cover_image;
+  const imageUrl = hasRealImage ? property.images![0] : coverImage;
 
   return (
     <div 
@@ -182,13 +183,24 @@ export default function PropertyCard({
     >
       {/* Property Cover Image & Badges */}
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100 dark:bg-zinc-800">
-        <img
-          src={imageUrl}
-          alt={property.title}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={property.title}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-slate-200 via-slate-100 to-amber-500/10 p-4 text-slate-500 dark:from-zinc-900 dark:via-zinc-800 dark:to-zinc-900 dark:text-zinc-400">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 mb-1.5 shadow-xs">
+              <Building2 className="h-6 w-6" />
+            </div>
+            <span className="text-[11px] font-bold text-slate-700 dark:text-zinc-300">
+              {isAr ? 'معروض بدون صور' : 'No photos attached'}
+            </span>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent pointer-events-none" />
 
         {/* Top Badges */}
         <div className="absolute top-3 right-3 left-3 flex items-center justify-between z-10">

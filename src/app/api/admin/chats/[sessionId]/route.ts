@@ -90,23 +90,32 @@ export async function DELETE(
   }
 
   try {
-    // Soft delete session
-    const { error: updateErr } = await admin
-      .from('chat_sessions')
-      .update({ is_deleted: true, deleted_at: new Date().toISOString() })
-      .eq('id', sessionId);
-
-    if (updateErr) throw updateErr;
-
-    // Soft delete messages
-    await admin
+    // Permanently delete all messages associated with this session from Supabase
+    const { error: msgErr } = await admin
       .from('chat_messages')
-      .update({ is_deleted: true })
+      .delete()
       .eq('session_id', sessionId);
 
-    return NextResponse.json({ success: true, message: 'Session deleted' });
+    if (msgErr) {
+      console.warn('Error deleting chat_messages permanently:', msgErr);
+    }
+
+    // Permanently delete the chat session record from Supabase
+    const { error: sessErr } = await admin
+      .from('chat_sessions')
+      .delete()
+      .eq('id', sessionId);
+
+    if (sessErr) {
+      throw sessErr;
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'تم حذف المحادثة ورسائلها نهائياً من قاعدة البيانات (Supabase)',
+    });
   } catch (err: any) {
-    console.error('Admin delete chat session error:', err);
-    return NextResponse.json({ error: err.message || 'Internal error' }, { status: 500 });
+    console.error('Admin permanent delete chat session error:', err);
+    return NextResponse.json({ error: err.message || 'فشل حذف المحادثة نهائياً' }, { status: 500 });
   }
 }

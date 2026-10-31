@@ -56,24 +56,13 @@ export default function PropertyDetailsModal({
   const developer = compound?.developer;
   const curr = property.currency || (isAr ? 'ج.م' : 'EGP');
 
-  // Build a rich photo gallery (if only 1 photo, append high quality project visual perspectives)
-  const defaultImages = [
-    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&auto=format&fit=crop&q=85',
-    'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&auto=format&fit=crop&q=85',
-    'https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?w=1200&auto=format&fit=crop&q=85',
-    'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&auto=format&fit=crop&q=85',
-    'https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=1200&auto=format&fit=crop&q=85'
-  ];
+  // Strictly only show real images uploaded or attached; never inject fake fallback photos
+  const rawImages = (property.images || []).filter((u): u is string => typeof u === 'string' && u.trim().length > 0);
+  const coverImg = property.platform !== 'SellerListing' ? compound?.cover_image : undefined;
+  const galleryImages: string[] = Array.from(new Set([...rawImages, coverImg].filter(Boolean) as string[])).slice(0, 10);
 
-  const galleryImages: string[] = Array.from(
-    new Set([
-      ...(property.images || []),
-      compound?.cover_image,
-      ...defaultImages
-    ].filter(Boolean) as string[])
-  ).slice(0, 6);
-
-  const currentImage = galleryImages[activeImageIdx] || galleryImages[0];
+  const hasImages = galleryImages.length > 0;
+  const currentImage = hasImages ? (galleryImages[activeImageIdx] || galleryImages[0]) : '';
 
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -168,44 +157,64 @@ export default function PropertyDetailsModal({
         {/* Modal Scrollable Body */}
         <div className="flex-1 overflow-y-auto">
           {/* Main Visual Lightbox / Gallery */}
-          <div className="relative aspect-[16/9] w-full bg-black select-none flex items-center justify-center overflow-hidden">
-            <img
-              src={currentImage}
-              alt={`${property.title} - ${activeImageIdx + 1}`}
-              className="h-full w-full object-contain transition-all duration-300"
-            />
+          {hasImages ? (
+            <div className="relative aspect-[16/9] w-full bg-black select-none flex items-center justify-center overflow-hidden">
+              <img
+                src={currentImage}
+                alt={`${property.title} - ${activeImageIdx + 1}`}
+                className="h-full w-full object-contain transition-all duration-300"
+              />
 
-            {/* Navigation Arrows */}
-            {galleryImages.length > 1 && (
-              <>
-                <button
-                  onClick={handlePrev}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/90 active:scale-95"
-                  title="Previous image"
-                >
-                  <ChevronLeft className="h-6 w-6" />
-                </button>
-                <button
-                  onClick={handleNext}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/90 active:scale-95"
-                  title="Next image"
-                >
-                  <ChevronRight className="h-6 w-6" />
-                </button>
-              </>
-            )}
+              {/* Navigation Arrows */}
+              {galleryImages.length > 1 && (
+                <>
+                  <button
+                    onClick={handlePrev}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/90 active:scale-95"
+                    title="Previous image"
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </button>
+                  <button
+                    onClick={handleNext}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 grid h-10 w-10 place-items-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/90 active:scale-95"
+                    title="Next image"
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </button>
+                </>
+              )}
 
-            {/* Image Counter Badge */}
-            <div className="absolute bottom-3 left-3 rounded-full bg-black/70 px-3 py-1 font-mono text-xs font-bold text-white backdrop-blur-md">
-              {activeImageIdx + 1} / {galleryImages.length}
+              {/* Image Counter Badge */}
+              <div className="absolute bottom-3 left-3 rounded-full bg-black/70 px-3 py-1 font-mono text-xs font-bold text-white backdrop-blur-md">
+                {activeImageIdx + 1} / {galleryImages.length}
+              </div>
+
+              {/* Verification Badge */}
+              <div className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full bg-emerald-600/90 px-3 py-1 text-xs font-bold text-white shadow-md backdrop-blur-md">
+                <ShieldCheck className="h-4 w-4" />
+                <span>{isAr ? 'وحدة معتمدة رسمياً' : 'Verified Listing'}</span>
+              </div>
             </div>
-
-            {/* Verification Badge */}
-            <div className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full bg-emerald-600/90 px-3 py-1 text-xs font-bold text-white shadow-md backdrop-blur-md">
-              <ShieldCheck className="h-4 w-4" />
-              <span>{isAr ? 'وحدة معتمدة رسمياً' : 'Verified Listing'}</span>
+          ) : (
+            <div className="relative aspect-[16/9] w-full select-none flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-amber-50/30 dark:from-zinc-900 dark:via-zinc-900/90 dark:to-zinc-800 text-slate-500 dark:text-zinc-400 p-6 border-b border-slate-200 dark:border-zinc-800">
+              <div className="grid h-16 w-16 place-items-center rounded-2xl bg-amber-500/10 text-amber-600 dark:bg-amber-400/10 dark:text-amber-400 mb-3 shadow-inner">
+                <Building2 className="h-8 w-8" />
+              </div>
+              <p className="font-bold text-sm text-slate-800 dark:text-zinc-200">
+                {isAr ? 'لم يتم إرفاق صور لهذه الوحدة من المعلن' : 'No photos uploaded for this listing'}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-sm text-center">
+                {isAr
+                  ? 'تم تسجيل كافة تفاصيل الوحدة والأسعار بدقة. يمكنك طلب معاينة مباشرة أو التواصل مع المالك.'
+                  : 'All unit parameters and pricing are registered. You may request a direct viewing.'}
+              </p>
+              <div className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full bg-emerald-600/90 px-3 py-1 text-xs font-bold text-white shadow-md backdrop-blur-md">
+                <ShieldCheck className="h-4 w-4" />
+                <span>{isAr ? 'وحدة معتمدة' : 'Verified Listing'}</span>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Thumbnails Strip */}
           {galleryImages.length > 1 && (
