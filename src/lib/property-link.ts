@@ -85,11 +85,72 @@ export function extractCleanCompoundQuery(title?: string, compoundName?: string)
 }
 
 /**
+ * Safely extracts a direct Nawy unit ID from image URLs if present:
+ * e.g. /unlockedProperties/137072/... or /property_image/image/137072/...
+ */
+export function extractDirectNawyId(images?: string[]): string | null {
+  if (!images || images.length === 0) return null;
+  for (const img of images) {
+    if (!img || typeof img !== 'string') continue;
+    const m1 = img.match(/\/unlockedProperties\/(\d+)\//);
+    if (m1 && m1[1]) return m1[1];
+    const m2 = img.match(/\/property_image\/image\/(\d+)\//);
+    if (m2 && m2[1]) return m2[1];
+  }
+  return null;
+}
+
+/**
+ * Returns portal branding details for displaying on buttons and chips
+ */
+export function getPropertyPortalBrand(property: Property): {
+  nameAr: string;
+  nameEn: string;
+  buttonLabelAr: string;
+  buttonLabelEn: string;
+} {
+  if (!property) {
+    return {
+      nameAr: 'الموقع الرسمي',
+      nameEn: 'Official Portal',
+      buttonLabelAr: 'الموقع الرسمي ↗',
+      buttonLabelEn: 'Official Portal ↗',
+    };
+  }
+
+  if (property.platform === 'SellerListing') {
+    return {
+      nameAr: 'واتساب المالك',
+      nameEn: 'Owner WhatsApp',
+      buttonLabelAr: 'واتساب المالك ↗',
+      buttonLabelEn: 'Owner WhatsApp ↗',
+    };
+  }
+
+  const u = property.affiliate_url || '';
+  if (u.includes('aqarmap.com.eg/ar/listing/') || u.includes('aqarmap.com.eg/en/listing/')) {
+    return {
+      nameAr: 'عقارماب',
+      nameEn: 'Aqarmap',
+      buttonLabelAr: 'فتح الإعلان على عقارماب ↗',
+      buttonLabelEn: 'View on Aqarmap ↗',
+    };
+  }
+
+  return {
+    nameAr: 'الموقع الرسمي',
+    nameEn: 'Official Listing',
+    buttonLabelAr: 'الموقع الرسمي للإعلان ↗',
+    buttonLabelEn: 'Official Listing ↗',
+  };
+}
+
+/**
  * Returns the exact direct destination URL for a property:
  * - Direct WhatsApp conversation for Seller Listings
- * - TEKCE direct affiliate URL for international properties
  * - Direct Aqarmap listing URL (with partner params) if available
- * - Direct targeted search URL on Aqarmap showing this exact compound
+ * - Exact canonical Nawy unit/compound listing URL
+ * - Guaranteed NEVER to return generic 210,000 listings or 2,054 compounds directory!
  */
 export function getDirectPropertyUrl(property: Property): string {
   if (!property) return '';
@@ -107,14 +168,10 @@ export function getDirectPropertyUrl(property: Property): string {
     return '';
   }
 
-  // b) TEKCE International Properties
-  if (property.platform === 'TEKCE') {
-    return property.affiliate_url || `https://tekce.com?utm_source=taff&utm_medium=${TEKCE_PARTNER_CODE}`;
-  }
-
   const affiliateUrl = property.affiliate_url || '';
 
-  // c) Direct Aqarmap Listing (e.g. /ar/listing/... or /en/listing/...)
+  // b) Direct Aqarmap Listing (e.g. /ar/listing/... or /en/listing/...)
+  // This lands directly on the exact listing page without any redirect
   if (
     affiliateUrl.startsWith('https://aqarmap.com.eg/ar/listing/') ||
     affiliateUrl.startsWith('https://aqarmap.com.eg/en/listing/')
@@ -122,20 +179,42 @@ export function getDirectPropertyUrl(property: Property): string {
     return attachAqarmapPartnerParams(affiliateUrl);
   }
 
-  // Already a targeted search URL on Aqarmap
+  // c) Direct canonical Nawy unit or compound link
   if (
-    affiliateUrl.startsWith('https://aqarmap.com.eg/ar/for-sale/property/all/egypt/') &&
-    affiliateUrl.includes('searchQuery=')
+    affiliateUrl.includes('nawy.com/compound/') ||
+    affiliateUrl.includes('nawy.com/ar/compound/') ||
+    affiliateUrl.includes('nawy.com/ar/search')
   ) {
-    return attachAqarmapPartnerParams(affiliateUrl);
+    // If it's a broken aqarmap search query that was mistakenly in affiliate_url, skip it
+    if (!affiliateUrl.includes('for-sale/property/all/egypt')) {
+      return affiliateUrl;
+    }
   }
 
-  // d) Targeted search for compound on Aqarmap:
-  // Instead of generic 2,054 compounds directory (/ar/compounds/), jump straight to listings in this exact compound
+  // d) Extract direct unit ID from S3 image CDN path if present
+  const nawyId = extractDirectNawyId(property.images);
+  if (nawyId) {
+    return `https://www.nawy.com/ar/compound/any/property/${nawyId}`;
+  }
+
+  // e) If affiliateUrl already has a valid direct nawy URL
+  if (affiliateUrl.includes('nawy.com') && !affiliateUrl.includes('for-sale/property/all/egypt')) {
+    return affiliateUrl;
+  }
+
+  // f) For compound properties: Link to the compound page or search
+  if (property.compound?.slug) {
+    return `https://www.nawy.com/ar/compound/${property.compound.slug}`;
+  }
+
   const cleanQuery = extractCleanCompoundQuery(property.title, property.compound?.name);
-  return `https://aqarmap.com.eg/ar/for-sale/property/all/egypt/?default=false&searchQuery=${encodeURIComponent(
-    cleanQuery
-  )}&utm_source=partners&utm_medium=dynamic&utm_campaign=affiliate_${AQARMAP_PARTNER_CODE}&partner_code=${AQARMAP_PARTNER_CODE}`;
+  if (cleanQuery && cleanQuery.length > 2) {
+    const cleanComp = cleanQuery.replace(/^كمبوند\s+/, '').trim();
+    return `https://www.nawy.com/ar/search?query=${encodeURIComponent(cleanComp)}`;
+  }
+
+  // Fallback: Google search targeting the exact ad and project, NEVER generic Aqarmap 210,000 index
+  return `https://www.google.com/search?q=${encodeURIComponent(`${property.title || ''} إعلان عقار للبيع`)}`;
 }
 
 /**

@@ -217,21 +217,11 @@ def parse_nawy_item(item: dict) -> dict | None:
     project_id = map_compound(loc_context)
     prop_uuid = deterministic_uuid("Nawy_Compound_Unit", str(nid))
 
-    # Targeted Aqarmap Search Affiliate URL directly shows units in this exact compound
-    clean_target = (comp_name or "").strip()
-    if not clean_target:
-        clean_target = (title or "").split("|")[0].split(" - ")[0].strip()
-        for prefix in ["شقة في كمبوند", "فيلا في كمبوند", "مكتب في كمبوند", "دوبلكس في كمبوند", "بنتهاوس في كمبوند", "تاون هاوس في كمبوند", "توين هاوس في كمبوند", "شاليه في كمبوند", "تجاري في كمبوند"]:
-            if clean_target.startswith(prefix):
-                clean_target = clean_target[len(prefix):].strip()
-                break
-    if not clean_target.startswith("كمبوند"):
-        clean_target = f"كمبوند {clean_target}".strip()
-
-    affiliate_url = (
-        f"https://aqarmap.com.eg/ar/for-sale/property/all/egypt/?default=false&searchQuery={urllib.parse.quote(clean_target)}"
-        f"&utm_source=partners&utm_medium=dynamic&utm_campaign=affiliate_{AFFILIATE_CODE}&partner_code={AFFILIATE_CODE}"
-    )
+    # Exact Canonical Direct Unit Listing Link
+    share_link = item.get("shareLink")
+    if not share_link:
+        comp_slug = compound_obj.get("slug") or "any"
+        share_link = f"https://www.nawy.com/compound/{comp_slug}/property/{nid}"
 
     return {
         "id": prop_uuid,
@@ -254,9 +244,9 @@ def parse_nawy_item(item: dict) -> dict | None:
         "featured": True,
         "roi_expected_pct": 16.5,
         "images": imgs[:5],
-        "platform": "Aqarmap",
+        "platform": "Nawy",
         "partner_code": AFFILIATE_CODE,
-        "affiliate_url": affiliate_url,
+        "affiliate_url": share_link,
     }
 
 

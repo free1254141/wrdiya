@@ -1241,20 +1241,23 @@ export default function SkanybotChatPage() {
                             </div>
                           )}
 
-                          {/* Grounded Property Cards – horizontal scroll on mobile, 2-col grid on sm+ */}
+                          {/* Grounded Property Cards – responsive grid on all screen sizes */}
                           {msg.properties && msg.properties.length > 0 && (
-                            <div className="mt-4 flex gap-3 overflow-x-auto pb-2.5 pt-1 snap-x snap-mandatory no-scrollbar sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 sm:pt-0 sm:gap-4">
+                            <div className={`mt-4 grid gap-3.5 sm:gap-4 ${
+                              msg.properties.length === 1
+                                ? 'grid-cols-1 max-w-md'
+                                : 'grid-cols-1 md:grid-cols-2'
+                            }`}>
                               {msg.properties.map((prop) => (
-                                <div key={prop.id} className="w-[280px] shrink-0 snap-center sm:w-auto sm:shrink">
-                                  <PropertyCard
-                                    property={prop}
-                                    onBookViewing={handleBookViewing}
-                                    onToggleFavorite={handleToggleFavorite}
-                                    onViewDetails={openPropertyDetails}
-                                    onSendToChat={handleSendToChat}
-                                    isFavorite={favorites.some(f => f.id === prop.id)}
-                                  />
-                                </div>
+                                <PropertyCard
+                                  key={prop.id}
+                                  property={prop}
+                                  onBookViewing={handleBookViewing}
+                                  onToggleFavorite={handleToggleFavorite}
+                                  onViewDetails={openPropertyDetails}
+                                  onSendToChat={handleSendToChat}
+                                  isFavorite={favorites.some(f => f.id === prop.id)}
+                                />
                               ))}
                             </div>
                           )}

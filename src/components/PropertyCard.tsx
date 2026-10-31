@@ -16,7 +16,6 @@ import {
   TrendingUp, 
   Globe,
   Images,
-  Eye,
   Calculator,
   ChevronDown,
   ChevronUp,
@@ -90,7 +89,7 @@ export default function PropertyCard({
       )
     : 0;
 
-  // Strictly grounded in the listing's actual supported installment plan (no invented discounts or unverified plans)
+  // Strictly grounded payment schedules
   const verifiedPaymentSchedules: VerifiedScheduleMethod[] = React.useMemo(() => {
     if (!hasInstallments) return [];
 
@@ -110,9 +109,9 @@ export default function PropertyCard({
       {
         id: 'monthly',
         label: isAr
-          ? `نظام القسط الشهري (${baseYears} سنوات • مقدم ${baseDpPct}%)`
-          : `Monthly Installment Plan (${baseYears} Yrs • ${baseDpPct}% Down)`,
-        frequencyLabel: isAr ? 'القسط الشهري' : 'Monthly Installment',
+          ? `قسط شهري (${baseYears} سنوات • مقدم ${baseDpPct}%)`
+          : `Monthly (${baseYears} Yrs • ${baseDpPct}% Down)`,
+        frequencyLabel: isAr ? 'القسط الشهري' : 'Monthly',
         installmentsCount: totalMonths,
         installmentAmount: monthlyVal,
         downPaymentPct: baseDpPct,
@@ -123,9 +122,9 @@ export default function PropertyCard({
       {
         id: 'quarterly',
         label: isAr
-          ? `نظام الدفعات الربع سنوية - كل 3 شهور (${baseYears} سنوات • مقدم ${baseDpPct}%)`
-          : `Quarterly Installment Plan - Every 3 Months (${baseYears} Yrs • ${baseDpPct}% Down)`,
-        frequencyLabel: isAr ? 'القسط الربع سنوي (كل 3 شهور)' : 'Quarterly (Every 3 Months)',
+          ? `قسط ربع سنوي (كل 3 شهور)`
+          : `Quarterly (Every 3 Mo)`,
+        frequencyLabel: isAr ? 'القسط كل 3 شهور' : 'Quarterly',
         installmentsCount: totalQuarters,
         installmentAmount: quarterlyVal,
         downPaymentPct: baseDpPct,
@@ -136,9 +135,9 @@ export default function PropertyCard({
       {
         id: 'semi_annual',
         label: isAr
-          ? `نظام الدفعات النصف سنوية - كل 6 شهور (${baseYears} سنوات • مقدم ${baseDpPct}%)`
-          : `Semi-Annual Plan - Every 6 Months (${baseYears} Yrs • ${baseDpPct}% Down)`,
-        frequencyLabel: isAr ? 'القسط النصف سنوي (كل 6 شهور)' : 'Semi-Annual (Every 6 Months)',
+          ? `قسط نصف سنوي (كل 6 شهور)`
+          : `Semi-Annual (Every 6 Mo)`,
+        frequencyLabel: isAr ? 'القسط كل 6 شهور' : 'Semi-Annual',
         installmentsCount: totalSemiAnnual,
         installmentAmount: semiAnnualVal,
         downPaymentPct: baseDpPct,
@@ -149,9 +148,9 @@ export default function PropertyCard({
       {
         id: 'annual',
         label: isAr
-          ? `نظام الدفعات السنوية (${baseYears} سنوات • مقدم ${baseDpPct}%)`
-          : `Annual Installment Plan (${baseYears} Yrs • ${baseDpPct}% Down)`,
-        frequencyLabel: isAr ? 'القسط السنوي' : 'Annual Installment',
+          ? `قسط سنوي (${baseYears} سنوات)`
+          : `Annual (${baseYears} Yrs)`,
+        frequencyLabel: isAr ? 'القسط السنوي' : 'Annual',
         installmentsCount: baseYears,
         installmentAmount: annualVal,
         downPaymentPct: baseDpPct,
@@ -172,9 +171,9 @@ export default function PropertyCard({
   return (
     <div 
       onClick={() => onViewDetails && onViewDetails(property)}
-      className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-amber-500/50 hover:shadow-xl dark:border-zinc-800 dark:bg-zinc-900/95 dark:hover:border-amber-400/50"
+      className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-amber-500/50 hover:shadow-xl dark:border-zinc-800/90 dark:bg-zinc-900/95 dark:hover:border-amber-400/50 flex flex-col justify-between"
     >
-      {/* Property Cover Image & Badges */}
+      {/* 1. Property Cover Image & Overlaid Metadata */}
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100 dark:bg-zinc-800">
         {imageUrl ? (
           <img
@@ -185,49 +184,35 @@ export default function PropertyCard({
           />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-slate-200 via-slate-100 to-amber-500/10 p-4 text-slate-500 dark:from-zinc-900 dark:via-zinc-800 dark:to-zinc-900 dark:text-zinc-400">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 mb-1.5 shadow-xs">
-              <Building2 className="h-6 w-6" />
+            <div className="grid h-10 w-10 place-items-center rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 mb-1 shadow-xs">
+              <Building2 className="h-5 w-5" />
             </div>
             <span className="text-[11px] font-bold text-slate-700 dark:text-zinc-300">
-              {isAr ? 'معروض بدون صور' : 'No photos attached'}
+              {isAr ? 'معروض بدون صور' : 'No photos'}
             </span>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10 pointer-events-none" />
 
-        {/* Top Badges */}
-        <div className="absolute top-3 right-3 left-3 flex items-center justify-between z-10">
+        {/* Top Badges Bar */}
+        <div className="absolute top-2.5 right-2.5 left-2.5 flex items-center justify-between z-10">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="rounded-full bg-amber-500 px-2.5 py-1 text-[11px] font-black text-black shadow-md">
+            <span className="rounded-full bg-amber-500 px-2.5 py-0.5 text-[11px] font-black text-black shadow-md">
               {property.unit_type}
             </span>
             {isTekce ? (
-              <span className="flex items-center gap-1 rounded-full bg-sky-600/90 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-md backdrop-blur-xs">
+              <span className="flex items-center gap-1 rounded-full bg-sky-600/90 px-2 py-0.5 text-[10px] font-bold text-white shadow-md backdrop-blur-xs">
                 <Globe className="h-3 w-3" />
                 <span>{isAr ? 'عقارات دولية' : 'International'}</span>
               </span>
             ) : (
-              <span className="flex items-center gap-1 rounded-full bg-emerald-600/90 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-md backdrop-blur-xs">
+              <span className="flex items-center gap-1 rounded-full bg-emerald-600/90 px-2 py-0.5 text-[10px] font-bold text-white shadow-md backdrop-blur-xs">
                 <ShieldCheck className="h-3 w-3" />
-                <span>{isAr ? 'معارض معتمدة' : 'Verified Expo'}</span>
+                <span>{isAr ? 'معارض معتمدة' : 'Verified'}</span>
               </span>
             )}
-            {property.deal_score !== undefined && (
-              <span 
-                className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black shadow-md backdrop-blur-xs text-white ${
-                  property.deal_score >= 80 ? 'bg-emerald-600' :
-                  property.deal_score >= 65 ? 'bg-blue-600' :
-                  property.deal_score >= 50 ? 'bg-amber-600' :
-                  'bg-rose-600'
-                }`}
-                title={property.deal_badge || `سكور التقييم: ${property.deal_score}/100`}
-              >
-                <Sparkles className="h-3 w-3" />
-                <span>{property.deal_score}/100</span>
-              </span>
-            )}
-            {property.delivery_date.includes('فوري') && (
-              <span className="rounded-full bg-emerald-500/90 px-2 py-0.5 text-[10px] font-bold text-white shadow-md">
+            {property.delivery_date && property.delivery_date.includes('فوري') && (
+              <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-md">
                 {isAr ? 'استلام فوري' : 'Ready'}
               </span>
             )}
@@ -236,347 +221,226 @@ export default function PropertyCard({
           <div className="flex items-center gap-1.5 shrink-0">
             {onToggleCompare && (
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   onToggleCompare(property);
                 }}
-                className={`grid h-8 w-8 place-items-center rounded-full backdrop-blur-md transition ${
+                className={`grid h-7 w-7 place-items-center rounded-full backdrop-blur-md transition ${
                   isCompared
                     ? 'bg-amber-500 text-black shadow-md ring-2 ring-amber-300'
                     : 'bg-black/50 text-white hover:bg-black/80'
                 }`}
-                title={isAr ? (isCompared ? 'إلغاء من المقارنة' : 'إضافة لسلة المقارنة بالذكاء الاصطناعي') : 'Compare with AI'}
+                title={isAr ? (isCompared ? 'إلغاء من المقارنة' : 'إضافة للمقارنة') : 'Compare'}
               >
-                <Scale className="h-4 w-4" />
+                <Scale className="h-3.5 w-3.5" />
               </button>
             )}
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 if (onToggleFavorite) onToggleFavorite(property);
               }}
-              className={`grid h-8 w-8 place-items-center rounded-full backdrop-blur-md transition ${
+              className={`grid h-7 w-7 place-items-center rounded-full backdrop-blur-md transition ${
                 isFavorite 
                   ? 'bg-amber-500 text-black shadow-md' 
                   : 'bg-black/50 text-white hover:bg-black/80'
               }`}
-              title={isAr ? 'حفظ في المفضلة' : 'Save to Favorites'}
+              title={isAr ? 'حفظ في المفضلة' : 'Save'}
             >
-              <Star className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+              <Star className={`h-3.5 w-3.5 ${isFavorite ? 'fill-current' : ''}`} />
             </button>
           </div>
         </div>
 
-        {/* Center Hover Gallery CTA */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 backdrop-blur-2xs">
-          <span className="flex items-center gap-2 rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-black text-black shadow-lg">
-            <Images className="h-4 w-4" />
-            <span>{isAr ? 'عرض الصور والتفاصيل الكاملة' : 'View Gallery & Details'}</span>
-          </span>
-        </div>
-
-        {/* Bottom Location & Project Banner over image */}
-        <div className="absolute bottom-3 right-3 left-3 text-white pointer-events-none">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-300">
+        {/* Bottom Project Name & Location Overlay */}
+        <div className="absolute bottom-2.5 right-2.5 left-2.5 text-white pointer-events-none">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 truncate">
             <Building2 className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{compound?.name || (isAr ? 'مشروع سكني فاخر' : 'Luxury Development')}</span>
-            <span className="text-white/60">•</span>
-            <span className="truncate">{developer?.name || (isAr ? 'مطور معتمد' : 'Developer')}</span>
+            <span className="truncate">{compound?.name || (isAr ? 'مشروع سكني معتمد' : 'Verified Project')}</span>
+            {developer?.name && (
+              <>
+                <span className="text-white/50">•</span>
+                <span className="truncate text-white/80 font-normal">{developer.name}</span>
+              </>
+            )}
           </div>
-          <div className="mt-0.5 flex items-center gap-1 text-[11px] text-zinc-200">
+          <div className="mt-0.5 flex items-center gap-1 text-[11px] text-zinc-200 truncate">
             <MapPin className="h-3 w-3 shrink-0 text-amber-400" />
             <span className="truncate">{compound?.area_name || compound?.city || (isAr ? 'موقع حيوي ممتاز' : 'Prime Location')}</span>
           </div>
         </div>
       </div>
 
-      {/* Property Details Body */}
-      <div className="p-4 sm:p-5">
-        <h4 className="line-clamp-2 text-base font-black text-slate-900 transition group-hover:text-amber-600 dark:text-zinc-100 dark:group-hover:text-amber-400">
-          {property.title}
-        </h4>
+      {/* 2. Property Card Body */}
+      <div className="p-3.5 sm:p-4 flex flex-col flex-1 justify-between">
+        <div>
+          {/* Title */}
+          <h4 className="line-clamp-1 text-sm sm:text-base font-black text-slate-900 transition group-hover:text-amber-600 dark:text-zinc-100 dark:group-hover:text-amber-400" title={property.title}>
+            {property.title}
+          </h4>
 
-        {/* Specs Grid */}
-        <div className="mt-3.5 grid grid-cols-3 gap-2 border-y border-slate-100 py-2.5 text-xs text-slate-600 dark:border-zinc-800 dark:text-zinc-400">
-          <div className="flex items-center gap-1.5">
-            <Maximize2 className="h-4 w-4 text-amber-500 shrink-0" />
-            <span className="font-bold text-slate-900 dark:text-zinc-200">{property.area_sqm}</span>
-            <span>{isAr ? 'م²' : 'sqm'}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Bed className="h-4 w-4 text-amber-500 shrink-0" />
-            <span className="font-bold text-slate-900 dark:text-zinc-200">{property.bedrooms}</span>
-            <span>{isAr ? 'غرف' : 'Rooms'}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Bath className="h-4 w-4 text-amber-500 shrink-0" />
-            <span className="font-bold text-slate-900 dark:text-zinc-200">{property.bathrooms}</span>
-            <span>{isAr ? 'حمام' : 'Baths'}</span>
-          </div>
-        </div>
-
-        {/* Price & Installment Highlight */}
-        <div className="mt-3.5 rounded-xl bg-slate-50 p-3 dark:bg-zinc-800/60">
-          <div className="flex items-baseline justify-between">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400">
-              {isAr ? 'إجمالي السعر:' : 'Total Price:'}
+          {/* Specs Row */}
+          <div className="mt-2 flex items-center gap-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-zinc-400 border-b border-slate-100 dark:border-zinc-800/80">
+            <span className="flex items-center gap-1 shrink-0">
+              <Bed className="h-3.5 w-3.5 text-amber-500" />
+              <span>{property.bedrooms} {isAr ? 'غرف' : 'Bed'}</span>
             </span>
-            <span className="font-mono text-lg font-black text-slate-900 dark:text-white">
-              {basePrice.toLocaleString(numLocale)} <span className="text-xs font-normal text-slate-500 dark:text-zinc-400">{curr}</span>
+            <span className="text-slate-300 dark:text-zinc-700">•</span>
+            <span className="flex items-center gap-1 shrink-0">
+              <Bath className="h-3.5 w-3.5 text-amber-500" />
+              <span>{property.bathrooms} {isAr ? 'حمام' : 'Bath'}</span>
             </span>
+            <span className="text-slate-300 dark:text-zinc-700">•</span>
+            <span className="flex items-center gap-1 shrink-0">
+              <Maximize2 className="h-3.5 w-3.5 text-amber-500" />
+              <span dir="ltr">{property.area_sqm} {isAr ? 'م²' : 'sqm'}</span>
+            </span>
+            {property.finishing_type && (
+              <>
+                <span className="text-slate-300 dark:text-zinc-700">•</span>
+                <span className="truncate text-[10px] text-zinc-400 font-normal">{property.finishing_type}</span>
+              </>
+            )}
           </div>
 
-          {hasInstallments ? (
-            <>
-              <div className="mt-2 grid grid-cols-2 gap-2 border-t border-slate-200/60 pt-2 text-[11px] dark:border-zinc-700/60">
-                <div>
-                  <span className="text-slate-500 dark:text-zinc-400">
-                    {isAr ? 'المقدم' : 'Down Payment'} ({baseDpPct}%):
-                  </span>
-                  <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                    {baseDpAmount.toLocaleString(numLocale)} {curr}
-                  </p>
+          {/* Price & Installments Box */}
+          <div className="mt-2.5 rounded-xl bg-slate-50 dark:bg-zinc-800/50 p-2.5 border border-slate-200/70 dark:border-zinc-800">
+            <div className="flex items-baseline justify-between gap-1">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400">
+                {isAr ? 'السعر الإجمالي:' : 'Total Price:'}
+              </span>
+              <span className="font-mono text-base font-black text-amber-500 dark:text-amber-400">
+                {basePrice.toLocaleString(numLocale)} <span className="text-xs font-bold text-slate-700 dark:text-zinc-300">{curr}</span>
+              </span>
+            </div>
+
+            {hasInstallments ? (
+              <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 dark:border-zinc-700/60 flex items-center justify-between text-[11px]">
+                <div className="flex items-center gap-1.5 text-slate-700 dark:text-zinc-300">
+                  <span>{isAr ? 'مقدم' : 'Down'}: <strong className="text-emerald-500 font-mono font-bold">{baseDpPct}%</strong></span>
+                  <span className="text-slate-300 dark:text-zinc-700">•</span>
+                  <span>{isAr ? 'قسط' : 'Inst'}: <strong className="text-amber-500 font-mono font-bold">{Math.round(baseMonthly).toLocaleString(numLocale)}</strong></span>
                 </div>
-                <div>
-                  <span className="text-slate-500 dark:text-zinc-400">
-                    {isAr ? 'القسط الشهري:' : 'Monthly:'}
-                  </span>
-                  <p className="font-mono font-bold text-amber-600 dark:text-amber-400">
-                    {baseMonthly.toLocaleString(numLocale)} {curr}
-                  </p>
-                </div>
+                <span className="text-[10px] font-bold text-zinc-400 bg-slate-200/60 dark:bg-zinc-700/60 rounded-md px-1.5 py-0.2">
+                  {baseYears} {isAr ? 'سنوات' : 'yrs'}
+                </span>
               </div>
+            ) : (
+              <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 dark:border-zinc-700/60 flex items-center justify-between text-[11px]">
+                <span className="font-bold text-emerald-500">{isAr ? '✓ سداد كاش' : '✓ Full Cash'}</span>
+                {property.roi_expected_pct && (
+                  <span className="text-[10px] text-zinc-400 flex items-center gap-1 font-semibold">
+                    <TrendingUp className="h-3 w-3 text-emerald-500" />
+                    <span>عائد {property.roi_expected_pct}%</span>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
 
-              <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500 dark:text-zinc-400">
+          {/* Collapsible Installment Breakdown */}
+          {hasInstallments && (
+            <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                onClick={() => setShowInstallmentPlans((prev) => !prev)}
+                className="w-full flex items-center justify-between py-1.5 px-2.5 rounded-lg border border-amber-500/25 bg-amber-500/5 hover:bg-amber-500/15 text-[11px] font-bold text-amber-600 dark:text-amber-400 transition"
+              >
                 <span className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3 text-slate-400" />
-                  <span>{isAr ? 'تقسيط معتمد حتى' : 'Verified up to'} {baseYears} {isAr ? 'سنوات' : 'years'}</span>
+                  <Calculator className="h-3 w-3" />
+                  <span>{isAr ? 'تفاصيل خطة الأقساط والدفعات 💰' : 'Installment Details 💰'}</span>
                 </span>
-                <span className="flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
-                  <TrendingUp className="h-3 w-3" />
-                  <span>{isAr ? 'عائد استثماري' : 'ROI'} {property.roi_expected_pct || 15}%</span>
-                </span>
-              </div>
-            </>
-          ) : (
-            <div className="mt-2 flex items-center justify-between border-t border-slate-200/60 pt-2 text-[11px] dark:border-zinc-700/60">
-              <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                {isAr ? 'نظام الدفع: كاش فقط (لا يدعم التقسيط)' : 'Payment: Cash Only (No Installments)'}
-              </span>
-              <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                <TrendingUp className="h-3 w-3" />
-                <span>{isAr ? 'عائد استثماري' : 'ROI'} {property.roi_expected_pct || 15}%</span>
-              </span>
+                {showInstallmentPlans ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </button>
+
+              {showInstallmentPlans && (
+                <div className="mt-1.5 space-y-1.5 rounded-xl border border-amber-500/30 bg-slate-50 p-2 text-xs dark:bg-zinc-950">
+                  <div className="grid grid-cols-2 gap-1 text-[10px]">
+                    <div className="rounded-lg bg-white dark:bg-zinc-900 p-1.5 border border-slate-200 dark:border-zinc-800">
+                      <span className="text-zinc-400 block">{isAr ? 'قيمة المقدم' : 'Down'}:</span>
+                      <strong className="text-emerald-500 font-mono">{baseDpAmount.toLocaleString(numLocale)} {curr}</strong>
+                    </div>
+                    <div className="rounded-lg bg-white dark:bg-zinc-900 p-1.5 border border-slate-200 dark:border-zinc-800">
+                      <span className="text-zinc-400 block">{isAr ? 'المتبقي أقساط' : 'Remaining'}:</span>
+                      <strong className="text-amber-500 font-mono">{remainingAmount.toLocaleString(numLocale)} {curr}</strong>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 pt-1">
+                    {verifiedPaymentSchedules.slice(0, 2).map((sched) => (
+                      <div key={sched.id} className="flex items-center justify-between text-[10px] rounded-lg bg-white dark:bg-zinc-900 px-2 py-1 border border-slate-200 dark:border-zinc-800">
+                        <span className="text-zinc-400">{sched.frequencyLabel}:</span>
+                        <span className="font-mono font-bold text-amber-500">{sched.installmentAmount.toLocaleString(numLocale)} {curr}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Calculate Monthly Installment Plans Button (ONLY shown when listing truly supports installments) */}
-        {hasInstallments && (
-          <div className="mt-2.5" onClick={(e) => e.stopPropagation()}>
+        {/* 3. Action Buttons & Quick Prompts */}
+        <div className="mt-3 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1.5">
+            {/* Primary Action: Book Viewing */}
             <button
               type="button"
-              onClick={() => setShowInstallmentPlans((prev) => !prev)}
-              className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-xs font-black transition ${
-                showInstallmentPlans
-                  ? 'border-amber-500 bg-amber-500/15 text-amber-600 dark:text-amber-300'
-                  : 'border-amber-500/35 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 dark:text-amber-400'
-              }`}
+              onClick={() => onBookViewing && onBookViewing(property)}
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs py-2 px-2 transition shadow-xs active:scale-95"
+              title={isAr ? 'طلب حجز موعد معاينة ميدانية' : 'Book a viewing'}
             >
-              <span className="flex items-center gap-1.5">
-                <Calculator className="h-3.5 w-3.5 shrink-0" />
-                <span>{isAr ? 'حساب خطة الأقساط الشهرية 💰' : 'Calculate Monthly Installments 💰'}</span>
-              </span>
-              {showInstallmentPlans ? (
-                <ChevronUp className="h-4 w-4 shrink-0" />
-              ) : (
-                <ChevronDown className="h-4 w-4 shrink-0" />
-              )}
+              <Calendar className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{isAr ? 'طلب معاينة' : 'Book Visit'}</span>
             </button>
 
-            {/* Grounded Breakdown of the Listing's Actual Supported Installment Plan */}
-            {showInstallmentPlans && (
-              <div className="mt-2 space-y-2.5 rounded-2xl border border-amber-500/30 bg-slate-50/90 p-3 text-xs dark:bg-zinc-950/90">
-                <div className="flex items-center justify-between gap-2 border-b border-slate-200/80 pb-2 dark:border-zinc-800">
-                  <span className="font-black text-slate-800 dark:text-zinc-200 text-[11px]">
-                    {isAr
-                      ? `خطة التقسيط الفعلية المعتمدة بالإعلان (${baseYears} سنوات):`
-                      : `Verified Listing Installment Plan (${baseYears} Years):`}
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700 dark:text-emerald-300 shrink-0">
-                    <CheckCircle2 className="h-2.5 w-2.5" />
-                    <span>{isAr ? 'معتمدة بالإعلان' : 'Verified'}</span>
-                  </span>
-                </div>
+            {/* Secondary Action: View Photos & Details */}
+            <button
+              type="button"
+              onClick={() => onViewDetails && onViewDetails(property)}
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 hover:bg-slate-200 dark:hover:bg-zinc-700 font-bold text-xs py-2 px-2 transition active:scale-95"
+              title={isAr ? 'معاينة كافة الصور والتفاصيل' : 'Photos & Details'}
+            >
+              <Images className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{isAr ? 'معاينة الصور' : 'Photos'}</span>
+            </button>
 
-                {/* Summary of Official Plan Totals */}
-                <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-white p-2 text-[10px] border border-slate-200/70 dark:border-zinc-800 dark:bg-zinc-900">
-                  <div>
-                    <span className="block text-slate-400 dark:text-zinc-500">
-                      {isAr ? 'السعر الكلي' : 'Total Price'}
-                    </span>
-                    <span className="font-mono font-black text-slate-900 dark:text-white">
-                      {basePrice.toLocaleString(numLocale)} {curr}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-slate-400 dark:text-zinc-500">
-                      {isAr ? `المقدم (${baseDpPct}%)` : `Down (${baseDpPct}%)`}
-                    </span>
-                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      {baseDpAmount.toLocaleString(numLocale)} {curr}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-slate-400 dark:text-zinc-500">
-                      {isAr ? 'المتبقي للتقسيط' : 'Remaining'}
-                    </span>
-                    <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
-                      {remainingAmount.toLocaleString(numLocale)} {curr}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Payment Schedules for the Listing's Actual Plan */}
-                <div className="space-y-1.5">
-                  {verifiedPaymentSchedules.map((sched) => {
-                    const isSelected = selectedScheduleId === sched.id;
-                    return (
-                      <div
-                        key={sched.id}
-                        onClick={() => setSelectedScheduleId(sched.id)}
-                        className={`cursor-pointer rounded-xl border p-2.5 transition ${
-                          isSelected
-                            ? 'border-amber-500 bg-amber-500/10 dark:bg-amber-500/15'
-                            : 'border-slate-200 bg-white hover:border-amber-500/40 dark:border-zinc-800 dark:bg-zinc-900'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="font-black text-slate-900 dark:text-white text-[11px]">
-                            {sched.label}
-                          </span>
-                          <span className="rounded-md bg-slate-200/70 px-1.5 py-0.5 text-[9px] font-bold text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 shrink-0">
-                            {sched.installmentsCount} {isAr ? 'دفعة' : 'payments'}
-                          </span>
-                        </div>
-
-                        <div className="mt-1.5 flex items-baseline justify-between rounded-lg bg-slate-100/80 px-2 py-1 dark:bg-zinc-800/80">
-                          <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400">
-                            {isAr ? 'السعر الكلي بهذه الطريقة:' : 'Total Price (this schedule):'}
-                          </span>
-                          <span className="font-mono text-xs font-black text-slate-900 dark:text-white">
-                            {sched.totalPrice.toLocaleString(numLocale)} {curr}
-                          </span>
-                        </div>
-
-                        <div className="mt-1.5 flex items-center justify-between text-[10px]">
-                          <span className="text-slate-500 dark:text-zinc-400">
-                            {sched.frequencyLabel}:
-                          </span>
-                          <span className="font-mono text-xs font-black text-amber-600 dark:text-amber-400">
-                            {sched.installmentAmount.toLocaleString(numLocale)} {curr}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {property.sale_circumstances && (
-                  <div className="rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-[10px] text-slate-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
-                    <span className="font-bold text-slate-800 dark:text-zinc-100">
-                      {isAr ? 'ملاحظات السداد بالإعلان: ' : 'Listing Payment Notes: '}
-                    </span>
-                    {property.sale_circumstances}
-                  </div>
-                )}
-
-                <p className="text-[10px] leading-relaxed text-slate-500 dark:text-zinc-400">
-                  {isAr
-                    ? '✓ يتم عرض خطة التقسيط الفعلية المدعومة في الإعلان فقط لضمان تطابق الأسعار والأقساط مع البروكر والمطور.'
-                    : '✓ Shows only the actual installment plan supported by this listing to match broker terms.'}
-                </p>
-              </div>
+            {/* Direct Official Link Button */}
+            {directPropertyUrl && (
+              <a
+                href={directPropertyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="grid h-8 w-8 place-items-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 transition shrink-0"
+                title={
+                  isSellerListing
+                    ? (isAr ? 'تواصل مع صاحب الإعلان عبر واتساب' : 'WhatsApp Owner')
+                    : (isTekce ? (isAr ? 'الموقع الرسمي' : 'Official Site') : (isAr ? 'فتح الإعلان على عقارماب' : 'View on Aqarmap'))
+                }
+              >
+                {isSellerListing ? <PhoneCall className="h-3.5 w-3.5" /> : <ExternalLink className="h-3.5 w-3.5" />}
+              </a>
             )}
           </div>
-        )}
 
-        {/* Action CTAs */}
-        <div className="mt-3.5 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          {/* View Photos & Details Button */}
-          <button
-            onClick={() => onViewDetails && onViewDetails(property)}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 px-3 py-2.5 text-xs font-black text-black shadow-xs transition hover:brightness-105 active:scale-[0.98]"
-            title={isAr ? 'عرض الصور وتفاصيل الوحدة' : 'View photos and unit details'}
-          >
-            <Eye className="h-3.5 w-3.5" />
-            <span>{isAr ? 'معاينة الصور' : 'Photos & Details'}</span>
-          </button>
-
-          {/* Book Viewing Button */}
-          <button
-            onClick={() => onBookViewing && onBookViewing(property)}
-            className="flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2.5 text-xs font-bold text-slate-800 transition hover:bg-slate-200 active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
-            title={isAr ? 'طلب معاينة ميدانية' : 'Request field viewing'}
-          >
-            <Calendar className="h-3.5 w-3.5" />
-            <span>{isAr ? 'طلب معاينة' : 'Visit'}</span>
-          </button>
-
-          {/* Official Partner / Direct Property Link (Only for verified developer projects, NEVER for seller listings) */}
-          {directPropertyUrl && !isSellerListing && (
-            <a
-              href={directPropertyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center justify-center gap-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2.5 py-2.5 text-xs font-bold text-amber-700 transition hover:bg-amber-500/20 active:scale-[0.98] dark:border-amber-400/30 dark:text-amber-400"
-              title={
-                isTekce
-                  ? (isAr ? 'الموقع الرسمي ↗' : 'Official Site ↗')
-                  : (isAr ? 'فتح الإعلان على عقارماب ↗' : 'View on Aqarmap ↗')
-              }
+          {/* Bridge to AI Agent: Direct Conversation on this Property */}
+          {onSendToChat && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSendToChat(property);
+              }}
+              className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 py-1.5 px-2.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 transition active:scale-98"
+              title={isAr ? 'مناقشة أو استشارة الذكاء الاصطناعي حول هذه الوحدة' : 'Discuss this unit with AI'}
             >
-              <ExternalLink className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">
-                {isTekce
-                  ? (isAr ? 'الموقع الرسمي ↗' : 'Official ↗')
-                  : (isAr ? 'فتح الإعلان على عقارماب ↗' : 'View on Aqarmap ↗')}
-              </span>
-            </a>
-          )}
-
-          {/* Seller Direct WhatsApp Link */}
-          {directPropertyUrl && isSellerListing && property.seller_phone && (
-            <a
-              href={directPropertyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center justify-center gap-1 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-2.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-500/20 active:scale-[0.98] dark:border-emerald-400/30 dark:text-emerald-400"
-              title={isAr ? 'تواصل مع صاحب الإعلان مباشرة عبر واتساب' : 'Chat with owner on WhatsApp'}
-            >
-              <PhoneCall className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{isAr ? 'واتساب المالك' : 'WhatsApp'}</span>
-            </a>
+              <Sparkles className="h-3 w-3 text-amber-500 shrink-0" />
+              <span className="truncate">{isAr ? '🤖 استشارة وتقييم هذه الوحدة في الشات' : '🤖 Discuss in Chat'}</span>
+            </button>
           )}
         </div>
-
-        {/* Bridge to AI Agent: Direct Conversation on this Property */}
-        {onSendToChat && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSendToChat(property);
-            }}
-            className="mt-2.5 w-full flex items-center justify-center gap-2 rounded-xl border border-amber-500/50 bg-gradient-to-r from-amber-500/20 via-amber-400/15 to-amber-500/10 hover:from-amber-500 hover:to-amber-400 hover:text-black py-2.5 px-3 text-xs font-black text-amber-700 dark:text-amber-300 transition-all shadow-xs active:scale-[0.98] group/chatbtn"
-            title={isAr ? 'تحديد هذه الوحدة ومناقشتها أو تقييمها في الشات فوراً' : 'Discuss & Evaluate this unit in chat'}
-          >
-            <Sparkles className="h-4 w-4 text-amber-500 group-hover/chatbtn:text-black transition" />
-            <span>{isAr ? '🤖 استشارة وتقييم هذه الوحدة في الشات' : '🤖 Discuss & Evaluate in Chat'}</span>
-          </button>
-        )}
       </div>
     </div>
   );
