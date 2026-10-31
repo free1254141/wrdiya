@@ -124,15 +124,15 @@ export default function BrokerChatSidebar({
 
   const quickFilters = isRtl ? [
     { label: 'مشاريع معارض عقارات الرسمية', icon: '🏛️' },
-    { label: 'فرص الاستثمار الدولي في دبي وتركيا', icon: '🌐' },
+    { label: 'شاليهات الساحل الشمالي والعين السخنة', icon: '🏖️' },
     { label: 'شقق التجمع الخامس بتقسيط 8 سنين', icon: '🏙️' },
-    { label: 'الشيخ زايد وبادية بالم هيلز بمقدم 10%', icon: '🏡' },
+    { label: 'الشيخ زايد و6 أكتوبر بمقدم 10%', icon: '🏡' },
     { label: 'وحدات استلام فوري جاهزة للسكن', icon: '🔑' },
   ] : [
     { label: 'Official Expo Partner Projects', icon: '🏛️' },
-    { label: 'International Units (Dubai & Turkey)', icon: '🌐' },
+    { label: 'North Coast & Ain Sokhna Chalets', icon: '🏖️' },
     { label: 'New Cairo with 8-Year Installments', icon: '🏙️' },
-    { label: 'Sheikh Zayed & Palm Hills (10% Down)', icon: '🏡' },
+    { label: 'Sheikh Zayed & October (10% Down)', icon: '🏡' },
     { label: 'Ready-to-Move Units', icon: '🔑' },
   ];
 

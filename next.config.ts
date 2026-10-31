@@ -21,8 +21,12 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'launches.aqarmap.com' },
       { protocol: 'https', hostname: '**.aqarmap.com' },
+      { protocol: 'https', hostname: '**.aqarmap.com.eg' },
       { protocol: 'https', hostname: '**.tekce.com' },
       { protocol: 'https', hostname: 'images.bayut.eg' },
+      { protocol: 'https', hostname: '**.amazonaws.com' },
+      { protocol: 'https', hostname: '**.cooingestate.com' },
+      { protocol: 'https', hostname: '**.nawy.com' },
     ],
   },
   // Edge CDN caching headers for static assets and public APIs

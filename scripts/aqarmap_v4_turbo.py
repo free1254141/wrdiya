@@ -92,6 +92,8 @@ SEARCH_PAGES = [
 
 # 14-Compound / Regional mapping table (ordered from specific compound -> regional bucket)
 COMPOUND_MAP = [
+    (["الساحل", "north-coast", "north coast", "رأس الحكمة", "راس الحكمة", "مراسي", "marassi", "هاسيندا", "hacienda", "العلمين", "alamein", "سيدي عبد", "الضبعه", "الضبعة"], "00000000-0000-0000-0000-000000000003"),
+    (["السخنة", "السخنه", "سخنة", "ain-elsokhna", "sokhna", "الجلالة", "الجلاله", "جلالة", "galala", "أزها", "azha", "suez"], "00000000-0000-0000-0000-000000000004"),
     (["ميفيدا", "mivida", "إعمار", "اعمار", "emaar"], "cccccccc-cccc-cccc-cccc-cccccccccccc"),
     (["فيليت", "villette", "سوديك إيست", "sodic east"], "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"),
     (["زد إيست", "زد ايست", "zed east", "أورا", "اورا", "ora"], "ffffffff-ffff-ffff-ffff-ffffffffffff"),
@@ -99,14 +101,12 @@ COMPOUND_MAP = [
     (["ويست تاون", "وست تاون", "westown", "سوديك ويست", "أليجريا", "allegria"], "00000000-0000-0000-0000-000000000002"),
     (["بادية", "badya", "بالم هيلز أكتوبر", "بالم هيلز الشيخ زايد", "palm hills october"], "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
     (["ماونتن فيو", "mountain view", "آي سيتي", "اي سيتي", "icity", "هايد بارك", "hyde park"], "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
-    (["الساحل", "north-coast", "north coast", "رأس الحكمة", "راس الحكمة", "مراسي", "marassi", "هاسيندا", "hacienda", "العلمين", "alamein", "سيدي عبد"], "00000000-0000-0000-0000-000000000003"),
-    (["السخنة", "سخنة", "sokhna", "الجلالة", "جلالة", "galala", "أزها", "azha"], "00000000-0000-0000-0000-000000000004"),
     (["المستقبل", "mostakbal", "الشروق", "shorouk", "العبور", "obour", "سراي", "sarai", "بلوم فيلدز", "bloomfields", "بدر"], "00000000-0000-0000-0000-000000000005"),
-    (["الإسكندرية", "الاسكندرية", "إسكندرية", "اسكندرية", "/alex/", "alexandria", "سموحة", "smouha", "ستانلي", "stanley", "جليم", "كفر عبده", "سيدي بشر", "ميامي"], "00000000-0000-0000-0000-000000000006"),
-    (["المعادي", "معادي", "maadi", "مصر الجديدة", "heliopolis", "مدينة نصر", "nasr-city", "nasr city", "الزمالك", "zamalek", "الدقي", "dokki", "المهندسين", "mohandessin", "المقطم"], "00000000-0000-0000-0000-000000000007"),
-    (["العاصمة الإدارية", "العاصمة الادارية", "new-capital", "new capital", "البوسكو", "bosco", "حي المستثمرين", "R7", "R8", "النهر الأخضر"], "dddddddd-dddd-dddd-dddd-dddddddddddd"),
-    (["الشيخ زايد", "زايد", "sheikh-zayed", "sheikh zayed"], "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
-    (["أكتوبر", "اكتوبر", "october", "حدائق أكتوبر", "حدائق اكتوبر", "أو ويست", "o west", "بيفرلي"], "00000000-0000-0000-0000-000000000008"),
+    (["الإسكندرية", "الاسكندرية", "إسكندرية", "اسكندرية", "/alex", "alexandria", "سموحة", "smouha", "ستانلي", "stanley", "جليم", "كفر عبده", "سيدي بشر", "ميامي"], "00000000-0000-0000-0000-000000000006"),
+    (["المعادي", "معادي", "maadi", "مصر الجديدة", "مصر الجديده", "heliopolis", "مدينة نصر", "مدينه نصر", "nasr-city", "nasr city", "الزمالك", "zamalek", "الدقي", "dokki", "المهندسين", "mohandessin", "المقطم"], "00000000-0000-0000-0000-000000000007"),
+    (["العاصمة الإدارية", "العاصمة الادارية", "new-capital", "new-administrative-capital", "new capital", "البوسكو", "bosco", "حي المستثمرين", "R7", "R8", "النهر الأخضر"], "dddddddd-dddd-dddd-dddd-dddddddddddd"),
+    (["الشيخ زايد", "زايد", "sheikh-zayed", "el-sheikh-zayed", "sheikh zayed"], "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+    (["أكتوبر", "اكتوبر", "october", "6th-of-october", "حدائق أكتوبر", "حدائق اكتوبر", "أو ويست", "o west", "بيفرلي"], "00000000-0000-0000-0000-000000000008"),
 ]
 
 RE_LISTING = re.compile(r'href="(/(?:ar|en)/listing/(\d+)[^"?]*)"')
@@ -468,7 +468,7 @@ def main(max_new_units: int = 80):
                 clean_href = href.split("?")[0]
                 candidate_urls.append((lid, BASE + clean_href))
                 new_on_page += 1
-                if new_on_page >= 8:  # Balanced sampling across all 24 regional search pages
+                if new_on_page >= 16:  # Balanced sampling across all 24 regional search pages
                     break
         print(f"  [{idx+1}/{len(SEARCH_PAGES)}] {path[:50]} -> {len(matches)} found ({new_on_page} sampled)")
         time.sleep(0.2)

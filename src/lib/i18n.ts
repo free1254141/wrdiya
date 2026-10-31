@@ -23,7 +23,7 @@ export const translations = {
   ar: {
     brand: 'سكنى بوت',
     tagline: '',
-    subtitle: 'اعرف أسعار وأقساط أي كمبوند في مصر أو دبي في ثواني — ومن غير مكالمات سيلز مزعجة.',
+    subtitle: 'اعرف أسعار وأقساط أي كمبوند أو شقة في مصر في ثواني — ومن غير مكالمات سيلز مزعجة.',
     noSpamBadge: '🛡️ خصوصية تامة • بدون مكالمات سيلز متكررة • أرقام رسمية موثقة',
     newChat: 'محادثة عقارية جديدة',
     chatHistory: 'سجل المحادثات',
@@ -81,7 +81,7 @@ export const translations = {
   en: {
     brand: 'سكنى بوت',
     tagline: '',
-    subtitle: 'Find exact property prices and payment plans in Egypt & Dubai in seconds — zero annoying sales calls.',
+    subtitle: 'Find exact property prices and payment plans across Egypt in seconds — zero annoying sales calls.',
     noSpamBadge: '🛡️ 100% Privacy • No Unwanted Cold Calls • Verified Official Data',
     newChat: 'New Real Estate Chat',
     chatHistory: 'Chat History',

@@ -50,6 +50,7 @@ import PropertyDetailsModal from '@/components/PropertyDetailsModal';
 import PropertiesTableModal from '@/components/PropertiesTableModal';
 import InlinePropertiesTable from '@/components/InlinePropertiesTable';
 import SellerPropertiesModal from '@/components/SellerPropertiesModal';
+import DirectSearchPanel from '@/components/DirectSearchPanel';
 import { Locale } from '@/lib/i18n';
 
 const OPEN_FORM_BTN_LABELS: Record<Locale, string> = {
@@ -80,6 +81,9 @@ export default function SkanybotChatPage() {
     }
     return true;
   });
+
+  // Application Mode: 'chat' (AI Agent) vs 'direct_search' (Off-Agent Instant Filter)
+  const [appMode, setAppMode] = useState<'chat' | 'direct_search'>('chat');
 
   // Auth modal state
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -354,46 +358,46 @@ export default function SkanybotChatPage() {
       case 'ar':
         return [
           {
-            title: 'مشاريع معارض عقارماب الرسمية 🏛️',
-            desc: 'أحدث المشاريع والكمبوندات بخصومات المعرض المعتمدة',
-            prompt: 'عايز أفضل عروض معارض عقارماب في التجمع والشيخ زايد'
+            title: 'كمبوندات التجمع الخامس والقاهرة الجديدة 🏛️',
+            desc: 'ماونتن فيو، ميفيدا، زد إيست، وهايد بارك بمقدم يبدأ من 5%',
+            prompt: 'عايز أفضل شقق وكمبوندات التجمع الخامس بالتقسيط'
           },
           {
-            title: 'استثمار دولي في دبي وتركيا 🌐',
-            desc: 'وحدات فندقية وسكنية مؤهلة للإقامة الذهبية والجنسية',
-            prompt: 'عايز فرص استثمار عقاري في دبي وإسطنبول للإقامة الذهبية والجنسية'
+            title: 'شاليهات الساحل الشمالي والعين السخنة 🏖️',
+            desc: 'رأس الحكمة، مراسي، والمونت جلالة بأطول فترات سداد',
+            prompt: 'عايز شاليه في الساحل الشمالي أو العين السخنة بالتقسيط'
           },
           {
-            title: 'شقق التجمع والشيخ زايد تقسيط 🏢',
-            desc: 'ماونتن فيو، بادية بالم هيلز، وسوديك بمقدم 10% وتقسيط 8 سنوات',
-            prompt: 'شقق 3 غرف في التجمع والشيخ زايد بمقدم 10% وتقسيط مريح'
+            title: 'الشيخ زايد و6 أكتوبر والعاصمة الإدارية 🏢',
+            desc: 'بادية بالم هيلز، أو ويست، وسوديك ويست بمقدم 10% وتقسيط 8 سنوات',
+            prompt: 'شقق وفيلات في الشيخ زايد و6 أكتوبر بمقدم 10% وتقسيط مريح'
           },
           {
-            title: 'استلام فوري جاهز للسكن 🔑',
-            desc: 'وحدات كاملة التشطيب في مدينتي وميفيدا إعمار',
-            prompt: 'عايز شقق استلام فوري جاهزة للسكن الآن'
+            title: 'استلام فوري في مصر الجديدة والمعادي ومدينتي 🔑',
+            desc: 'وحدات كاملة التشطيب جاهزة للسكن الفوري أو الاستثمار',
+            prompt: 'عايز شقق استلام فوري جاهزة للسكن في القاهرة'
           }
         ];
       default:
         return [
           {
-            title: 'Accredited Expo Developments 🏛️',
-            desc: 'Prime developments with exclusive expo terms and discounts',
-            prompt: 'Show me the best accredited developments in New Cairo and Sheikh Zayed'
+            title: 'New Cairo & Fifth Settlement Compounds 🏛️',
+            desc: 'Mountain View, Mivida, Zed East & Hyde Park from 5% down',
+            prompt: 'Show me the best developments in New Cairo and Fifth Settlement'
           },
           {
-            title: 'International Units (Dubai & Turkey) 🌐',
-            desc: 'High USD/EUR yield properties eligible for Golden Visa & Citizenship',
-            prompt: 'Show me international property opportunities in Dubai and Istanbul'
+            title: 'North Coast & Ain Sokhna Chalets 🏖️',
+            desc: 'Ras El Hekma, Marassi & Galala beachfront units with installments',
+            prompt: 'Show me chalets in North Coast and Ain Sokhna'
           },
           {
-            title: 'New Cairo & Zayed with Installments 🏢',
-            desc: 'Mountain View, Palm Hills, and SODIC with 10% down and 8-year plans',
-            prompt: 'Looking for a 3-bedroom apartment with 10% down and flexible installments'
+            title: 'Sheikh Zayed, 6th October & New Capital 🏢',
+            desc: 'Palm Hills, O West, and SODIC with 10% down and 8-year plans',
+            prompt: 'Looking for a 3-bedroom apartment in Sheikh Zayed or October with installments'
           },
           {
-            title: 'Ready-to-Move Properties 🔑',
-            desc: 'Fully finished apartments available for immediate delivery',
+            title: 'Ready-to-Move Properties in Cairo 🔑',
+            desc: 'Fully finished apartments available for immediate handover',
             prompt: 'Show me ready to move properties available for immediate handover'
           }
         ];
@@ -703,6 +707,48 @@ export default function SkanybotChatPage() {
     e.target.style.height = `${Math.min(e.target.scrollHeight, 180)}px`;
   };
 
+  // Smart Bridge from Off-Agent Direct Search to AI Broker Chat
+  const handleSendToChat = (property: Property, customQuery?: string) => {
+    // 1. Injected focus unit into session context
+    setSessionContext((prev) => {
+      const next = { ...prev, focus: toShownUnit(property) };
+      if (activeSessionId) {
+        try { localStorage.setItem(`skanybot_ctx_${activeSessionId}`, JSON.stringify(next)); } catch {}
+      }
+      return next;
+    });
+
+    // 2. Switch mode to chat
+    setAppMode('chat');
+
+    // 3. Formulate smart question and ask bot
+    const compoundName = property.compound?.name || property.location_text || '';
+    const q = customQuery || (isRtl 
+      ? `أريد استشارتك بخصوص هذه الوحدة: "${property.title}" في ${compoundName} بسعر ${property.total_price.toLocaleString('ar-EG')} ${property.currency || 'ج.م'}. ما هي أفضل خطة تقسيط شهرية لها وما تقييمك للمشروع استثمارياً؟`
+      : `I want your consultation regarding: "${property.title}" in ${compoundName} priced at ${property.total_price.toLocaleString()} ${property.currency || 'EGP'}. What is the best payment plan and investment appraisal?`);
+
+    setTimeout(() => {
+      handleSendMessage(q);
+    }, 120);
+  };
+
+  const handleCompareWithChat = (properties: Property[]) => {
+    if (properties.length === 0) return;
+    setAppMode('chat');
+
+    const names = properties.map((p, idx) => 
+      `${idx + 1}. ${p.title} في ${p.compound?.name || p.location_text || ''} (السعر: ${p.total_price.toLocaleString('ar-EG')} ${p.currency || 'ج.م'})`
+    ).join('\n');
+
+    const prompt = isRtl
+      ? `أريد منك مقارنة تفصيلية واستشارية دقيقة بين الوحدات التالية من حيث الموقع، السعر، خطط التقسيط، سمعة المطور، وجدوى الاستثمار:\n\n${names}\n\nما هي الوحدة الأفضل وفقاً للمعايير؟`
+      : `Please provide a detailed comparative analysis between these properties:\n\n${names}\n\nWhich one offers better value and investment potential?`;
+
+    setTimeout(() => {
+      handleSendMessage(prompt);
+    }, 120);
+  };
+
   return (
     <div 
       className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-black dark:text-zinc-100" 
@@ -758,6 +804,37 @@ export default function SkanybotChatPage() {
               <div className="flex items-baseline gap-1.5">
                 <span className="text-base font-black tracking-tight text-amber-500 font-sans">sakanybot</span>
               </div>
+            </div>
+
+            {/* Dual Mode Switcher: AI Chatbot vs Off-Agent Instant Direct Search */}
+            <div className="flex items-center rounded-2xl border border-slate-200/90 bg-slate-100 dark:border-zinc-800 dark:bg-zinc-900/90 p-1 mr-1 sm:mr-2">
+              <button
+                type="button"
+                onClick={() => setAppMode('chat')}
+                className={`flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-1 text-xs font-bold transition ${
+                  appMode === 'chat'
+                    ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-zinc-400 hover:text-black dark:hover:text-white'
+                }`}
+                title={isRtl ? 'استشارة مستشار العقارات بالذكاء الاصطناعي' : 'AI Broker Chat'}
+              >
+                <Bot className="h-3.5 w-3.5 text-amber-500" />
+                <span className="hidden md:inline">{isRtl ? 'مستشار الشات' : 'AI Broker'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAppMode('direct_search')}
+                className={`flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-1 text-xs font-bold transition ${
+                  appMode === 'direct_search'
+                    ? 'bg-amber-500 text-black shadow-xs font-black'
+                    : 'text-slate-600 dark:text-zinc-400 hover:text-black dark:hover:text-white'
+                }`}
+                title={isRtl ? 'بحث وفلترة فورية لكافة العقارات مجاناً وبدون خصم رسائل' : 'Off-Agent Direct Search'}
+              >
+                <Zap className="h-3.5 w-3.5" />
+                <span>{isRtl ? 'البحث المباشر ⚡' : 'Off-Agent ⚡'}</span>
+              </button>
             </div>
           </div>
 
@@ -841,13 +918,28 @@ export default function SkanybotChatPage() {
           </div>
         </header>
 
-        {/* Scrollable Conversation Stream */}
-        <div
-          ref={chatScrollContainerRef}
-          onScroll={handleChatScroll}
-          className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pt-4 pb-36 sm:pb-32 relative"
-          dir={dir}
-        >
+        {appMode === 'direct_search' ? (
+          <DirectSearchPanel
+            onSendToChat={handleSendToChat}
+            onCompareWithChat={handleCompareWithChat}
+            onBookViewing={(p) => {
+              setSelectedPropertyForLead(p);
+              setBookingModalOpen(true);
+            }}
+            onToggleFavorite={handleToggleFavorite}
+            onViewDetails={(p) => openPropertyDetails(p)}
+            favorites={favorites}
+            onSwitchToChat={() => setAppMode('chat')}
+          />
+        ) : (
+          <>
+            {/* Scrollable Conversation Stream */}
+            <div
+              ref={chatScrollContainerRef}
+              onScroll={handleChatScroll}
+              className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pt-4 pb-36 sm:pb-32 relative"
+              dir={dir}
+            >
           <div className="mx-auto max-w-3xl">
             {messages.length === 0 ? (
               /* Welcome Screen with Grounded Suggestions */
@@ -1048,21 +1140,31 @@ export default function SkanybotChatPage() {
 
                 {/* Guest soft-wall banner — appears after 2nd message */}
                 {!user && !loading && guestMsgCount >= 2 && guestMsgCount <= GUEST_MSG_LIMIT && (
-                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs">
                     <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-semibold">
                       <Sparkles className="h-4 w-4 shrink-0" />
                       <span>
                         {isRtl
-                          ? `تبقّى لك ${GUEST_MSG_LIMIT - guestMsgCount} رسيلة — سجّل دخول عشان توصل لكل الميزات وتحفظ بحثك 🔓`
-                          : `${GUEST_MSG_LIMIT - guestMsgCount} free message${GUEST_MSG_LIMIT - guestMsgCount > 1 ? 's' : ''} left — Sign in to unlock full access 🔓`}
+                          ? `تبقّى لك ${GUEST_MSG_LIMIT - guestMsgCount} رسائل تجريبية — يمكنك مواصلة البحث والتصفية بحرية عبر البحث المباشر مجاناً! ⚡`
+                          : `${GUEST_MSG_LIMIT - guestMsgCount} trial message(s) left — You can also browse freely via Off-Agent Search! ⚡`}
                       </span>
                     </div>
-                    <button
-                      onClick={() => setAuthModalOpen(true)}
-                      className="shrink-0 rounded-xl bg-amber-500 px-3 py-1.5 text-[11px] font-black text-black transition hover:bg-amber-400"
-                    >
-                      {isRtl ? 'تسجيل الدخول' : 'Sign In'}
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setAppMode('direct_search')}
+                        className="rounded-xl border border-amber-500/50 bg-black/80 dark:bg-zinc-900 text-amber-400 px-3 py-1.5 text-[11px] font-bold hover:bg-black transition"
+                      >
+                        {isRtl ? 'البحث المباشر (مجاناً) ⚡' : 'Off-Agent Search ⚡'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAuthModalOpen(true)}
+                        className="rounded-xl bg-amber-500 px-3 py-1.5 text-[11px] font-black text-black transition hover:bg-amber-400"
+                      >
+                        {isRtl ? 'تسجيل الدخول' : 'Sign In'}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -1164,7 +1266,9 @@ export default function SkanybotChatPage() {
             </p>
           </div>
         </div>
-      </main>
+      </>
+    )}
+  </main>
 
       {/* Booking Lead Modal */}
       <BookingLeadModal
@@ -1205,6 +1309,7 @@ export default function SkanybotChatPage() {
         }}
         onToggleFavorite={handleToggleFavorite}
         isFavorite={favorites.some(f => f.id === selectedPropertyForDetails?.id)}
+        onSendToChat={handleSendToChat}
       />
 
       {/* Seller Listed Units Modal (إضافة / تعديل وحداتي المعروضة للبيع) */}

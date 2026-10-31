@@ -22,7 +22,9 @@ import {
   ChevronDown,
   ChevronUp,
   CheckCircle2,
-  ExternalLink
+  ExternalLink,
+  Sparkles,
+  Scale
 } from 'lucide-react';
 
 interface PropertyCardProps {
@@ -31,6 +33,9 @@ interface PropertyCardProps {
   onToggleFavorite?: (property: Property) => void;
   onViewDetails?: (property: Property) => void;
   isFavorite?: boolean;
+  onSendToChat?: (property: Property) => void;
+  isCompared?: boolean;
+  onToggleCompare?: (property: Property) => void;
 }
 
 interface VerifiedScheduleMethod {
@@ -50,7 +55,10 @@ export default function PropertyCard({
   onBookViewing,
   onToggleFavorite,
   onViewDetails,
-  isFavorite = false
+  isFavorite = false,
+  onSendToChat,
+  isCompared = false,
+  onToggleCompare
 }: PropertyCardProps) {
   const [copied, setCopied] = useState(false);
   const [showInstallmentPlans, setShowInstallmentPlans] = useState(false);
@@ -230,6 +238,22 @@ export default function PropertyCard({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
+            {onToggleCompare && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleCompare(property);
+                }}
+                className={`grid h-8 w-8 place-items-center rounded-full backdrop-blur-md transition ${
+                  isCompared
+                    ? 'bg-amber-500 text-black shadow-md ring-2 ring-amber-300'
+                    : 'bg-black/50 text-white hover:bg-black/80'
+                }`}
+                title={isAr ? (isCompared ? 'إلغاء من المقارنة' : 'إضافة لسلة المقارنة بالذكاء الاصطناعي') : 'Compare with AI'}
+              >
+                <Scale className="h-4 w-4" />
+              </button>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -525,6 +549,21 @@ export default function PropertyCard({
             </a>
           )}
         </div>
+
+        {/* Bridge to AI Agent: Direct Conversation on this Property */}
+        {onSendToChat && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onSendToChat(property);
+            }}
+            className="mt-2.5 w-full flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-transparent hover:from-amber-500/25 hover:to-amber-500/10 py-2 px-3 text-xs font-bold text-amber-600 dark:text-amber-400 transition active:scale-[0.98]"
+            title={isAr ? 'حقن هذه الوحدة في الشات واستشارة سكنى بوت عنها فوراً' : 'Discuss this unit with Skanybot AI'}
+          >
+            <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
+            <span>{isAr ? '🤖 استشارة سكنى بوت عن هذه الوحدة' : '🤖 Ask Skanybot AI About Unit'}</span>
+          </button>
+        )}
       </div>
     </div>
   );

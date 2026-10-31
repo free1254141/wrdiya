@@ -33,6 +33,7 @@ interface PropertyDetailsModalProps {
   onBookViewing?: (property: Property) => void;
   onToggleFavorite?: (property: Property) => void;
   isFavorite?: boolean;
+  onSendToChat?: (property: Property) => void;
 }
 
 export default function PropertyDetailsModal({
@@ -42,6 +43,7 @@ export default function PropertyDetailsModal({
   onBookViewing,
   onToggleFavorite,
   isFavorite = false,
+  onSendToChat,
 }: PropertyDetailsModalProps) {
   const { locale, isRtl } = useLanguage();
   const isAr = locale === 'ar';
@@ -398,7 +400,22 @@ export default function PropertyDetailsModal({
         </div>
 
         {/* Modal Bottom Sticky Action Bar */}
-        <div className="flex shrink-0 items-center gap-3 border-t border-slate-100 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 z-20">
+        <div className="flex flex-wrap shrink-0 items-center gap-3 border-t border-slate-100 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 z-20">
+          {/* Bridge to AI Chat Button */}
+          {onSendToChat && (
+            <button
+              onClick={() => {
+                onClose();
+                onSendToChat(property);
+              }}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20 py-3 px-4 text-xs sm:text-sm font-bold text-amber-600 dark:text-amber-400 transition active:scale-[0.98]"
+              title={isAr ? 'حقن الوحدة في الشات وسؤال سكنى بوت عنها' : 'Ask Skanybot AI about this property'}
+            >
+              <Sparkles className="h-4 w-4 text-amber-500" />
+              <span>{isAr ? '🤖 استشارة سكنى بوت عنها' : 'Ask Skanybot AI'}</span>
+            </button>
+          )}
+
           {/* Booking Button */}
           <button
             onClick={() => {
