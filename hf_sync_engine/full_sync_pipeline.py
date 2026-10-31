@@ -227,10 +227,48 @@ def scrape_single_aqarmap_listing(item_url: str):
                                 if not imgs:
                                     return None
 
-                                down_pct = 10.0
-                                down_amount = round(price * 0.10, 2)
-                                years = 8
-                                monthly = round((price * 0.90) / (years * 12), 2)
+                                # Parse real payment method & plans from Aqarmap SSR HTML
+                                pm_m = re.search(r'paymentMethodLabel\\":\\"([^\\"]*)\\"', html)
+                                pm_label = pm_m.group(1) if pm_m else ''
+                                pps = re.findall(r'payment_plans\\":(\[\{[^\]]*\}\])', html)
+                                valid_plan = None
+                                for pp_raw in pps:
+                                    try:
+                                        arr = json.loads(pp_raw.replace('\\"', '"'))
+                                        for p in arr:
+                                            dur = p.get('duration')
+                                            if dur and float(dur) >= 180:
+                                                valid_plan = p
+                                                break
+                                    except Exception:
+                                        pass
+                                    if valid_plan:
+                                        break
+
+                                if valid_plan:
+                                    years = max(1, round(float(valid_plan.get('duration') or 360) / 360))
+                                    dp_amt = float(valid_plan.get('total_down_payment') or valid_plan.get('down_payment') or 0)
+                                    dp_pct_raw = valid_plan.get('down_payment_percentage')
+                                    if dp_pct_raw is not None and float(dp_pct_raw) > 0:
+                                        down_pct = round(float(dp_pct_raw), 1)
+                                        down_amount = round((price * down_pct) / 100, 2) if dp_amt <= 0 else dp_amt
+                                    elif dp_amt > 0 and price > 0:
+                                        down_amount = dp_amt
+                                        down_pct = round((dp_amt / price) * 100, 1)
+                                    else:
+                                        down_pct = 10.0
+                                        down_amount = round(price * 0.10, 2)
+                                    monthly = round(max(0.0, price - down_amount) / (years * 12), 2)
+                                elif 'from_developer' in pm_label or ('installment' in pm_label and 'from_owner_cash' not in pm_label):
+                                    down_pct = 10.0
+                                    down_amount = round(price * 0.10, 2)
+                                    years = 7
+                                    monthly = round((price * 0.90) / (years * 12), 2)
+                                else:
+                                    down_pct = 100.0
+                                    down_amount = price
+                                    years = 0
+                                    monthly = 0.0
 
                                 unit_type = 'شقة'
                                 if 'ستوديو' in title or 'استوديو' in title:
@@ -334,10 +372,17 @@ def fetch_aqarmap_direct_parallel(max_pages=20) -> list:
             project_id = map_area_to_compound(loc_path)
             prop_id = deterministic_uuid("Aqarmap_Apify", str(it.get("listingId") or raw_url))
 
-            down_amount = float(it.get("downPayment") or (price * 0.10))
-            down_pct = round((down_amount / price) * 100, 1) if price > 0 else 10.0
-            years = int(it.get("installmentYears") or 8)
-            monthly = float(it.get("monthlyInstallment") or round((price - down_amount) / (years * 12), 2))
+            raw_years = int(it.get("installmentYears") or 0)
+            if raw_years > 0:
+                years = raw_years
+                down_amount = float(it.get("downPayment") or (price * 0.10))
+                down_pct = round((down_amount / price) * 100, 1) if price > 0 else 10.0
+                monthly = float(it.get("monthlyInstallment") or round((price - down_amount) / (years * 12), 2))
+            else:
+                years = 0
+                down_pct = 100.0
+                down_amount = price
+                monthly = 0.0
 
             img = it.get("mainImageUrl") or it.get("imageUrl")
             if not img or "unsplash" in str(img).lower():

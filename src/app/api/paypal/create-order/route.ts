@@ -1,90 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '';
-const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || '';
-const PAYPAL_BASE = process.env.PAYPAL_MODE === 'live' 
-  ? 'https://api-m.paypal.com' 
-  : 'https://api-m.sandbox.paypal.com';
-
-async function getPayPalAccessToken(): Promise<string | null> {
-  if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET) {
-    return null;
-  }
-  const auth = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString('base64');
-  try {
-    const res = await fetch(`${PAYPAL_BASE}/v1/oauth2/token`, {
-      method: 'POST',
-      body: 'grant_type=client_credentials',
-      headers: {
-        Authorization: `Basic ${auth}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
-    const data = await res.json();
-    return data.access_token || null;
-  } catch (err) {
-    console.error('PayPal Access Token Error:', err);
-    return null;
-  }
-}
+import { getVerifiedUser } from '@/lib/server-auth';
+import { getPayPalAccessToken, isMockPaymentAllowed, paypalFetch } from '@/lib/paypal';
+import { PRO_PERIOD_DAYS, PRO_PERIOD_LIMIT, PRO_PRICE_USD } from '@/lib/usage-manager';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({}));
-    const plan = body.plan || 'pro';
-    const amount = plan === 'pro' ? '15.00' : '29.00';
-    const userId = body.userId || null;
+    // Buyer must be signed in — the order is bound to their verified account id.
+    const user = await getVerifiedUser(req);
+    if (!user) {
+      return NextResponse.json({ error: 'login_required' }, { status: 401 });
+    }
 
     const token = await getPayPalAccessToken();
 
-    // If client credentials are configured with PayPal API
-    if (token) {
-      const origin = req.nextUrl.origin || 'https://skanybot.vercel.app';
-      const orderRes = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          intent: 'CAPTURE',
-          purchase_units: [
-            {
-              reference_id: userId || 'customer_purchase',
-              amount: {
-                currency_code: 'USD',
-                value: amount,
-              },
-              description: 'sakanybot Pro Subscription - 300 Queries / Month',
-            },
-          ],
-          application_context: {
-            brand_name: 'sakanybot سكنى بوت',
-            landing_page: 'NO_PREFERENCE',
-            user_action: 'PAY_NOW',
-            return_url: `${origin}/?payment=success`,
-            cancel_url: `${origin}/?payment=cancelled`,
-          }
-        }),
-      });
-
-      const orderData = await orderRes.json();
-      return NextResponse.json(orderData);
+    if (!token) {
+      if (isMockPaymentAllowed()) {
+        // Local development only (no PayPal keys + not production)
+        return NextResponse.json({ id: `MOCK-ORDER-${Date.now()}`, status: 'CREATED', mock: true });
+      }
+      console.error('PayPal is not configured or token request failed');
+      return NextResponse.json({ error: 'payment_unavailable' }, { status: 503 });
     }
 
-    // Mock fallback when keys are not yet input in .env (allows frontend testing)
-    const mockOrderId = `MOCK-ORDER-${Date.now()}`;
-    return NextResponse.json({
-      id: mockOrderId,
-      status: 'CREATED',
-      mock: true,
-      amount,
-      plan: 'pro',
-      description: 'sakanybot Pro Subscription (300 Queries / Month)',
+    const origin = req.nextUrl.origin;
+    const { ok, data } = await paypalFetch(token, '/v2/checkout/orders', {
+      method: 'POST',
+      body: JSON.stringify({
+        intent: 'CAPTURE',
+        purchase_units: [
+          {
+            reference_id: 'pro_plan',
+            custom_id: user.id, // verified on capture
+            amount: { currency_code: 'USD', value: PRO_PRICE_USD },
+            description: `sakanybot Pro - ${PRO_PERIOD_LIMIT} queries / ${PRO_PERIOD_DAYS} days`,
+          },
+        ],
+        application_context: {
+          brand_name: 'sakanybot',
+          landing_page: 'NO_PREFERENCE',
+          shipping_preference: 'NO_SHIPPING',
+          user_action: 'PAY_NOW',
+          return_url: `${origin}/?payment=success`,
+          cancel_url: `${origin}/?payment=cancelled`,
+        },
+      }),
     });
 
+    if (!ok || !data?.id) {
+      console.error('PayPal create order failed:', data);
+      return NextResponse.json({ error: 'create_order_failed' }, { status: 502 });
+    }
+
+    return NextResponse.json({ id: data.id, status: data.status, links: data.links });
   } catch (error: any) {
     console.error('PayPal Create Order Error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to create PayPal order' }, { status: 500 });
+    return NextResponse.json({ error: 'create_order_failed' }, { status: 500 });
   }
 }

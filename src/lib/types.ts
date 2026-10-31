@@ -110,6 +110,26 @@ export interface PropertyFilter {
   compound_name?: string;
 }
 
+export interface SellerFormPrefill {
+  unit_type?: string;
+  title?: string;
+  city?: string;
+  location_text?: string;
+  area_sqm?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  finishing_type?: string;
+  total_price?: number;
+  currency?: string;
+  payment_mode?: 'cash' | 'installment';
+  down_payment_pct?: number;
+  installment_years?: number;
+  delivery_date?: string;
+  sale_circumstances?: string;
+  seller_name?: string;
+  seller_phone?: string;
+}
+
 export interface ChatMessage {
   id: string;
   session_id?: string;
@@ -121,6 +141,8 @@ export interface ChatMessage {
   total_matches?: number;
   session_context?: SessionContext;
   suggested_actions?: string[];
+  open_seller_modal?: boolean;
+  seller_prefill?: SellerFormPrefill | null;
   created_at: string;
 }
 
@@ -157,5 +179,18 @@ export interface SessionContext {
     phone_shared?: boolean;
   };
   pending_images?: string[];
+  pending_seller_form_offer?: boolean;
+  seller_prefill?: SellerFormPrefill | null;
   turns: number;
+}
+
+/** Quota/plan info returned by /api/usage and /api/chat (server-enforced). */
+export interface UsageInfo {
+  plan: 'guest' | 'free' | 'pro';
+  used: number;
+  limit: number;
+  remaining: number;
+  window: 'day' | 'period';
+  resetDate: string;
+  proUntil?: string | null;
 }

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getVerifiedUser } from '@/lib/server-auth';
+import { notifyNewLead } from '@/lib/notify';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://csuifvyghfsibkrnxrby.supabase.co';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -22,7 +24,6 @@ export async function POST(req: NextRequest) {
       propertyId, 
       unitTitle,
       developerName,
-      userId,
       sessionId,
       notes,
       source = 'chatbot'
@@ -35,6 +36,8 @@ export async function POST(req: NextRequest) {
     if (!phone || !phone.trim() || phone.replace(/\D/g, '').length < 8) {
       return NextResponse.json({ error: 'رقم الهاتف غير صالح للتواصل' }, { status: 400 });
     }
+
+    const verifiedUser = await getVerifiedUser(req);
 
     // Insert lead into Supabase
     const { data, error } = await supabaseAdmin
@@ -51,7 +54,7 @@ export async function POST(req: NextRequest) {
           property_id: propertyId || null,
           unit_title: unitTitle || null,
           developer_name: developerName || null,
-          user_id: userId || null,
+          user_id: verifiedUser?.id || null,
           session_id: sessionId || null,
           notes: notes || null,
           source,
@@ -65,6 +68,18 @@ export async function POST(req: NextRequest) {
       console.error('Supabase Lead Insert Error:', error);
       return NextResponse.json({ error: 'تعذر حفظ بيانات طلبك. يرجى المحاولة لاحقاً.' }, { status: 500 });
     }
+
+    await notifyNewLead({
+      name: userName.trim(),
+      phone: phone.trim(),
+      email: email || null,
+      unitTitle: unitTitle || null,
+      developer: developerName || null,
+      location: preferredLocation || null,
+      budget: budgetMax || null,
+      notes: notes || null,
+      source: String(source),
+    });
 
     return NextResponse.json({
       success: true,

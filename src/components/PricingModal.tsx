@@ -25,7 +25,7 @@ export default function PricingModal({
   onOpenAuthModal,
 }: PricingModalProps) {
   const { locale, isRtl } = useLanguage();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -46,15 +46,15 @@ export default function PricingModal({
     setErrorMessage(null);
 
     try {
+      const authHeaders: Record<string, string> = session?.access_token
+        ? { Authorization: `Bearer ${session.access_token}` }
+        : {};
+
       // 1. Create order with PayPal
       const res = await fetch('/api/paypal/create-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          plan: 'pro',
-          userId: user.id,
-          userEmail: user.email
-        }),
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({ plan: 'pro' }),
       });
 
       const order = await res.json();
@@ -71,14 +71,12 @@ export default function PricingModal({
         return;
       }
 
-      // 2. Capture order directly (Sandbox / Direct API execution)
+      // 2. Capture order directly (Sandbox / Direct API execution / Local Mock)
       const capRes = await fetch('/api/paypal/capture-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ 
           orderId: order.id,
-          clientId: user.id,
-          userId: user.id
         }),
       });
 
@@ -87,7 +85,7 @@ export default function PricingModal({
       if (result.success || result.status === 'COMPLETED') {
         setSuccess(true);
         setTimeout(() => {
-          onUpgradeSuccess('pro', 300);
+          onUpgradeSuccess('pro', result.usage?.limit || 300);
           onClose();
         }, 1500);
       } else {

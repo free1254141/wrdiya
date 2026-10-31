@@ -6,11 +6,23 @@ import {
   formatGroundedBrokerResponse 
 } from '@/lib/real-estate-engine';
 import { runDeepSeekAgenticChat, isDeepSeekConfigured } from '@/lib/deepseek';
+import {
+  didAssistantOfferSellerForm,
+  extractSellerPrefillFromMessage,
+  getSellerFormBotCopy,
+  isDirectOpenSellerFormRequest,
+  isSellerListingIntent,
+  isUserAgreeingToOpenForm,
+} from '@/lib/ai/agentic-tools';
 import { sanitizeSessionContext, updateSessionContext } from '@/lib/ai/session-context';
 import { getSellerProperties } from '@/lib/seller-listings';
-import { checkAndIncrementDailyUsage, DAILY_LIMIT, GUEST_LIMIT } from '@/lib/usage-manager';
+import { consumeQuery, toPublicUsage, type ConsumeResult } from '@/lib/usage-manager';
+import { getVerifiedUser, getGuestId, getClientIpHash, GUEST_COOKIE, guestCookieOptions } from '@/lib/server-auth';
+import { notifyNewLead } from '@/lib/notify';
 import { createClient } from '@supabase/supabase-js';
-import { Property, SessionContext } from '@/lib/types';
+import { Property, SellerFormPrefill, SessionContext } from '@/lib/types';
+
+const MAX_MESSAGE_CHARS = 2000;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://csuifvyghfsibkrnxrby.supabase.co';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -89,55 +101,69 @@ function slimForTable(list: Property[]): Property[] {
 }
 
 export async function POST(req: NextRequest) {
+  let usage: ConsumeResult | null = null;
+  let guestCookieToSet: string | null = null;
+  const withGuestCookie = (res: NextResponse) => {
+    if (guestCookieToSet) res.cookies.set(GUEST_COOKIE, guestCookieToSet, guestCookieOptions());
+    return res;
+  };
+
   try {
     const body = await req.json();
-    const rawMessage: string = (body.message || body.prompt || '').trim();
+    const rawMessage: string = String(body.message || body.prompt || '').trim().slice(0, MAX_MESSAGE_CHARS);
     const attachedImages: string[] = Array.isArray(body.attachedImages) ? body.attachedImages.filter((x: any) => typeof x === 'string' && x.length > 5).slice(0, 6) : [];
     const userMessage: string = rawMessage || (attachedImages.length > 0 ? 'أرفقت صور الوحدة الخاصة بي' : '');
-    const sellerOwnerId: string = body.sellerOwnerId || body.userId || body.clientId || 'guest_seller';
     const sessionId = body.sessionId || body.session_id;
-    const userId = body.userId || body.user_id || null;
-    const clientId = userId || body.clientId || sessionId || req.headers.get('x-forwarded-for') || 'guest_user';
+
+    // Identity is resolved server-side from the auth session — body.userId is NOT trusted.
+    const verifiedUser = await getVerifiedUser(req);
+    const userId: string | null = verifiedUser?.id || null;
+    const userEmail: string | null = verifiedUser?.email || null;
+    const { guestId, isNew: isNewGuest } = getGuestId(req);
+    if (!userId && isNewGuest) guestCookieToSet = guestId;
+
+    // Logged-in sellers always act as themselves; guests keep their local seller id.
+    const requestedSellerId: string = String(body.sellerOwnerId || 'guest_seller');
+    const sellerOwnerId: string = userId || (/^(guest_|seller_)/.test(requestedSellerId) ? requestedSellerId : 'guest_seller');
     const locale = (['ar', 'en', 'tr', 'ru', 'de', 'fr', 'es'].includes(body.locale) ? body.locale : 'ar');
     const freeTest = body.freeTest || body.bypassDeepSeek || body.engineOnly || false;
 
     if (!userMessage) {
-      return NextResponse.json(
+      return withGuestCookie(NextResponse.json(
         { error: locale === 'ar' ? 'من فضلك أدخل سؤالك العقاري أو نوع الوحدة التي تبحث عنها.' : 'Please enter your property inquiry or preferred unit type.' },
         { status: 400 }
-      );
+      ));
     }
 
-    // 1. Strict Usage Enforcement: Guest max 3 msgs, Authenticated max 10/day
-    const isAuth = Boolean(userId);
-    const usage = checkAndIncrementDailyUsage(userId || clientId, isAuth, true);
+    // 1. Strict, persistent usage enforcement (guest 3/day, free 10/day, Pro 300/period)
+    usage = await consumeQuery({ userId, guestId: userId ? null : guestId, ipHash: getClientIpHash(req) });
 
-    if (usage.exceeded) {
-      if (usage.requiresLogin) {
-        return NextResponse.json(
+    if (!usage.allowed) {
+      const publicUsage = toPublicUsage(usage);
+      if (usage.reason === 'login_required') {
+        return withGuestCookie(NextResponse.json(
           {
             success: false,
             error: 'login_required',
             message: locale === 'ar'
-              ? 'لقد استهلكت 3 رسائل تجريبية كزائر. يرجى تسجيل الدخول مجاناً للمتابعة وحفظ بحثك!'
-              : 'You have used your 3 free guest messages. Please sign in to continue!',
-            usage,
+              ? 'لقد استهلكت رسائلك التجريبية كزائر. سجّل دخولك مجاناً واحصل على 10 استفسارات يومياً!'
+              : 'You have used your free guest messages. Sign in for free to get 10 queries per day!',
+            usage: publicUsage,
           },
           { status: 401 }
-        );
-      } else {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'daily_limit_reached',
-            message: locale === 'ar'
-              ? 'وصلت للحد الأقصى اليومي (10 استفسارات). يتجدد رصيدك تلقائياً غداً للحفاظ على استقرار الخدمة!'
-              : 'You have reached your daily limit of 10 queries. Your quota will reset tomorrow!',
-            usage,
-          },
-          { status: 429 }
-        );
+        ));
       }
+      return NextResponse.json(
+        {
+          success: false,
+          error: usage.reason || 'daily_limit_reached',
+          message: locale === 'ar'
+            ? 'وصلت للحد الأقصى اليومي (10 استفسارات مجانية). يتجدد رصيدك تلقائياً عند منتصف الليل لضمان جودة وسرعة الخدمة للجميع!'
+            : 'You have reached your daily limit of 10 free queries. Your quota resets automatically tomorrow at midnight!',
+          usage: publicUsage,
+        },
+        { status: 429 }
+      );
     }
 
     // 2. Strict Lead / Phone Number Auto-Capture
@@ -151,30 +177,58 @@ export async function POST(req: NextRequest) {
     let totalMatches = 0;
     let detectedIntent = 'search';
     let sellerUpdated = false;
+    let openSellerModal = false;
     let sessionContext: SessionContext = sanitizeSessionContext(body.sessionContext);
 
-    // 3. AGENTIC EXECUTION: Pure LLM-driven Function Calling via DeepSeek (inspired by stokscan_AI)
-    if (isDeepSeekConfigured() && !freeTest) {
-      try {
-        // The UI sends `history` (last turns incl. the current message). Drop the current
-        // message from it since runDeepSeekAgenticChat appends it itself.
-        const rawHistory: any[] = Array.isArray(body.history) ? body.history : (Array.isArray(body.messages) ? body.messages : []);
-        const history = rawHistory
-          .filter((m: any) => m && typeof m.content === 'string' && m.content.trim())
-          .map((m: any) => ({
-            role: m.role === 'assistant' ? 'assistant' as const : 'user' as const,
-            content: String(m.content).slice(0, 1500),
-          }));
-        if (history.length && history[history.length - 1].role === 'user' && history[history.length - 1].content.trim() === userMessage) {
-          history.pop();
-        }
+    // Prepare history & inspect last assistant message for seller form offer context
+    const rawHistory: any[] = Array.isArray(body.history) ? body.history : (Array.isArray(body.messages) ? body.messages : []);
+    const history = rawHistory
+      .filter((m: any) => m && typeof m.content === 'string' && m.content.trim())
+      .map((m: any) => ({
+        role: m.role === 'assistant' ? 'assistant' as const : 'user' as const,
+        content: String(m.content).slice(0, 1500),
+      }));
+    if (history.length && history[history.length - 1].role === 'user' && history[history.length - 1].content.trim() === userMessage) {
+      history.pop();
+    }
+    const lastAssistantMsg = [...history].reverse().find((m) => m.role === 'assistant')?.content;
 
+    const extractedMsgPrefill = extractSellerPrefillFromMessage(userMessage);
+    let activeSellerPrefill: SellerFormPrefill | null =
+      extractedMsgPrefill || sessionContext.seller_prefill
+        ? { ...(sessionContext.seller_prefill || {}), ...(extractedMsgPrefill || {}) }
+        : null;
+
+    const sellerBotCopy = getSellerFormBotCopy(locale);
+    const userAgreedToOpenForm = isUserAgreeingToOpenForm(
+      userMessage,
+      sessionContext.pending_seller_form_offer,
+      lastAssistantMsg
+    );
+    const userDirectlyRequestedForm = isDirectOpenSellerFormRequest(userMessage);
+    const userWantsToSell = isSellerListingIntent(userMessage);
+
+    // 2.5 Immediate Deterministic Handling when user says "ماشي" / agrees to open the seller form or asks to open it directly
+    if (userAgreedToOpenForm || userDirectlyRequestedForm) {
+      openSellerModal = true;
+      detectedIntent = 'open_seller_form';
+      finalContent = sellerBotCopy.openedConfirmText;
+      sessionContext = updateSessionContext(sessionContext, {
+        pendingSellerFormOffer: false,
+        sellerPrefill: null,
+        phoneShared: Boolean(extractedPhone),
+      });
+    }
+
+    // 3. AGENTIC EXECUTION: Pure LLM-driven Function Calling via DeepSeek
+    if (!finalContent && isDeepSeekConfigured() && !freeTest) {
+      try {
         const currentMyListings = await getSellerProperties(sellerOwnerId);
         const agenticResult = await runDeepSeekAgenticChat(
           userMessage,
           locale,
           history,
-          sessionContext,
+          { ...sessionContext, seller_prefill: activeSellerPrefill },
           {
             phoneShared: Boolean(extractedPhone),
             ownerId: sellerOwnerId,
@@ -189,11 +243,42 @@ export async function POST(req: NextRequest) {
           totalMatches = agenticResult.totalMatches || 0;
           sessionContext = agenticResult.sessionContext;
           sellerUpdated = Boolean(agenticResult.sellerUpdated);
-          detectedIntent = agenticResult.toolCallsCount > 0 ? 'agentic_search' : 'general';
+          if (agenticResult.openSellerModal) {
+            openSellerModal = true;
+            if (agenticResult.sellerPrefill) {
+              activeSellerPrefill = { ...(activeSellerPrefill || {}), ...agenticResult.sellerPrefill };
+            }
+          }
+          detectedIntent = openSellerModal
+            ? 'open_seller_form'
+            : agenticResult.toolCallsCount > 0
+              ? 'agentic_search'
+              : 'general';
         }
       } catch (aiErr) {
         console.warn('[Chat Route] DeepSeek agentic execution failed, falling back:', aiErr);
       }
+    }
+
+    // 3.5 If user wants to sell / enter unit details and form wasn't opened or saved yet, ensure we suggest opening the form!
+    if (userWantsToSell && !openSellerModal && !sellerUpdated) {
+      detectedIntent = 'seller_offer_form';
+      propertiesToReturn = [];
+      allPropertiesToReturn = [];
+      totalMatches = 0;
+      if (!finalContent || !didAssistantOfferSellerForm(finalContent)) {
+        finalContent = sellerBotCopy.suggestOfferText;
+      }
+      sessionContext = updateSessionContext(sessionContext, {
+        pendingSellerFormOffer: true,
+        sellerPrefill: activeSellerPrefill,
+        phoneShared: Boolean(extractedPhone),
+      });
+    } else if (didAssistantOfferSellerForm(finalContent) && !openSellerModal) {
+      sessionContext = updateSessionContext(sessionContext, {
+        pendingSellerFormOffer: true,
+        sellerPrefill: activeSellerPrefill,
+      });
     }
 
     // 4. DETERMINISTIC FALLBACK ENGINE (if DeepSeek is offline, failed, or freeTest requested)
@@ -241,12 +326,13 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Auto-record Lead if phone was extracted
-    if (extractedPhone) {
+    if (extractedPhone && !userWantsToSell && !openSellerModal) {
       try {
+        const leadName = body.userName || (userEmail ? userEmail.split('@')[0] : 'عميل مهتم من الشات');
         await supabaseAdmin.from('leads_inquiries').insert([{
-          user_name: body.userName || (body.userEmail ? body.userEmail.split('@')[0] : 'عميل مهتم من الشات'),
+          user_name: leadName,
           phone: extractedPhone,
-          email: body.userEmail || null,
+          email: userEmail,
           property_id: propertiesToReturn[0]?.id || null,
           unit_title: propertiesToReturn[0]?.title || null,
           developer_name: propertiesToReturn[0]?.compound?.developer?.name || null,
@@ -256,6 +342,16 @@ export async function POST(req: NextRequest) {
           user_id: userId || null,
           session_id: sessionId || null,
         }]);
+
+        await notifyNewLead({
+          name: leadName,
+          phone: extractedPhone,
+          email: userEmail,
+          unitTitle: propertiesToReturn[0]?.title || null,
+          developer: propertiesToReturn[0]?.compound?.developer?.name || null,
+          notes: userMessage,
+          source: 'الشات',
+        });
 
         if (!finalContent.includes(extractedPhone)) {
           const ack = locale === 'ar'
@@ -268,9 +364,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const defaultSuggestedActions = locale === 'ar' 
+    const baseSuggestedActions = locale === 'ar' 
       ? ['طلب استشارة ومعاينة مجانية 📅', 'حساب خطة الأقساط الشهرية 💰', 'عقارات في دبي والإمارات 🇦🇪']
       : ['Book Free Viewing 📅', 'Calculate Monthly Installments 💰', 'Dubai & UAE Properties 🇦🇪'];
+
+    const defaultSuggestedActions = sessionContext.pending_seller_form_offer
+      ? [sellerBotCopy.openFormChip, ...baseSuggestedActions.slice(0, 2)]
+      : baseSuggestedActions;
 
     // 6. Store message pair in Supabase chat_sessions & chat_messages tables for auditing & CRM
     if (sessionId) {
@@ -292,6 +392,7 @@ export async function POST(req: NextRequest) {
               metadata: {
                 properties_count: propertiesToReturn.length,
                 property_ids: propertiesToReturn.map(p => p.id),
+                open_seller_modal: openSellerModal,
                 ai_model: (isDeepSeekConfigured() && !freeTest) ? 'deepseek-agentic' : 'grounded-engine',
                 usage: { used: usage.used, limit: usage.limit, remaining: usage.remaining },
               }
@@ -303,7 +404,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    return withGuestCookie(NextResponse.json({
       success: true,
       role: 'assistant',
       content: finalContent,
@@ -312,26 +413,27 @@ export async function POST(req: NextRequest) {
       totalMatches,
       sessionContext,
       sellerUpdated,
+      openSellerModal,
+      sellerModalMode: 'create',
+      sellerPrefill: openSellerModal ? activeSellerPrefill : undefined,
       myListings: sellerUpdated ? await getSellerProperties(sellerOwnerId) : undefined,
       suggestedActions: defaultSuggestedActions,
       intent: detectedIntent,
       aiProvider: (isDeepSeekConfigured() && !freeTest) ? 'deepseek-agentic' : 'grounded-engine',
-      usage: {
-        used: usage.used,
-        limit: usage.limit,
-        remaining: usage.remaining,
-        resetDate: usage.resetDate,
-      },
-    });
+      usage: toPublicUsage(usage),
+    }));
 
   } catch (error: any) {
     console.error('Real Estate Chat Route Error:', error);
-    return NextResponse.json(
+    // Don't charge the user for a request that crashed
+    if (usage?.allowed) {
+      try { await usage.refund(); } catch {}
+    }
+    return withGuestCookie(NextResponse.json(
       { 
         error: 'حدث خطأ أثناء معالجة استفسارك العقاري. يرجى المحاولة مرة أخرى.',
-        details: error?.message 
       },
       { status: 500 }
-    );
+    ));
   }
 }

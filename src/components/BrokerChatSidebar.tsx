@@ -14,11 +14,11 @@ import {
   Star, 
   Sun, 
   Moon, 
-  Globe
 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import LanguageSelector from '@/components/LanguageSelector';
+import { Locale } from '@/lib/i18n';
 
 interface BrokerChatSidebarProps {
   sessions: ChatSession[];
@@ -36,6 +36,54 @@ interface BrokerChatSidebarProps {
   onOpenSellerModal?: (mode?: 'list' | 'create', editProp?: Property | null) => void;
 }
 
+const SIDEBAR_SELLER_COPY: Record<
+  Locale,
+  { myListedUnits: string; listForSale: string; editUnit: string; sqm: string }
+> = {
+  ar: {
+    myListedUnits: 'وحداتي المعروضة للبيع',
+    listForSale: 'اعرض وحدة أو أرض للبيع',
+    editUnit: 'تعديل الوحدة',
+    sqm: 'م²',
+  },
+  en: {
+    myListedUnits: 'My Listed Units',
+    listForSale: 'List Unit / Land for Sale',
+    editUnit: 'Edit Unit',
+    sqm: 'm²',
+  },
+  tr: {
+    myListedUnits: 'Satılık İlanlarım',
+    listForSale: 'İlan / Arsa Ekle',
+    editUnit: 'İlanı Düzenle',
+    sqm: 'm²',
+  },
+  ru: {
+    myListedUnits: 'Мои объекты на продажу',
+    listForSale: 'Разместить объект / участок',
+    editUnit: 'Редактировать',
+    sqm: 'м²',
+  },
+  de: {
+    myListedUnits: 'Meine Inserate',
+    listForSale: 'Immobilie / Grundstück anbieten',
+    editUnit: 'Bearbeiten',
+    sqm: 'm²',
+  },
+  fr: {
+    myListedUnits: 'Mes biens en vente',
+    listForSale: 'Mettre un bien en vente',
+    editUnit: 'Modifier',
+    sqm: 'm²',
+  },
+  es: {
+    myListedUnits: 'Mis propiedades en venta',
+    listForSale: 'Publicar propiedad / terreno',
+    editUnit: 'Editar',
+    sqm: 'm²',
+  },
+};
+
 export default function BrokerChatSidebar({
   sessions,
   activeSessionId,
@@ -52,7 +100,8 @@ export default function BrokerChatSidebar({
   onOpenSellerModal,
 }: BrokerChatSidebarProps) {
   const { theme, toggleTheme } = useTheme();
-  const { locale, t, isRtl, currentLanguage } = useLanguage();
+  const { locale, t, isRtl } = useLanguage();
+  const sellerCopy = SIDEBAR_SELLER_COPY[locale] || SIDEBAR_SELLER_COPY.en;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -153,7 +202,7 @@ export default function BrokerChatSidebar({
                 >
                   <span className="flex items-center gap-1.5">
                     <Building2 className="h-3.5 w-3.5 shrink-0" />
-                    <span>{isRtl ? 'وحداتي المعروضة للبيع' : 'My Listed Units'}</span>
+                    <span>{sellerCopy.myListedUnits}</span>
                   </span>
                   <span className="rounded-full bg-emerald-500 px-2 py-0.5 font-mono text-[10px] font-black text-black">
                     {myListings.length}
@@ -174,12 +223,12 @@ export default function BrokerChatSidebar({
                           {item.unit_type}: {item.title}
                         </div>
                         <div className="text-[10px] font-black text-amber-600 dark:text-amber-400">
-                          {(item.total_price || 0).toLocaleString()} {item.currency} • {item.area_sqm}م²
+                          {(item.total_price || 0).toLocaleString()} {item.currency} • {item.area_sqm}{sellerCopy.sqm}
                         </div>
                       </div>
                       <span
                         className="shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400"
-                        title={isRtl ? 'تعديل الوحدة' : 'Edit'}
+                        title={sellerCopy.editUnit}
                       >
                         <Edit2 className="h-3 w-3" />
                       </span>
@@ -194,7 +243,7 @@ export default function BrokerChatSidebar({
                 className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-500 px-2.5 py-1.5 text-[11px] font-black text-black transition hover:bg-emerald-400"
               >
                 <Plus className="h-3.5 w-3.5 stroke-[3]" />
-                <span>{isRtl ? 'اعرض وحدة أو أرض للبيع' : 'List Unit / Land for Sale'}</span>
+                <span>{sellerCopy.listForSale}</span>
               </button>
             </div>
           )}

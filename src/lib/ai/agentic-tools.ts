@@ -1,6 +1,6 @@
-import { Property } from '@/lib/types';
+import { Property, SellerFormPrefill } from '@/lib/types';
 import { getAllCachedProperties } from '@/lib/real-estate-engine';
-import { createSellerProperty, updateSellerProperty, SellerPropertyInput } from '@/lib/seller-listings';
+import { createSellerProperty, updateSellerProperty } from '@/lib/seller-listings';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://csuifvyghfsibkrnxrby.supabase.co';
@@ -197,8 +197,64 @@ export const AGENTIC_TOOLS_SCHEMA = [
   {
     type: 'function',
     function: {
+      name: 'open_seller_listing_form',
+      description: 'فتح نافذة/ديالوج فورم إضافة بيانات وحدة أو قطعة أرض للبيع مباشرة على شاشة المستخدم. استدعِ هذه الأداة فوراً عندما يوافق المستخدم على اقتراحك بفتح الفورم (مثل: "ماشي"، "ماشى"، "اه"، "أيوه"، "تمام"، "موافق"، "ياريت"، "افتحه"، "يلا"، "yes", "ok", "sure") أو عندما يطلب فتح الفورم/الديالوج مباشرة لإدخال بيانات وحدته. يمكنك أيضاً تمرير أي بيانات أولية ذكرها المستخدم لتعبئتها تلقائياً في الفورم.',
+      parameters: {
+        type: 'object',
+        properties: {
+          unit_type: {
+            type: 'string',
+            description: 'نوع العقار أو الأرض إن ذكره المستخدم (شقة، أرض، فيلا مستقلة، تاون هاوس، دوبلكس، بنتهاوس، استوديو، محل / تجاري)'
+          },
+          title: {
+            type: 'string',
+            description: 'عنوان مقترح للإعلان إن توفرت تفاصيل'
+          },
+          city: {
+            type: 'string',
+            description: 'المدينة إن ذكرها المستخدم'
+          },
+          location_text: {
+            type: 'string',
+            description: 'المنطقة أو الحي أو الكمبوند إن ذكره المستخدم'
+          },
+          area_sqm: {
+            type: 'number',
+            description: 'المساحة بالمتر المربع إن ذكرها'
+          },
+          total_price: {
+            type: 'number',
+            description: 'السعر الإجمالي المطلوب إن ذكره'
+          },
+          bedrooms: {
+            type: 'number',
+            description: 'عدد غرف النوم إن ذكرها'
+          },
+          bathrooms: {
+            type: 'number',
+            description: 'عدد الحمامات إن ذكرها'
+          },
+          finishing_type: {
+            type: 'string',
+            description: 'حالة التشطيب إن ذكرها'
+          },
+          sale_circumstances: {
+            type: 'string',
+            description: 'ظروف البيع أو أي ملاحظات ذكرها المستخدم'
+          },
+          seller_phone: {
+            type: 'string',
+            description: 'رقم هاتف المالك إن ذكره'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'list_property_for_sale',
-      description: 'إضافة وعرض وحدة عقارية أو قطعة أرض يريد العميل (المالك/البائع) بيعها في قاعدة بيانات المنصة لتظهر فوراً في بروفايله الجانبي وللباحثين عن الشراء. استدعِ هذه الأداة بمجرد أن يعطيك البائع بيانات الوحدة أو الأرض التي يريد بيعها (نوع العقار/الأرض، المنطقة، المساحة، السعر، وظروف البيع).',
+      description: 'إضافة وحفظ وحدة عقارية أو قطعة أرض يريد العميل (المالك/البائع) بيعها مباشرة في قاعدة بيانات المنصة عندما يفضل كتابة كل بياناتها في الشات بدلاً من الفورم (نوع العقار/الأرض، المنطقة، المساحة، السعر، وظروف البيع).',
       parameters: {
         type: 'object',
         required: ['unit_type', 'location_text', 'area_sqm', 'total_price'],
@@ -312,7 +368,7 @@ const LOCATION_SYNONYMS: Record<string, string[]> = {
   'التجمع': ['التجمع', 'new cairo', 'القاهرة الجديدة', 'tagamoa', 'icity', 'mivida', 'zed east', 'fifth square', 'galleria', 'نرجس', 'أندلس', 'لوتس', 'بنفسج', 'بيت الوطن'],
   'الشيخ زايد': ['زايد', 'zayed', 'sheikh zayed', 'أكتوبر', 'october', '6 أكتوبر', 'badya', 'بادية', 'westown'],
   'العاصمة الإدارية': ['العاصمة', 'new capital', 'العاصمه', 'bosco', 'البوسكو'],
-  'مدينتي': ['مدينتي', 'madinaty', 'rehab', 'الرحاب'],
+  'مدينتي': ['مدينتي', 'madينتي', 'rehab', 'الرحاب'],
   'دبي': ['دبي', 'dubai', 'dxb', 'الإمارات', 'uae', 'business bay', 'palm jumeirah', 'creek', 'meydan', 'marina'],
   'إسبانيا': ['إسبانيا', 'اسبانيا', 'spain', 'malaga', 'مالقة', 'marbella', 'ماربيا', 'estepona', 'costa del sol'],
   'تركيا': ['تركيا', 'turkey', 'türkiye', 'إسطنبول', 'اسطنبول', 'istanbul', 'أنطاليا', 'انطاليا', 'antalya', 'alanya']
@@ -376,12 +432,10 @@ export async function executePropertySearch(args: SearchPropertiesArgs): Promise
         targetCurrency = 'EGP';
       }
     } else {
-      // Default to EGP unless target price suggests foreign or user requested other
       targetCurrency = 'EGP';
     }
   }
 
-  // Filter by currency if provided or determined
   if (targetCurrency) {
     const currencyMatches = results.filter(p => p.currency === targetCurrency);
     if (currencyMatches.length > 0) {
@@ -418,7 +472,7 @@ export async function executePropertySearch(args: SearchPropertiesArgs): Promise
     }
   }
 
-  // 4.1 Installment years matching (e.g. "بتقسيط 8 سنين")
+  // 4.1 Installment years matching
   if (args.installment_years && args.installment_years > 0) {
     const exactYears = results.filter(p => p.installment_years === args.installment_years);
     if (exactYears.length > 0) {
@@ -429,7 +483,7 @@ export async function executePropertySearch(args: SearchPropertiesArgs): Promise
     }
   }
 
-  // 4.2 Down payment percentage matching (e.g. "بمقدم 10%")
+  // 4.2 Down payment percentage matching
   if (args.down_payment_pct && args.down_payment_pct > 0) {
     const dpFiltered = results.filter(p => (p.down_payment_pct ?? 10) <= args.down_payment_pct!);
     if (dpFiltered.length > 0) {
@@ -437,7 +491,7 @@ export async function executePropertySearch(args: SearchPropertiesArgs): Promise
     }
   }
 
-  // 4.3 Delivery type matching (e.g. "استلام فوري")
+  // 4.3 Delivery type matching
   if (args.delivery_type === 'فوري' || args.delivery_type === 'جاهز') {
     const readyFiltered = results.filter(p => {
       const txt = `${p.delivery_date || ''} ${p.status || ''} ${p.title || ''}`.toLowerCase();
@@ -456,8 +510,7 @@ export async function executePropertySearch(args: SearchPropertiesArgs): Promise
     results = results.filter(p => p.total_price <= args.max_price!);
   }
 
-  // 6. Target Price Filtering & Proximity Sorting:
-  // Restrict results to units actually near the requested budget (not the whole DB!)
+  // 6. Target Price Filtering & Proximity Sorting
   if (args.target_price && args.target_price > 0) {
     const target = args.target_price;
     results.sort((a, b) => Math.abs(a.total_price - target) - Math.abs(b.total_price - target));
@@ -470,7 +523,7 @@ export async function executePropertySearch(args: SearchPropertiesArgs): Promise
     }
   }
 
-  // 6.1 Explicit sort requested by the user (cheapest / largest ...)
+  // 6.1 Explicit sort requested by the user
   if (args.sort === 'price_asc') results.sort((a, b) => a.total_price - b.total_price);
   else if (args.sort === 'price_desc') results.sort((a, b) => b.total_price - a.total_price);
   else if (args.sort === 'area_desc') results.sort((a, b) => (b.area_sqm || 0) - (a.area_sqm || 0));
@@ -489,7 +542,6 @@ export async function executePropertySearch(args: SearchPropertiesArgs): Promise
   }
 
   // 8. Deduplicate identical listings and cap to the relevant search result set (max 12)
-  // so "إظهار الكل" shows only the matching results of this search, never the entire database.
   const seen = new Set<string>();
   const deduped: Property[] = [];
   for (const p of results) {
@@ -587,7 +639,7 @@ export async function executeLeadRecording(args: LeadCaptureArgs) {
 }
 
 /**
- * Fetch full details for one unit from the cached inventory (used for follow-ups like "tell me about the second one").
+ * Fetch full details for one unit from the cached inventory
  */
 export async function executePropertyDetails(args: { property_id: string }): Promise<{ found: boolean; property?: Property; details?: Record<string, any> }> {
   const all = await getAllCachedProperties();
@@ -626,7 +678,6 @@ export async function executePropertyDetails(args: { property_id: string }): Pro
     }
   };
 }
-
 
 export async function executeListPropertyForSale(ownerId: string, args: any, uploadedImages: string[] = []) {
   const created = await createSellerProperty({
@@ -693,4 +744,338 @@ export async function executeUpdateSellerProperty(ownerId: string, args: any, up
       message: 'تم تحديث بيانات الوحدة بنجاح في قاعدة البيانات وفي الرف الجانبي.'
     }
   };
+}
+
+// ============================================================================
+// Seller Listing Form Suggestion & Auto-Open Detection Helpers
+// ============================================================================
+
+export function extractSellerPrefillFromMessage(msg: string): SellerFormPrefill | null {
+  const q = msg.trim();
+  const lower = q.toLowerCase();
+  const prefill: SellerFormPrefill = {};
+
+  if (lower.includes('أرض') || lower.includes('ارض') || lower.includes('قطعة') || lower.includes('land') || lower.includes('arsa') || lower.includes('участ') || lower.includes('grund') || lower.includes('terrain') || lower.includes('terreno')) {
+    prefill.unit_type = 'أرض';
+  } else if (lower.includes('فيلا') || lower.includes('villa') || lower.includes('вилл')) {
+    prefill.unit_type = 'فيلا مستقلة';
+  } else if (lower.includes('تاون') || lower.includes('townhouse')) {
+    prefill.unit_type = 'تاون هاوس';
+  } else if (lower.includes('دوبلكس') || lower.includes('duplex')) {
+    prefill.unit_type = 'دوبلكس';
+  } else if (lower.includes('بنتهاوس') || lower.includes('penthouse')) {
+    prefill.unit_type = 'بنتهاوس';
+  } else if (lower.includes('استوديو') || lower.includes('studio')) {
+    prefill.unit_type = 'استوديو';
+  } else if (lower.includes('محل') || lower.includes('تجاري') || lower.includes('shop') || lower.includes('commercial')) {
+    prefill.unit_type = 'محل / تجاري';
+  } else if (lower.includes('شقة') || lower.includes('شقه') || lower.includes('apartment') || lower.includes('flat') || lower.includes('daire') || lower.includes('квартир')) {
+    prefill.unit_type = 'شقة';
+  }
+
+  // Extract area (e.g. 165 متر / 165م / 165 sqm / 165 m2)
+  const areaMatch = q.match(/(\d{2,4})\s*(?:متر|م²|م2|م\b|sqm|m2|m²)/i);
+  if (areaMatch) {
+    prefill.area_sqm = parseInt(areaMatch[1], 10);
+  }
+
+  // Extract bedrooms (e.g. 3 غرف / 3 نوم / 3 bed)
+  const bedMatch = q.match(/(\d)\s*(?:غرف|غرفة|نوم|bed|rooms|oda|комн)/i);
+  if (bedMatch) {
+    prefill.bedrooms = parseInt(bedMatch[1], 10);
+  }
+
+  // Extract price (e.g. 4.5 مليون / 4500000)
+  const millionMatch = q.match(/(\d+(?:\.\d+)?)\s*(?:مليون|ملايين|million|m\b)/i);
+  const plainPriceMatch = q.match(/\b([1-9]\d{5,8})\b/);
+  if (millionMatch) {
+    prefill.total_price = Math.round(parseFloat(millionMatch[1]) * 1_000_000);
+  } else if (plainPriceMatch) {
+    prefill.total_price = parseInt(plainPriceMatch[1], 10);
+  }
+
+  // Extract city / location if mentioned
+  if (lower.includes('التجمع') || lower.includes('القاهرة الجديدة') || lower.includes('new cairo') || lower.includes('بيت الوطن') || lower.includes('النرجس') || lower.includes('اللوتس')) {
+    prefill.city = 'القاهرة الجديدة';
+    if (lower.includes('بيت الوطن')) prefill.location_text = 'التجمع الخامس - بيت الوطن';
+    else if (lower.includes('النرجس')) prefill.location_text = 'التجمع الخامس - النرجس';
+    else if (lower.includes('اللوتس')) prefill.location_text = 'التجمع الخامس - اللوتس';
+    else if (lower.includes('التجمع')) prefill.location_text = 'التجمع الخامس';
+  } else if (lower.includes('زايد') || lower.includes('zayed')) {
+    prefill.city = 'الشيخ زايد';
+    prefill.location_text = 'الشيخ زايد';
+  } else if (lower.includes('أكتوبر') || lower.includes('اكتوبر') || lower.includes('october')) {
+    prefill.city = '6 أكتوبر';
+    prefill.location_text = '6 أكتوبر';
+  } else if (lower.includes('العاصمة') || lower.includes('new capital')) {
+    prefill.city = 'العاصمة الإدارية';
+    prefill.location_text = 'العاصمة الإدارية';
+  } else if (lower.includes('مدينتي') || lower.includes('madinaty')) {
+    prefill.city = 'القاهرة الجديدة';
+    prefill.location_text = 'مدينتي';
+  } else if (lower.includes('الشروق')) {
+    prefill.city = 'الشروق';
+    prefill.location_text = 'مدينة الشروق';
+  } else if (lower.includes('العبور')) {
+    prefill.city = 'العبور';
+    prefill.location_text = 'مدينة العبور';
+  }
+
+  return Object.keys(prefill).length > 0 ? prefill : null;
+}
+
+/** True when the user explicitly asks to open the seller property form/modal. */
+export function isDirectOpenSellerFormRequest(msg: string): boolean {
+  const q = msg.trim().toLowerCase();
+  const patterns = [
+    /افتح.*(الفورم|فورم|الديالوج|ديالوج|النافذة|نافذة|اضافة|إضافة)/i,
+    /(الفورم|فورم|الديالوج|ديالوج).*(افتح|بيانات|إضافة|اضافة|بيع|وحدت|شقت)/i,
+    /نعم.*افتح.*فورم/i,
+    /ماشي.*افتح.*فورم/i,
+    /open.*(listing|property|seller|sale|unit).*(form|modal|dialog)/i,
+    /open.*(form|dialog|modal)/i,
+    /formu\s*aç/i,
+    /откр(ой|ыть)\s*форм/i,
+    /formular\s*öffnen/i,
+    /ouvrir\s*le\s*formulaire/i,
+    /abrir\s*el\s*formulario/i,
+  ];
+  return patterns.some((rx) => rx.test(q));
+}
+
+/** True when the user expresses intent to sell a unit/land or enter their unit's details. */
+export function isSellerListingIntent(msg: string): boolean {
+  const q = msg.trim().toLowerCase();
+  const patterns = [
+    /(عايز|عاوز|محتاج|حابب|أريد|اريد|نفسي|ممكن|ازاي|إزاي|كيف)\s*(أبيع|ابيع|نبيع|بيع|أعرض|اعرض|نعرض|عرض|أضيف|اضيف|إضافة|اضافة|أدخل|ادخل|إدخال|ادخال|أسجل|اسجل)/i,
+    /(أدخل|ادخل|إدخال|ادخال|تسجيل|إضافة|اضافة)\s*(بيانات|بينات|تفاصيل)\s*(وحدت|شقت|فيلت|أرض|ارض|عقار|لوحدت)/i,
+    /(بيانات|بينات)\s*(لوحدت|وحدت|شقت|عقار|أرض)/i,
+    /(عندي|معايا|املك|أملك|لدى|لدي)\s*(شقة|شقه|فيلا|وحدة|وحده|أرض|ارض|قطعة|عقار|دوبلكس|تاون|محل|استوديو).*?(للبيع|أبيع|ابيع|أعرض|اعرض|عايز|محتاج)/i,
+    /(شقتي|وحدتي|فيلتي|أرضي|ارضي|عقاري)\s*(للبيع|عايز أبيع|عايز ابيع|للبدل|أعرضها|اعرضها)/i,
+    /\b(sell|list)\s+(my|a|an)\s+(property|apartment|unit|villa|land|house|flat|duplex|townhouse|studio)/i,
+    /\b(enter|add|submit|fill)\s+(my\s+)?(property|unit|apartment|listing)\s+(details|data|info|form)/i,
+    /\bi\s+have\s+a\s+(property|apartment|unit|villa|land)\s+(for\s+sale|to\s+sell)/i,
+    /\b(dairemi|evimi|arsamı|mülkümü)\s+satmak\s+istiyorum/i,
+    /\b(satılık\s+ilan\s+ekle|ilan\s+vermek\s+istiyorum)/i,
+    /\b(хочу\s+продать|продать\s+(мою\s+)?(квартиру|виллу|участок|недвижимость)|добавить\s+объект)/i,
+    /\b(immobilie|wohnung|haus|grundstück)\s+verkaufen/i,
+    /\b(vendre\s+(mon|ma)\s+(appartement|villa|terrain|bien)|mettre\s+en\s+vente)/i,
+    /\b(vender\s+mi\s+(propiedad|apartamento|piso|villa|terreno)|publicar\s+propiedad)/i,
+  ];
+  return patterns.some((rx) => rx.test(q));
+}
+
+/** True when the assistant's previous message offered to open the seller form. */
+export function didAssistantOfferSellerForm(lastAssistantContent?: string): boolean {
+  if (!lastAssistantContent) return false;
+  const c = lastAssistantContent.toLowerCase();
+  return (
+    (c.includes('فورم') && (c.includes('أفتح') || c.includes('افتح') || c.includes('تفتح') || c.includes('بيانات') || c.includes('وحدتك'))) ||
+    (c.includes('ديالوج') && (c.includes('أفتح') || c.includes('افتح'))) ||
+    (c.includes('open') && c.includes('form') && (c.includes('property') || c.includes('listing') || c.includes('unit'))) ||
+    c.includes('formu açmamı') ||
+    c.includes('открыть форму') ||
+    c.includes('formular öffnen') ||
+    c.includes('ouvrir le formulaire') ||
+    c.includes('abrir el formulario')
+  );
+}
+
+/** True when the user replies with "ماشي" / "اه" / "تمام" / "موافق" / "yes" / "ok" after the bot offered to open the form. */
+export function isUserAgreeingToOpenForm(
+  userMsg: string,
+  pendingSellerFormOffer?: boolean,
+  lastAssistantContent?: string
+): boolean {
+  const hasActiveOffer = Boolean(pendingSellerFormOffer) || didAssistantOfferSellerForm(lastAssistantContent);
+  if (!hasActiveOffer) return false;
+
+  const cleaned = userMsg
+    .trim()
+    .toLowerCase()
+    .replace(/[!.,،؟?🏠✨👍👌🙏]+/g, '')
+    .trim();
+
+  if (!cleaned || cleaned.length > 60) return false;
+
+  const exactAgreements = new Set([
+    'ماشي',
+    'ماشى',
+    'اه',
+    'آه',
+    'أه',
+    'اها',
+    'ايوه',
+    'أيوة',
+    'ايوة',
+    'ايوا',
+    'أيوا',
+    'نعم',
+    'تمام',
+    'موافق',
+    'موافقه',
+    'موافقة',
+    'ياريت',
+    'يا ريت',
+    'اكيد',
+    'أكيد',
+    'طبعا',
+    'طبعاً',
+    'يلا',
+    'يله',
+    'يالا',
+    'افتح',
+    'افتحه',
+    'افتحها',
+    'افتحلي',
+    'افتحلى',
+    'افتحهولي',
+    'افتحهولى',
+    'اوك',
+    'أوك',
+    'اوكي',
+    'أوكي',
+    'اوكى',
+    'اتفضل',
+    'تفضل',
+    'شغال',
+    'حلو',
+    'طيب',
+    'حاضر',
+    'دوس',
+    'توكل على الله',
+    'ماشي افتحه',
+    'ماشى افتحه',
+    'اه افتحه',
+    'تمام افتحه',
+    'ايوه افتحه',
+    'ياريت تفتحه',
+    'اه ياريت',
+    'ماشي ياريت',
+    'yes',
+    'yep',
+    'yeah',
+    'yup',
+    'ok',
+    'okay',
+    'k',
+    'sure',
+    'please',
+    'yes please',
+    'ok open it',
+    'yes open it',
+    'open it',
+    'open',
+    'go ahead',
+    'do it',
+    'lets go',
+    "let's go",
+    'evet',
+    'tamam',
+    'olur',
+    'aç',
+    'lütfen',
+    'да',
+    'хорошо',
+    'давай',
+    'открой',
+    'ок',
+    'конечно',
+    'ja',
+    'gerne',
+    'bitte',
+    'öffnen',
+    'oui',
+    'daccord',
+    "d'accord",
+    'vas-y',
+    'volontiers',
+    'sí',
+    'si',
+    'vale',
+    'claro',
+    'por favor',
+    'ábrelo',
+    'abrelo',
+  ]);
+
+  if (exactAgreements.has(cleaned)) return true;
+
+  const partialAgreementRx = /^(ماشي|ماشى|اه|آه|ايوه|أيوة|ايوة|نعم|تمام|موافق|ياريت|يا ريت|افتح|يلا|اوك|اوكي|yes|ok|okay|sure|please|evet|tamam|да|хорошо|ja|oui|sí|si)\b/i;
+  return partialAgreementRx.test(cleaned);
+}
+
+export interface SellerFormBotCopy {
+  suggestOfferText: string;
+  openedConfirmText: string;
+  openFormChip: string;
+  openFormButtonLabel: string;
+}
+
+export function getSellerFormBotCopy(locale: string = 'ar'): SellerFormBotCopy {
+  switch (locale) {
+    case 'en':
+      return {
+        suggestOfferText:
+          `I would be delighted to help you list your property or land for sale and match it immediately with serious buyers! 🏠✨\n\nWould you like me to open the **Property Listing Form** for you right now so you can easily enter your unit's details and upload photos? (Just reply **"Yes" / "OK"** and I will open it for you right away!)`,
+        openedConfirmText:
+          `✅ **I have just opened the Property Listing Form for you on screen!** 🏠✨\n\nPlease fill in your unit or land details, sale circumstances, and contact phone number (and optionally attach photos), then click **Publish Listing**. Once saved, I will immediately start matching and recommending your property to serious buyers!`,
+        openFormChip: 'Yes, open the property listing form 🏠',
+        openFormButtonLabel: '🏠 Open Property Listing Form',
+      };
+    case 'tr':
+      return {
+        suggestOfferText:
+          `Gayrimenkulünüzü veya arsanızı satışa sunmanıza ve ciddi alıcılarla buluşturmanıza memnuniyetle yardımcı olurum! 🏠✨\n\nBirim bilgilerinizi ve fotoğraflarınızı kolayca girebilmeniz için **Satılık İlan Formunu** şimdi açmamı ister misiniz? (**"Evet" / "Tamam"** yazmanız yeterli, hemen açıyorum!)`,
+        openedConfirmText:
+          `✅ **Satılık İlan Formunu ekranınızda açtım!** 🏠✨\n\nLütfen mülkünüzün detaylarını, satış koşullarını ve iletişim numaranızı girip **İlanı Yayınla** butonuna tıklayın. Kaydedildiği anda ilanınızı uygun alıcılara önermeye başlayacağım!`,
+        openFormChip: 'Evet, satılık ilan formunu aç 🏠',
+        openFormButtonLabel: '🏠 Satılık İlan Formunu Aç',
+      };
+    case 'ru':
+      return {
+        suggestOfferText:
+          `С радостью помогу вам разместить вашу недвижимость или участок на продажу и предложить его заинтересованным покупателям! 🏠✨\n\nХотите, я прямо сейчас открою для вас **форму добавления объекта**, чтобы вы могли удобно ввести все данные и загрузить фото? (Просто напишите **«Да» / «Хорошо»**, и я сразу открою её!)`,
+        openedConfirmText:
+          `✅ **Я открыл форму размещения объекта на вашем экране!** 🏠✨\n\nПожалуйста, заполните параметры объекта, условия продажи и контактный телефон, затем нажмите **Опубликовать объявление**. Сразу после сохранения я начну рекомендовать ваш объект покупателям!`,
+        openFormChip: 'Да, открой форму добавления объекта 🏠',
+        openFormButtonLabel: '🏠 Открыть форму добавления объекта',
+      };
+    case 'de':
+      return {
+        suggestOfferText:
+          `Ich helfe Ihnen sehr gerne dabei, Ihre Immobilie oder Ihr Grundstück zum Verkauf anzubieten und passenden Käufern vorzuschlagen! 🏠✨\n\nSoll ich jetzt das **Formular zur Immobilieneintragung** für Sie öffnen, damit Sie alle Eckdaten und Fotos bequem eingeben können? (Antworten Sie einfach mit **„Ja“ / „OK“**, dann öffne ich es sofort!)`,
+        openedConfirmText:
+          `✅ **Ich habe das Formular zur Immobilieneintragung auf Ihrem Bildschirm geöffnet!** 🏠✨\n\nBitte tragen Sie die Details Ihrer Immobilie sowie Ihre Kontaktdaten ein und klicken Sie auf **Inserat veröffentlichen**. Sobald es gespeichert ist, schlage ich Ihr Angebot passenden Käufern vor!`,
+        openFormChip: 'Ja, Formular jetzt öffnen 🏠',
+        openFormButtonLabel: '🏠 Immobilien-Formular öffnen',
+      };
+    case 'fr':
+      return {
+        suggestOfferText:
+          `Je serais ravi de vous aider à mettre votre bien ou terrain en vente et à le proposer aux acheteurs sérieux ! 🏠✨\n\nVoulez-vous que j'ouvre le **formulaire de mise en vente** maintenant pour saisir facilement les détails et les photos de votre bien ? (Répondez simplement **« Oui » / « OK »** et je l'ouvre tout de suite !)`,
+        openedConfirmText:
+          `✅ **Je viens d'ouvrir le formulaire de mise en vente sur votre écran !** 🏠✨\n\nVeuillez renseigner les caractéristiques de votre bien, les conditions de vente et votre numéro de téléphone, puis cliquez sur **Publier l’annonce**. Dès l'enregistrement, je le recommanderai aux acheteurs !`,
+        openFormChip: 'Oui, ouvrir le formulaire de vente 🏠',
+        openFormButtonLabel: '🏠 Ouvrir le formulaire de mise en vente',
+      };
+    case 'es':
+      return {
+        suggestOfferText:
+          `¡Estaré encantado de ayudarte a publicar tu propiedad o terreno en venta y conectarlo con compradores serios! 🏠✨\n\n¿Quieres que abra ahora mismo el **formulario de publicación de propiedad** para que ingreses fácilmente los datos y fotos de tu unidad? (¡Solo responde **«Sí» / «Vale»** y lo abriré de inmediato!)`,
+        openedConfirmText:
+          `✅ **¡Acabo de abrir el formulario de publicación de propiedad en tu pantalla!** 🏠✨\n\nCompleta los datos de tu inmueble, las condiciones de venta y tu teléfono de contacto, y pulsa **Publicar anuncio**. ¡En cuanto lo guardes, empezaré a recomendarlo a compradores!`,
+        openFormChip: 'Sí, abrir el formulario de propiedad 🏠',
+        openFormButtonLabel: '🏠 Abrir formulario de propiedad',
+      };
+    default:
+      return {
+        suggestOfferText:
+          `يسعدني جداً مساعدتك في عرض وحدتك أو قطعة الأرض للبيع وترشيحها فوراً للمشترين الجادين! 🏠✨\n\nتحب أفتحلك **فورم إضافة بيانات الوحدة** دلوقتي عشان تدخل تفاصيلها وترفع صورها بسهولة؟ (قولي **"ماشي"** أو **"افتح الفورم"** وهفتحهولك حالاً على الشاشة!)`,
+        openedConfirmText:
+          `✅ **فتحتلك فورم إضافة بيانات الوحدة للبيع على الشاشة حالاً!** 🏠✨\n\nتقدر دلوقتي تدخل تفاصيل وحدتك أو أرضك، السعر المطلوب، ظروف البيع، وصور الوحدة ثم تضغط على **نشر الوحدة**، وهبدأ فوراً في ترشيحها للمشترين الجادين في الشات ومحرك البحث!`,
+        openFormChip: 'ماشي، افتح فورم إضافة الوحدة 🏠',
+        openFormButtonLabel: '🏠 فتح فورم إضافة الوحدة للبيع',
+      };
+  }
 }

@@ -24,9 +24,11 @@ import {
   ExternalLink,
   LogOut,
   ImagePlus,
-  X
+  X,
+  Plus,
+  Zap
 } from 'lucide-react';
-import { Property, ChatSession, ChatMessage, SessionContext } from '@/lib/types';
+import { Property, ChatSession, ChatMessage, SessionContext, SellerFormPrefill, UsageInfo } from '@/lib/types';
 import { emptySessionContext, toShownUnit } from '@/lib/ai/session-context';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -38,17 +40,29 @@ import FavoritesModal from '@/components/FavoritesModal';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import LanguageSelector from '@/components/LanguageSelector';
 import UsagePill from '@/components/UsagePill';
-import PricingModal from '@/components/PricingModal';
 import AuthModal from '@/components/AuthModal';
 import PropertyDetailsModal from '@/components/PropertyDetailsModal';
 import PropertiesTableModal from '@/components/PropertiesTableModal';
 import InlinePropertiesTable from '@/components/InlinePropertiesTable';
 import SellerPropertiesModal from '@/components/SellerPropertiesModal';
+import { Locale } from '@/lib/i18n';
+
+const OPEN_FORM_BTN_LABELS: Record<Locale, string> = {
+  ar: '🏠 فتح فورم إضافة الوحدة للبيع',
+  en: '🏠 Open Property Listing Form',
+  tr: '🏠 Satılık İlan Formunu Aç',
+  ru: '🏠 Открыть форму добавления объекта',
+  de: '🏠 Immobilien-Formular öffnen',
+  fr: '🏠 Ouvrir le formulaire de mise en vente',
+  es: '🏠 Abrir formulario de propiedad',
+};
 
 export default function SkanybotChatPage() {
   const { locale, t, dir, isRtl } = useLanguage();
   const { theme, toggleTheme } = useTheme();
-  const { user, signOut } = useAuth();
+  const { user, session, signOut } = useAuth();
+  const authHeaders = (): Record<string, string> =>
+    session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -65,22 +79,33 @@ export default function SkanybotChatPage() {
   // Auth modal state
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
-  // Guest message counter — after 3 messages, prompt login
+  // Daily Free Quota — enforced on the server to protect AI costs and keep service fast
+  // Guest: 3 free trials · Registered: 10 free inquiries / day (resets daily at midnight)
   const GUEST_MSG_LIMIT = 3;
-  const [guestMsgCount, setGuestMsgCount] = useState<number>(() => {
-    if (typeof window !== 'undefined') {
-      return parseInt(localStorage.getItem('skanybot_guest_msgs') || '0', 10);
-    }
-    return 0;
-  });
-
-  // Daily Quota State: 10 queries per day for registered users
   const DAILY_LIMIT = 10;
-  const [dailyUsage, setDailyUsage] = useState<{ used: number; limit: number; remaining: number }>({
+  const [usage, setUsage] = useState<UsageInfo>({
+    plan: 'guest',
     used: 0,
-    limit: DAILY_LIMIT,
-    remaining: DAILY_LIMIT,
+    limit: GUEST_MSG_LIMIT,
+    remaining: GUEST_MSG_LIMIT,
+    window: 'day',
+    resetDate: '',
+    proUntil: null,
   });
+  const guestMsgCount = usage.plan === 'guest' ? Math.max(0, usage.limit - usage.remaining) : 0;
+  const dailyUsage = usage;
+
+  const refreshUsage = async () => {
+    try {
+      const res = await fetch('/api/usage', { headers: authHeaders(), cache: 'no-store' });
+      if (res.ok) {
+        const d = await res.json();
+        if (d.usage) setUsage(d.usage);
+      }
+    } catch {
+      // non-blocking
+    }
+  };
 
   // Favorites state
   const [favorites, setFavorites] = useState<Property[]>([]);
@@ -104,6 +129,7 @@ export default function SkanybotChatPage() {
   const [sellerModalOpen, setSellerModalOpen] = useState(false);
   const [sellerModalMode, setSellerModalMode] = useState<'list' | 'create'>('list');
   const [sellerEditingProp, setSellerEditingProp] = useState<Property | null>(null);
+  const [sellerPrefill, setSellerPrefill] = useState<SellerFormPrefill | null>(null);
   const [chatAttachedImages, setChatAttachedImages] = useState<string[]>([]);
 
   const sellerOwnerId = user?.id || localSellerId;
@@ -353,16 +379,6 @@ export default function SkanybotChatPage() {
         setFavorites(JSON.parse(savedFavs));
       }
 
-      // Restore daily usage count
-      const todayKey = new Date().toISOString().split('T')[0];
-      const savedDate = localStorage.getItem('skanybot_usage_date');
-      const savedUsed = (savedDate === todayKey) ? parseInt(localStorage.getItem('skanybot_daily_used') || '0', 10) : 0;
-      setDailyUsage({
-        used: isNaN(savedUsed) ? 0 : savedUsed,
-        limit: DAILY_LIMIT,
-        remaining: Math.max(0, DAILY_LIMIT - (isNaN(savedUsed) ? 0 : savedUsed)),
-      });
-
       const savedSessions = localStorage.getItem('skanybot_sessions') || localStorage.getItem('aqar_ai_sessions');
       if (savedSessions) {
         const parsed: ChatSession[] = JSON.parse(savedSessions);
@@ -387,13 +403,12 @@ export default function SkanybotChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  // Reset guest counter when user logs in
+  // Sync quota from the server whenever the signed-in user changes
   useEffect(() => {
-    if (user) {
-      setGuestMsgCount(0);
-      try { localStorage.removeItem('skanybot_guest_msgs'); } catch (e) {}
-    }
-  }, [user]);
+    try { localStorage.removeItem('skanybot_guest_msgs'); } catch (e) {}
+    refreshUsage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, session?.access_token]);
 
   const loadSessionMessages = (sessionId: string) => {
     try {
@@ -503,30 +518,23 @@ export default function SkanybotChatPage() {
     const query = rawQuery || (imagesToSend.length > 0 ? (isRtl ? 'دي صور الوحدة اللي عايز أبيعها' : 'Here are the photos of my property for sale') : '');
     if ((!query && imagesToSend.length === 0) || loading) return;
 
-    // ── 1. Guest Check: Must login after 3 messages ──
-    if (!user) {
-      if (guestMsgCount >= GUEST_MSG_LIMIT) {
+    // ── Quick UI pre-check (the server is the real gatekeeper) ──
+    if (usage.remaining <= 0) {
+      if (!user) {
         setAuthModalOpen(true);
         return;
       }
-      const nextCount = guestMsgCount + 1;
-      setGuestMsgCount(nextCount);
-      try { localStorage.setItem('skanybot_guest_msgs', String(nextCount)); } catch (e) {}
-    } else {
-      // ── 2. Authenticated Daily Limit Check: 10 queries/day ──
-      if (dailyUsage.used >= DAILY_LIMIT) {
-        const errorMsg: ChatMessage = {
-          id: `msg_${Date.now()}_limit`,
-          session_id: activeSessionId || 'limit_session',
-          role: 'assistant',
-          content: isRtl 
-            ? '⚠️ **لقد استهلكت رصيدك اليومي المتاح (10 استفسارات).**\n\nيتجدد رصيدك تلقائياً عند منتصف الليل لضمان تقديم أعلى جودة وتحليل دقيق لجميع المستخدمين. يسعدنا استكمال بحثك غداً!'
-            : '⚠️ **You have reached your daily limit of 10 queries.**\n\nYour quota will reset automatically tomorrow!',
-          created_at: new Date().toISOString()
-        };
-        setMessages(prev => [...prev, errorMsg]);
-        return;
-      }
+      const errorMsg: ChatMessage = {
+        id: `msg_${Date.now()}_limit`,
+        session_id: activeSessionId || 'limit_session',
+        role: 'assistant',
+        content: isRtl
+          ? `⚠️ **لقد استهلكت رصيدك اليومي المجاني (${DAILY_LIMIT} استفسارات).**\n\nنحدد هذا الحد اليومي للحفاظ على سرعة واستقرار الذكاء الاصطناعي لجميع المستخدمين مجاناً.\n\nيتجدد رصيدك تلقائياً عند منتصف الليل! وإذا كنت ترغب بمعاينة أي وحدة أو التواصل مع المطور اضغط على زر "طلب معاينة" على أي عقار.`
+          : `⚠️ **You have reached your free daily limit (${DAILY_LIMIT} queries).**\n\nYour free daily quota resets automatically tomorrow at midnight!`,
+        created_at: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, errorMsg]);
+      return;
     }
 
     setInputText('');
@@ -563,13 +571,9 @@ export default function SkanybotChatPage() {
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           sessionId: currSessionId,
-          clientId: user?.id || currSessionId,
-          userId: user?.id || null,
-          userEmail: user?.email || null,
-          plan: 'free',
           message: query,
           locale: locale,
           history: newHistory.slice(-10),
@@ -580,27 +584,19 @@ export default function SkanybotChatPage() {
       });
 
       const data = await response.json();
+      if (data.usage) setUsage(data.usage);
 
       if (response.status === 401 || data.error === 'login_required') {
         setAuthModalOpen(true);
         throw new Error(data.message || (isRtl ? 'يرجى تسجيل الدخول مجاناً للمتابعة' : 'Please sign in to continue'));
       }
 
-      if (response.status === 429 || data.error === 'daily_limit_reached') {
-        throw new Error(data.message || (isRtl ? 'وصلت للحد الأقصى اليومي (10 استفسارات). يتجدد رصيدك تلقائياً غداً!' : 'Daily limit of 10 queries reached. Resets tomorrow!'));
+      if (response.status === 429) {
+        throw new Error(data.message || (isRtl ? 'وصلت للحد الأقصى اليومي (10 استفسارات). يتجدد رصيدك تلقائياً عند منتصف الليل!' : 'Daily limit reached. Resets tomorrow!'));
       }
 
       if (!response.ok) {
         throw new Error(data.error || 'Server error occurred');
-      }
-
-      // Update daily usage state
-      if (data.usage) {
-        setDailyUsage({
-          used: data.usage.used,
-          limit: data.usage.limit || DAILY_LIMIT,
-          remaining: data.usage.remaining !== undefined ? data.usage.remaining : Math.max(0, DAILY_LIMIT - data.usage.used),
-        });
       }
 
       const botMsg: ChatMessage = {
@@ -612,6 +608,8 @@ export default function SkanybotChatPage() {
         all_properties: data.allProperties || [],
         total_matches: data.totalMatches || 0,
         suggested_actions: data.suggestedActions || [],
+        open_seller_modal: Boolean(data.openSellerModal),
+        seller_prefill: data.sellerPrefill || null,
         created_at: new Date().toISOString()
       };
 
@@ -627,6 +625,13 @@ export default function SkanybotChatPage() {
         } else {
           refreshMyListings();
         }
+      }
+      // Automatically open SellerPropertiesModal in 'create' mode when the chatbot triggers it!
+      if (data.openSellerModal) {
+        setSellerEditingProp(null);
+        setSellerPrefill(data.sellerPrefill || null);
+        setSellerModalMode(data.sellerModalMode || 'create');
+        setSellerModalOpen(true);
       }
 
       try {
@@ -689,6 +694,7 @@ export default function SkanybotChatPage() {
         onOpenSellerModal={(mode = 'list', editProp = null) => {
           setSellerModalMode(mode);
           setSellerEditingProp(editProp);
+          setSellerPrefill(null);
           setSellerModalOpen(true);
         }}
       />
@@ -720,7 +726,6 @@ export default function SkanybotChatPage() {
               </div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-base font-black tracking-tight text-amber-500 font-sans">sakanybot</span>
-                <span className="text-xs font-bold text-slate-700 dark:text-zinc-300">سكنى بوت</span>
               </div>
             </div>
           </div>
@@ -739,16 +744,25 @@ export default function SkanybotChatPage() {
               <span>{t.contactAdvisor}</span>
             </button>
 
-            {/* Daily Quota Counter & Account */}
+            {/* Daily Protection Quota Pill */}
             {user ? (
-              <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
+              <div
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+                title={isRtl ? 'استفساراتك اليومية المجانية المتبقية (تتجدد كل ليلة)' : 'Free daily inquiries left (resets nightly)'}
+              >
                 <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                <span>{dailyUsage.remaining} / 10 {isRtl ? 'متبقية اليوم' : 'left today'}</span>
+                <span>{usage.remaining} / {usage.limit} {isRtl ? 'متبقية اليوم' : 'left today'}</span>
               </div>
             ) : (
-              <div className="hidden sm:flex items-center gap-1.5 rounded-xl border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
-                <span>{Math.max(0, GUEST_MSG_LIMIT - guestMsgCount)} {isRtl ? 'رسائل تجريبية' : 'trials'}</span>
-              </div>
+              <button
+                type="button"
+                onClick={() => setAuthModalOpen(true)}
+                className="hidden sm:flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600 transition hover:bg-amber-500/20 dark:text-amber-400"
+                title={isRtl ? 'سجّل دخولك مجاناً لتحصل على 10 استفسارات يومياً' : 'Sign in free for 10 daily queries'}
+              >
+                <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                <span>{usage.remaining} {isRtl ? 'رسائل تجريبية' : 'trials'}</span>
+              </button>
             )}
 
             {/* User Account / Auth Button */}
@@ -874,6 +888,25 @@ export default function SkanybotChatPage() {
                             : 'bg-transparent text-slate-800 dark:text-zinc-200'
                         }`}>
                           <MarkdownRenderer content={msg.content} />
+
+                          {/* Direct CTA Button when the bot opened or suggested the Seller Property Listing Form */}
+                          {!isUser && msg.open_seller_modal && (
+                            <div className="mt-3">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSellerEditingProp(null);
+                                  setSellerPrefill(msg.seller_prefill || null);
+                                  setSellerModalMode('create');
+                                  setSellerModalOpen(true);
+                                }}
+                                className="inline-flex items-center gap-2 rounded-2xl bg-amber-500 px-4 py-2.5 text-xs font-black text-black shadow-md transition hover:bg-amber-400"
+                              >
+                                <Plus className="h-4 w-4 stroke-[3]" />
+                                <span>{OPEN_FORM_BTN_LABELS[locale] || OPEN_FORM_BTN_LABELS.en}</span>
+                              </button>
+                            </div>
+                          )}
 
                           {/* User Attached Photos in Chat Bubble */}
                           {msg.attached_images && msg.attached_images.length > 0 && (
@@ -1095,8 +1128,6 @@ export default function SkanybotChatPage() {
         isFavorite={favorites.some(f => f.id === selectedPropertyForDetails?.id)}
       />
 
-      
-
       {/* Seller Listed Units Modal (إضافة / تعديل وحداتي المعروضة للبيع) */}
       <SellerPropertiesModal
         isOpen={sellerModalOpen}
@@ -1116,6 +1147,7 @@ export default function SkanybotChatPage() {
         }}
         initialMode={sellerModalMode}
         initialEditingProperty={sellerEditingProp}
+        initialPrefill={sellerPrefill}
       />
 
       {/* Supabase Authentication Modal (Google + Email) */}

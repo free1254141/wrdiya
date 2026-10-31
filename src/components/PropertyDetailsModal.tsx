@@ -255,43 +255,71 @@ export default function PropertyDetailsModal({
             </div>
 
             {/* Financial & Installment Matrix */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-2xl bg-amber-50/60 p-4 dark:bg-amber-500/5 border border-amber-500/20">
-              <div>
-                <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400">
-                  {isAr ? 'المقدم المطلوب:' : 'Down Payment:'}
-                </span>
-                <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm sm:text-base">
-                  {property.down_payment_pct}% ({property.down_payment_amount.toLocaleString(isAr ? 'ar-EG' : 'en-US')} {curr})
-                </p>
-              </div>
+            {(property.installment_years || 0) > 0 && (property.down_payment_pct || 0) < 100 ? (
+              <div className="space-y-3 rounded-2xl bg-amber-50/60 p-4 dark:bg-amber-500/5 border border-amber-500/20">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400">
+                      {isAr ? 'المقدم المطلوب:' : 'Down Payment:'}
+                    </span>
+                    <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm sm:text-base">
+                      {property.down_payment_pct}% ({property.down_payment_amount.toLocaleString(isAr ? 'ar-EG' : 'en-US')} {curr})
+                    </p>
+                  </div>
 
-              <div>
-                <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400">
-                  {isAr ? 'القسط الشهري:' : 'Monthly Installment:'}
-                </span>
-                <p className="font-mono font-bold text-amber-600 dark:text-amber-400 text-sm sm:text-base">
-                  {property.monthly_installment.toLocaleString(isAr ? 'ar-EG' : 'en-US')} {curr}
-                </p>
-              </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400">
+                      {isAr ? 'القسط الشهري:' : 'Monthly Installment:'}
+                    </span>
+                    <p className="font-mono font-bold text-amber-600 dark:text-amber-400 text-sm sm:text-base">
+                      {Math.round(property.monthly_installment).toLocaleString(isAr ? 'ar-EG' : 'en-US')} {curr}
+                    </p>
+                  </div>
 
-              <div>
-                <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400">
-                  {isAr ? 'سنوات التقسيط:' : 'Installment Years:'}
-                </span>
-                <p className="font-mono font-bold text-slate-900 dark:text-white text-sm sm:text-base">
-                  {property.installment_years} {isAr ? 'سنوات' : 'Years'}
-                </p>
-              </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400">
+                      {isAr ? 'القسط الربع سنوي:' : 'Quarterly Installment:'}
+                    </span>
+                    <p className="font-mono font-bold text-slate-900 dark:text-white text-sm sm:text-base">
+                      {Math.round(
+                        property.quarterly_installment ||
+                          Math.max(0, property.total_price - property.down_payment_amount) /
+                            (Math.max(1, property.installment_years) * 4)
+                      ).toLocaleString(isAr ? 'ar-EG' : 'en-US')}{' '}
+                      {curr}
+                    </p>
+                  </div>
 
-              <div>
-                <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400">
-                  {isAr ? 'موعد الاستلام:' : 'Delivery Date:'}
-                </span>
-                <p className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
-                  {property.delivery_date}
-                </p>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400">
+                      {isAr ? 'سنوات التقسيط والاستلام:' : 'Installment & Handover:'}
+                    </span>
+                    <p className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
+                      {property.installment_years} {isAr ? 'سنوات' : 'Years'} • {property.delivery_date}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 rounded-2xl bg-emerald-50/60 p-4 dark:bg-emerald-500/5 border border-emerald-500/20">
+                <div>
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400">
+                    {isAr ? 'نظام الدفع المعتمد بالإعلان:' : 'Verified Payment Method:'}
+                  </span>
+                  <p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm sm:text-base">
+                    {isAr ? 'كاش فقط (لا يدعم التقسيط)' : 'Cash Only (No Installments)'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400">
+                    {isAr ? 'موعد الاستلام:' : 'Delivery Date:'}
+                  </span>
+                  <p className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
+                    {property.delivery_date}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Unit Specifications Grid */}
             <div className="grid grid-cols-3 gap-3 border-y border-slate-100 py-4 text-center dark:border-zinc-800">
@@ -376,10 +404,11 @@ export default function PropertyDetailsModal({
             href={affiliateUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-xs sm:text-sm font-bold text-slate-800 transition hover:bg-slate-200 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs sm:text-sm font-bold text-amber-700 transition hover:bg-amber-500/20 dark:border-amber-400/30 dark:text-amber-400"
+            title={isAr ? 'فتح صفحة المشروع الرسمية على منصة الشريك المعتمد' : 'Open official project page'}
           >
             <ExternalLink className="h-4 w-4" />
-            <span className="hidden sm:inline">{isAr ? 'التفاصيل الرسمية' : 'Official Page'}</span>
+            <span className="hidden sm:inline">{isAr ? 'صفحة المشروع والأسعار الرسمية' : 'Official Project Page'}</span>
           </a>
         </div>
       </div>
