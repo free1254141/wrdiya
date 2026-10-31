@@ -146,6 +146,7 @@ export interface ChatMessage {
   suggested_actions?: string[];
   open_seller_modal?: boolean;
   seller_prefill?: SellerFormPrefill | null;
+  duration_seconds?: number;
   created_at: string;
 }
 

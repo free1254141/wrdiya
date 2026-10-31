@@ -5,6 +5,9 @@ import { calculateAnalyticalValuation } from '../engine/valuation-model';
 import { calculatePropertyDealScore } from '../engine/deal-scoring';
 import { getAreaIntelligence, compareTwoAreas } from '../knowledge/area-intelligence';
 import { getDeveloperIntelligence } from '../knowledge/developer-intelligence';
+import { queryLegalIntelligence } from '../knowledge/market-regulations-legal';
+import { queryInvestmentIntelligence } from '../knowledge/investment-intelligence';
+import { queryTransportIntelligence } from '../knowledge/transportation-intelligence';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://csuifvyghfsibkrnxrby.supabase.co';
@@ -418,6 +421,23 @@ export const AGENTIC_TOOLS_SCHEMA = [
         }
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_market_legal_and_investment_guide',
+      description: 'استشارة الدليل القانوني والاستثماري وشبكة النقل والمحاور في السوق العقاري المصري. استخدم هذه الأداة للإجابة عن: صحة التوقيع مقابل التسجيل بالشهر العقاري (قانون 9 لسنة 2022)، توكيلات البيع والشراء غير القابلة للإلغاء، قانون التصالح الجديد 187 لسنة 2023 ونموذج 8، وديعة وفروق الصيانة، رسوم التنازل للمطور (Transfer Fees)، ضريبة التصرفات العقارية 2.5%، خصومات الكاش الحقيقي (35%-45%)، العائد الإيجاري الصافي، الأوفر برايس، غرامات تأخير التسليم، ومحطات المونوريل والقطار السريع LRT.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'الكلمة المفتاحية أو الموضوع المطلوب (مثال: "تسجيل شهر عقاري", "توكيل بيع", "وديعة الصيانة", "رسوم التنازل", "ضريبة تصرفات", "خصم الكاش", "المونوريل", "غرامة تأخير")',
+          },
+        },
+        required: ['query'],
+      },
+    },
   }
 ];
 
@@ -1238,4 +1258,22 @@ export function executeDealScoring(args: {
     developerName: args.developer_name,
   });
   return { success: true, deal_score_result: result };
+}
+
+/**
+ * استشارة الدليل القانوني والاستثماري وشبكة المواصلات
+ */
+export function executeLegalAndInvestmentGuide(args: { query: string }) {
+  const legal = queryLegalIntelligence(args.query || '');
+  const investment = queryInvestmentIntelligence(args.query || '');
+  const transport = queryTransportIntelligence(args.query || '');
+
+  return {
+    success: true,
+    query: args.query,
+    legal_insights: legal,
+    investment_insights: investment,
+    transport_insights: transport,
+    summary: `تم استخراج ${legal.length} نصيحة قانونية و ${investment.length} استشارة استثمارية و ${transport.length} معلومة مواصلات ذات صلة بـ "${args.query}".`,
+  };
 }

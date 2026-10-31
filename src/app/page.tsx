@@ -713,6 +713,7 @@ export default function SkanybotChatPage() {
         suggested_actions: data.suggestedActions || [],
         open_seller_modal: Boolean(data.openSellerModal),
         seller_prefill: data.sellerPrefill || null,
+        duration_seconds: data.duration_seconds,
         created_at: new Date().toISOString()
       };
 
@@ -1194,6 +1195,15 @@ export default function SkanybotChatPage() {
                           <span className="text-[10px] text-slate-400">
                             {new Date(msg.created_at || Date.now()).toLocaleTimeString(locale === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
                           </span>
+                          {!isUser && msg.duration_seconds !== undefined && (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                              title={isRtl ? `سرعة إعداد الرد: ${msg.duration_seconds} ثانية` : `Response generated in ${msg.duration_seconds}s`}
+                            >
+                              <span>⚡</span>
+                              <span>{msg.duration_seconds}s</span>
+                            </span>
+                          )}
                         </div>
 
                         {/* Bubble */}

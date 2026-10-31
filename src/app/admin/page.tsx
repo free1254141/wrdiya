@@ -114,6 +114,34 @@ export default function AdminDashboardPage() {
   const messagesScrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Real-time telemetry calculations for active session (Cost & Latency - Admin Only)
+  const sessionStats = useMemo(() => {
+    let totalCostUsd = 0;
+    let totalCostEgp = 0;
+    let totalTokens = 0;
+    let speedSum = 0;
+    let speedCount = 0;
+
+    for (const m of messages) {
+      if (m.metadata) {
+        if (typeof m.metadata.cost_usd === 'number') totalCostUsd += m.metadata.cost_usd;
+        if (typeof m.metadata.cost_egp === 'number') totalCostEgp += m.metadata.cost_egp;
+        if (m.metadata.tokens?.total) totalTokens += m.metadata.tokens.total;
+        if (typeof m.metadata.duration_seconds === 'number') {
+          speedSum += m.metadata.duration_seconds;
+          speedCount++;
+        }
+      }
+    }
+
+    return {
+      totalCostUsd,
+      totalCostEgp: totalCostEgp || totalCostUsd * 49.5,
+      totalTokens,
+      avgSpeed: speedCount > 0 ? (speedSum / speedCount).toFixed(2) : null,
+    };
+  }, [messages]);
+
   // User search
   const [userSearch, setUserSearch] = useState('');
 
@@ -824,6 +852,21 @@ export default function AdminDashboardPage() {
                           <span className="rounded-full bg-amber-500/10 text-amber-500 text-[10px] px-2 py-0.5 font-bold font-mono">
                             {totalMessagesCount} رسالة
                           </span>
+                          {sessionStats.totalCostUsd > 0 && (
+                            <span className="rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] px-2.5 py-0.5 font-bold font-mono border border-emerald-500/30" title={`التكلفة بالجنيه المصري: ${sessionStats.totalCostEgp.toFixed(2)} ج.م`}>
+                              💵 تكلفة الجلسة: ${sessionStats.totalCostUsd.toFixed(4)} ({sessionStats.totalCostEgp.toFixed(2)} ج.م)
+                            </span>
+                          )}
+                          {sessionStats.avgSpeed && (
+                            <span className="rounded-full bg-amber-500/15 text-amber-400 text-[10px] px-2 py-0.5 font-bold font-mono border border-amber-500/30">
+                              ⚡ متوسط السرعة: {sessionStats.avgSpeed}s
+                            </span>
+                          )}
+                          {sessionStats.totalTokens > 0 && (
+                            <span className="rounded-full bg-zinc-800 text-zinc-300 text-[10px] px-2 py-0.5 font-bold font-mono border border-zinc-700">
+                              🔢 {sessionStats.totalTokens} Tokens
+                            </span>
+                          )}
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-zinc-400">
                           {activeSession.user?.email ? (
@@ -941,13 +984,45 @@ export default function AdminDashboardPage() {
                                   <span>•</span>
                                   <span>{formatDate(msg.created_at)}</span>
                                   {isBot && (
-                                    <span
-                                      className={`font-mono text-[9px] px-1.5 py-0.5 rounded ${
-                                        isDark ? 'bg-zinc-900 text-amber-300 border border-zinc-800' : 'bg-zinc-200 text-amber-800'
-                                      }`}
-                                    >
-                                      {aiModel}
-                                    </span>
+                                    <>
+                                      <span
+                                        className={`font-mono text-[9px] px-1.5 py-0.5 rounded ${
+                                          isDark ? 'bg-zinc-900 text-amber-300 border border-zinc-800' : 'bg-zinc-200 text-amber-800'
+                                        }`}
+                                      >
+                                        {aiModel}
+                                      </span>
+
+                                      {/* Speed latency */}
+                                      {msg.metadata?.duration_seconds !== undefined && (
+                                        <span className="inline-flex items-center gap-1 font-mono text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold">
+                                          <span>⚡</span>
+                                          <span>{msg.metadata.duration_seconds}s</span>
+                                        </span>
+                                      )}
+
+                                      {/* Cost per call - ADMIN ONLY */}
+                                      {msg.metadata?.cost_usd !== undefined && (
+                                        <span
+                                          className="inline-flex items-center gap-1 font-mono text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold"
+                                          title={`التكلفة بالجنيه المصري: ${(msg.metadata.cost_egp || 0).toFixed(4)} ج.م`}
+                                        >
+                                          <span>💵</span>
+                                          <span>${msg.metadata.cost_usd.toFixed(5)}</span>
+                                          <span>({(msg.metadata.cost_egp || 0).toFixed(3)} ج.م)</span>
+                                        </span>
+                                      )}
+
+                                      {/* Tokens count */}
+                                      {msg.metadata?.tokens?.total && (
+                                        <span
+                                          className="inline-flex items-center gap-1 font-mono text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700"
+                                          title={`المدخلات: ${msg.metadata.tokens.prompt} | المخرجات: ${msg.metadata.tokens.completion}`}
+                                        >
+                                          <span>🔢 {msg.metadata.tokens.total} T</span>
+                                        </span>
+                                      )}
+                                    </>
                                   )}
                                 </div>
 

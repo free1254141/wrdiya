@@ -21,6 +21,7 @@ import {
   executePropertyValuation,
   executeAreaIntelligence,
   executeDealScoring,
+  executeLegalAndInvestmentGuide,
 } from './ai/agentic-tools';
 import {
   buildContextSystemMessage,
@@ -54,6 +55,15 @@ export interface AgenticChatResult {
   openSellerModal?: boolean;
   /** Optional prefill data for the Seller Listing Form modal. */
   sellerPrefill?: SellerFormPrefill | null;
+  /** LLM Token & Cost telemetry for admin tracking */
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    cacheHitTokens: number;
+    costUsd: number;
+    costEgp: number;
+  };
 }
 
 const CARDS_PER_REPLY = 4;
@@ -85,7 +95,8 @@ const SYSTEM_PROMPT = `أنت "سكنى بوت" (sakanybot) — مستشارك �
 8. "valuate_property": لتسعير وتقييم وحدة بالذكاء الاصطناعي والموديل الكمي (AVM) وحساب السعر العادل وسعر البيع السريع ونطاق السعر المقترح وأقرب الصفقات المشابهة (استدعِها فوراً عندما يسأل العميل "شقتي تسوى كام" أو يطلب تسعير وحدته أو يسأل عن السعر العادل لمساحة ومنطقة معينة).
 9. "get_area_intelligence": لاستخراج عيوب ومميزات المناطق والأحياء بدقة وصراحة تامة ومتوسطات أسعار المتر كاش وتقسيط ومقارنة منطقتين (استدعِها عندما يسأل العميل عن عيوب أو مميزات منطقة أو يسأل "أشتري فين").
 10. "calculate_property_deal_score": لحساب سكور الصفقة وجودة السعر من 0 إلى 100 بدقة رياضية وتبيان هل هي لقطة استثمارية، سعر عادل، أم سعر مبالغ فيه.
-11. التحية والدردشة العامة: أجب بإيجاز وود بدون استدعاء أدوات.
+11. "get_market_legal_and_investment_guide": للرجوع الفوري للدليل القانوني والاستثماري وشبكة النقل والمحاور القومية (الشهر العقاري وقانون 9 لسنة 2022، التوكيلات الرسمية، التصالح ونموذج 8، وديعة وفروق الصيانة، رسوم التنازل Transfer Fees، ضريبة التصرفات العقارية 2.5%، خصومات الكاش الحقيقي 35%-45%، العوائد الإيجارية، المونوريل والقطار السريع LRT). استدعِها كلما سأل العميل عن الأوراق، العقود، الضرائب، الصيانة، أو نصائح الاستثمار.
+12. التحية والدردشة العامة: أجب بإيجاز وود بدون استدعاء أدوات.
 
 شخصية البروكر وأسلوب الرد:
 - أنت وسيط ومستشار عقاري محايد وصريح جداً وبشفافية مطلقة: اذكر العيوب الحقيقية قبل المميزات، وانصح العميل بما يحميه استثمارياً ومعيشياً.
@@ -105,7 +116,18 @@ function compactHistory(
     }));
 }
 
-async function callDeepSeek(apiKey: string, body: Record<string, any>) {
+export interface DeepSeekApiCallResult {
+  message: any;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+    prompt_cache_hit_tokens?: number;
+    prompt_cache_miss_tokens?: number;
+  };
+}
+
+async function callDeepSeek(apiKey: string, body: Record<string, any>): Promise<DeepSeekApiCallResult | null> {
   const res = await fetch('https://api.deepseek.com/chat/completions', {
     method: 'POST',
     headers: {
@@ -119,7 +141,10 @@ async function callDeepSeek(apiKey: string, body: Record<string, any>) {
     return null;
   }
   const data = await res.json();
-  return data.choices?.[0]?.message || null;
+  return {
+    message: data.choices?.[0]?.message || null,
+    usage: data.usage || undefined,
+  };
 }
 
 export async function runDeepSeekAgenticChat(
@@ -182,18 +207,33 @@ export async function runDeepSeekAgenticChat(
   let openSellerModal = false;
   let sellerPrefill: SellerFormPrefill | null = context.seller_prefill || null;
 
+  // Cumulative token and cost telemetry for admin auditing
+  let totalPromptTokens = 0;
+  let totalCompletionTokens = 0;
+  let totalTokens = 0;
+  let totalCacheHitTokens = 0;
+
   try {
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
       const allowTools = round < MAX_TOOL_ROUNDS;
-      const assistant = await callDeepSeek(
+      const apiResp = await callDeepSeek(
         apiKey,
         allowTools ? { messages, tools: AGENTIC_TOOLS_SCHEMA, tool_choice: 'auto' } : { messages }
       );
 
-      if (!assistant) {
+      if (!apiResp || !apiResp.message) {
         if (round === 0) return null;
         break;
       }
+
+      if (apiResp.usage) {
+        totalPromptTokens += apiResp.usage.prompt_tokens || 0;
+        totalCompletionTokens += apiResp.usage.completion_tokens || 0;
+        totalTokens += apiResp.usage.total_tokens || 0;
+        totalCacheHitTokens += apiResp.usage.prompt_cache_hit_tokens || 0;
+      }
+
+      const assistant = apiResp.message;
 
       const calls: any[] = allowTools ? assistant.tool_calls || [] : [];
       if (!calls.length) {
@@ -286,6 +326,8 @@ export async function runDeepSeekAgenticChat(
             output = executeAreaIntelligence(args);
           } else if (fnName === 'calculate_property_deal_score') {
             output = executeDealScoring(args);
+          } else if (fnName === 'get_market_legal_and_investment_guide') {
+            output = executeLegalAndInvestmentGuide(args);
           } else {
             output = { error: `Tool ${fnName} not recognized` };
           }
@@ -326,6 +368,15 @@ export async function runDeepSeekAgenticChat(
     sellerPrefill: openSellerModal ? null : sellerPrefill,
   });
 
+  const cacheMissTokens = Math.max(0, totalPromptTokens - totalCacheHitTokens);
+  // DeepSeek official pricing (deepseek-chat / V3):
+  // Cache Hit: $0.07 / 1M tokens ($0.00000007 / token)
+  // Cache Miss (standard prompt): $0.27 / 1M tokens ($0.00000027 / token)
+  // Completion output: $1.10 / 1M tokens ($0.0000011 / token)
+  // USD to EGP ~ 49.5
+  const costUsd = (totalCacheHitTokens * 0.00000007) + (cacheMissTokens * 0.00000027) + (totalCompletionTokens * 0.0000011);
+  const costEgp = costUsd * 49.5;
+
   return {
     content: finalContent,
     properties: cards,
@@ -336,5 +387,13 @@ export async function runDeepSeekAgenticChat(
     sellerUpdated,
     openSellerModal,
     sellerPrefill,
+    usage: {
+      promptTokens: totalPromptTokens,
+      completionTokens: totalCompletionTokens,
+      totalTokens,
+      cacheHitTokens: totalCacheHitTokens,
+      costUsd,
+      costEgp,
+    },
   };
 }

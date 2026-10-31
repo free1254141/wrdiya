@@ -101,6 +101,7 @@ function slimForTable(list: Property[]): Property[] {
 }
 
 export async function POST(req: NextRequest) {
+  const requestStartTime = Date.now();
   let usage: ConsumeResult | null = null;
   let guestCookieToSet: string | null = null;
   const withGuestCookie = (res: NextResponse) => {
@@ -179,6 +180,14 @@ export async function POST(req: NextRequest) {
     let sellerUpdated = false;
     let openSellerModal = false;
     let sessionContext: SessionContext = sanitizeSessionContext(body.sessionContext);
+    let agenticUsage: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+      cacheHitTokens: number;
+      costUsd: number;
+      costEgp: number;
+    } | null = null;
 
     // Prepare history & inspect last assistant message for seller form offer context
     const rawHistory: any[] = Array.isArray(body.history) ? body.history : (Array.isArray(body.messages) ? body.messages : []);
@@ -237,6 +246,9 @@ export async function POST(req: NextRequest) {
           }
         );
         if (agenticResult && agenticResult.content) {
+          if (agenticResult.usage) {
+            agenticUsage = agenticResult.usage;
+          }
           finalContent = agenticResult.content;
           propertiesToReturn = agenticResult.properties || [];
           allPropertiesToReturn = agenticResult.allProperties || [];
@@ -372,7 +384,11 @@ export async function POST(req: NextRequest) {
       ? [sellerBotCopy.openFormChip, ...baseSuggestedActions.slice(0, 2)]
       : baseSuggestedActions;
 
-    // 6. Store message pair in Supabase chat_sessions & chat_messages tables for auditing & CRM
+    // 6. Calculate total response latency
+    const durationMs = Date.now() - requestStartTime;
+    const durationSeconds = Number((durationMs / 1000).toFixed(2));
+
+    // Store message pair in Supabase chat_sessions & chat_messages tables for auditing & CRM
     if (sessionId) {
       try {
         const dbSessionId = await ensureChatSession(sessionId, userMessage, userId);
@@ -394,6 +410,16 @@ export async function POST(req: NextRequest) {
                 property_ids: propertiesToReturn.map(p => p.id),
                 open_seller_modal: openSellerModal,
                 ai_model: (isDeepSeekConfigured() && !freeTest) ? 'deepseek-agentic' : 'grounded-engine',
+                duration_seconds: durationSeconds,
+                duration_ms: durationMs,
+                tokens: agenticUsage ? {
+                  prompt: agenticUsage.promptTokens,
+                  completion: agenticUsage.completionTokens,
+                  total: agenticUsage.totalTokens,
+                  cache_hit: agenticUsage.cacheHitTokens,
+                } : null,
+                cost_usd: agenticUsage ? Number(agenticUsage.costUsd.toFixed(6)) : 0,
+                cost_egp: agenticUsage ? Number(agenticUsage.costEgp.toFixed(4)) : 0,
                 usage: { used: usage.used, limit: usage.limit, remaining: usage.remaining },
               }
             }
@@ -420,6 +446,7 @@ export async function POST(req: NextRequest) {
       suggestedActions: defaultSuggestedActions,
       intent: detectedIntent,
       aiProvider: (isDeepSeekConfigured() && !freeTest) ? 'deepseek-agentic' : 'grounded-engine',
+      duration_seconds: durationSeconds,
       usage: toPublicUsage(usage),
     }));
 
