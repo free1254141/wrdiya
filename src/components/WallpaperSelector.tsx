@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Palette, Check, Sparkles } from 'lucide-react';
 
-export type ChatWallpaper = 'whatsapp' | 'watermelon' | 'none';
+export type ChatWallpaper = 'architectural' | 'watermelon' | 'arabesque' | 'none' | 'whatsapp';
 
 interface WallpaperSelectorProps {
   currentWallpaper: ChatWallpaper;
@@ -36,28 +36,37 @@ export const WallpaperSelector: React.FC<WallpaperSelectorProps> = ({
 
   const options: { id: ChatWallpaper; title: string; subtitle: string; icon: string; badge?: string }[] = [
     {
-      id: 'whatsapp',
-      title: isRtl ? 'واتساب كلاسيك' : 'WhatsApp Doodle',
-      subtitle: isRtl ? 'رسومات عقارات وشات هادئة' : 'Classic chat doodles',
-      icon: '💬',
-      badge: isRtl ? 'كلاسيك' : 'Classic',
+      id: 'architectural',
+      title: isRtl ? 'نقوش معمارية وهندسية' : 'Architectural Blueprint',
+      subtitle: isRtl ? 'تصاميم ورسومات عقارية فاخرة ومريحة للعين' : 'Luxury architectural sketches & blueprints',
+      icon: '🏛️',
+      badge: isRtl ? 'فاخر' : 'Luxury',
     },
     {
       id: 'watermelon',
-      title: isRtl ? 'بطيخة وفلسطين' : 'Palestine Watermelon',
-      subtitle: isRtl ? 'نقوش البطيخة وشريطة التضامن' : 'Watermelon & solidarity',
+      title: isRtl ? 'تراث وتضامن فلسطيني 🍉' : 'Palestine Heritage 🍉',
+      subtitle: isRtl ? 'رموز العزة والتطريز والزيتون والبطيخ' : 'Olive branch, Tatreez & solidarity',
       icon: '🍉',
       badge: '🇵🇸',
     },
     {
-      id: 'none',
-      title: isRtl ? 'بدون نقش' : 'Clean & Solid',
-      subtitle: isRtl ? 'خلفية صامتة ومريحة' : 'Solid minimalistic background',
+      id: 'arabesque',
+      title: isRtl ? 'أرابيسك هندسي راقي' : 'Arabesque Geometric',
+      subtitle: isRtl ? 'زخارف ونقوش هندسية إسلامية متناسقة' : 'Harmonious Islamic geometric patterns',
       icon: '✨',
+      badge: isRtl ? 'جديد' : 'New',
+    },
+    {
+      id: 'none',
+      title: isRtl ? 'بدون نقوش (شاشة نقية)' : 'Clean Minimalist',
+      subtitle: isRtl ? 'خلفية صامتة ومريحة للتركيز' : 'Solid distraction-free background',
+      icon: '🌙',
     },
   ];
 
-  const currentOption = options.find((o) => o.id === currentWallpaper) || options[0];
+  // Map legacy 'whatsapp' to 'architectural' for display & matching
+  const normalizedWallpaper = currentWallpaper === 'whatsapp' ? 'architectural' : currentWallpaper;
+  const currentOption = options.find((o) => o.id === normalizedWallpaper) || options[0];
 
   return (
     <div className="relative inline-block" ref={containerRef}>
@@ -74,9 +83,13 @@ export const WallpaperSelector: React.FC<WallpaperSelectorProps> = ({
       >
         <span className="text-sm leading-none">{currentOption.icon}</span>
         <span className="hidden sm:inline font-medium">
-          {currentWallpaper === 'whatsapp' ? (isRtl ? 'خلفية واتساب' : 'WhatsApp') :
-           currentWallpaper === 'watermelon' ? (isRtl ? 'خلفية بطيخة 🍉' : 'Watermelon 🍉') :
-           (isRtl ? 'خلفية الشات' : 'Wallpaper')}
+          {normalizedWallpaper === 'architectural'
+            ? (isRtl ? 'نقوش معمارية' : 'Architectural')
+            : normalizedWallpaper === 'watermelon'
+            ? (isRtl ? 'تراث فلسطيني 🍉' : 'Palestine 🍉')
+            : normalizedWallpaper === 'arabesque'
+            ? (isRtl ? 'أرابيسك راقي' : 'Arabesque')
+            : (isRtl ? 'ورق حائط الشات' : 'Wallpaper')}
         </span>
         <Palette className="h-3 w-3 opacity-60 ml-0.5" />
       </button>
@@ -94,13 +107,13 @@ export const WallpaperSelector: React.FC<WallpaperSelectorProps> = ({
               <span>{isRtl ? 'ورق حائط وخلفية الشات' : 'Chat Wallpaper'}</span>
             </span>
             <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">
-              v1.0
+              v2.0
             </span>
           </div>
 
           <div className="space-y-1.5 p-1 pt-2">
             {options.map((opt) => {
-              const isSelected = currentWallpaper === opt.id;
+              const isSelected = normalizedWallpaper === opt.id;
               return (
                 <button
                   key={opt.id}

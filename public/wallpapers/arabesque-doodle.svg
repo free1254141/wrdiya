@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="720" viewBox="0 0 720 720" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Arabesque Islamic Geometric 8-Point Star Seamless Tile 720x720 -->
+
+  <defs>
+    <!-- Primary 8-Point Star Medallion (Girih Khatam) -->
+    <g id="star8">
+      <!-- Outer Interlocking Squares (Octagram) -->
+      <rect x="-28" y="-28" width="56" height="56" rx="2" />
+      <rect x="-28" y="-28" width="56" height="56" rx="2" transform="rotate(45)" />
+      <!-- Inner Octagram -->
+      <rect x="-18" y="-18" width="36" height="36" rx="1" />
+      <rect x="-18" y="-18" width="36" height="36" rx="1" transform="rotate(45)" />
+      <!-- Central Rosette -->
+      <circle cx="0" cy="0" r="9" />
+      <circle cx="0" cy="0" r="3" fill="#94a3b8" />
+      <!-- 8 Radial Strapwork Points -->
+      <line x1="0" y1="-28" x2="0" y2="-44" />
+      <line x1="0" y1="28" x2="0" y2="44" />
+      <line x1="-28" y1="0" x2="-44" y2="0" />
+      <line x1="28" y1="0" x2="44" y2="0" />
+      <line x1="-20" y1="-20" x2="-32" y2="-32" />
+      <line x1="20" y1="-20" x2="32" y2="-32" />
+      <line x1="-20" y1="20" x2="-32" y2="32" />
+      <line x1="20" y1="20" x2="32" y2="32" />
+    </g>
+
+    <!-- Secondary Arabesque Floral Palmette / Knot -->
+    <g id="knot4">
+      <path d="M0 -20 C12 -20 20 -12 20 0 C12 0 0 12 0 20 C0 12 -12 0 -20 0 C-20 -12 -12 -20 0 -20 Z" />
+      <circle cx="0" cy="0" r="7" />
+      <circle cx="0" cy="0" r="2.5" fill="#94a3b8" />
+      <!-- Corner Accents -->
+      <line x1="-14" y1="-14" x2="-22" y2="-22" />
+      <line x1="14" y1="-14" x2="22" y2="-22" />
+      <line x1="-14" y1="14" x2="-22" y2="22" />
+      <line x1="14" y1="14" x2="22" y2="22" />
+    </g>
+
+    <!-- Interconnecting Lattice Diamond Link -->
+    <g id="link-diamond">
+      <polygon points="0,-16 16,0 0,16 -16,0" />
+      <circle cx="0" cy="0" r="3" />
+    </g>
+  </defs>
+
+  <!-- Connective Geometric Lattice Lines Across 720x720 Canvas -->
+  <g stroke-opacity="0.35">
+    <!-- Horizontal lattice bands -->
+    <line x1="0" y1="120" x2="720" y2="120" stroke-dasharray="6 6" />
+    <line x1="0" y1="360" x2="720" y2="360" stroke-dasharray="6 6" />
+    <line x1="0" y1="600" x2="720" y2="600" stroke-dasharray="6 6" />
+    <!-- Vertical lattice bands -->
+    <line x1="120" y1="0" x2="120" y2="720" stroke-dasharray="6 6" />
+    <line x1="360" y1="0" x2="360" y2="720" stroke-dasharray="6 6" />
+    <line x1="600" y1="0" x2="600" y2="720" stroke-dasharray="6 6" />
+  </g>
+
+  <!-- Major 8-Point Stars on 240px Periodic Grid (Includes Seamless Tile Edges) -->
+  <!-- Row 1: y = 0 -->
+  <use href="#star8" x="0" y="0" />
+  <use href="#star8" x="240" y="0" />
+  <use href="#star8" x="480" y="0" />
+  <use href="#star8" x="720" y="0" />
+
+  <!-- Row 2: y = 240 -->
+  <use href="#star8" x="0" y="240" />
+  <use href="#star8" x="240" y="240" />
+  <use href="#star8" x="480" y="240" />
+  <use href="#star8" x="720" y="240" />
+
+  <!-- Row 3: y = 480 -->
+  <use href="#star8" x="0" y="480" />
+  <use href="#star8" x="240" y="480" />
+  <use href="#star8" x="480" y="480" />
+  <use href="#star8" x="720" y="480" />
+
+  <!-- Row 4: y = 720 -->
+  <use href="#star8" x="0" y="720" />
+  <use href="#star8" x="240" y="720" />
+  <use href="#star8" x="480" y="720" />
+  <use href="#star8" x="720" y="720" />
+
+  <!-- Secondary Floral Palmettes (Knot) at Centers (120, 360, 600) -->
+  <use href="#knot4" x="120" y="120" />
+  <use href="#knot4" x="360" y="120" />
+  <use href="#knot4" x="600" y="120" />
+
+  <use href="#knot4" x="120" y="360" />
+  <use href="#knot4" x="360" y="360" />
+  <use href="#knot4" x="600" y="360" />
+
+  <use href="#knot4" x="120" y="600" />
+  <use href="#knot4" x="360" y="600" />
+  <use href="#knot4" x="600" y="600" />
+
+  <!-- Accent Diamonds Connecting Major Stars -->
+  <use href="#link-diamond" x="120" y="0" />
+  <use href="#link-diamond" x="360" y="0" />
+  <use href="#link-diamond" x="600" y="0" />
+
+  <use href="#link-diamond" x="0" y="120" />
+  <use href="#link-diamond" x="240" y="120" />
+  <use href="#link-diamond" x="480" y="120" />
+  <use href="#link-diamond" x="720" y="120" />
+
+  <use href="#link-diamond" x="120" y="240" />
+  <use href="#link-diamond" x="360" y="240" />
+  <use href="#link-diamond" x="600" y="240" />
+
+  <use href="#link-diamond" x="0" y="360" />
+  <use href="#link-diamond" x="240" y="360" />
+  <use href="#link-diamond" x="480" y="360" />
+  <use href="#link-diamond" x="720" y="360" />
+
+  <use href="#link-diamond" x="120" y="480" />
+  <use href="#link-diamond" x="360" y="480" />
+  <use href="#link-diamond" x="600" y="480" />
+
+  <use href="#link-diamond" x="0" y="600" />
+  <use href="#link-diamond" x="240" y="600" />
+  <use href="#link-diamond" x="480" y="600" />
+  <use href="#link-diamond" x="720" y="600" />
+
+  <use href="#link-diamond" x="120" y="720" />
+  <use href="#link-diamond" x="360" y="720" />
+  <use href="#link-diamond" x="600" y="720" />
+</svg>

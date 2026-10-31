@@ -30,7 +30,8 @@ import {
   Zap,
   ShieldCheck,
   ArrowDown,
-  ChevronDown
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Property, ChatSession, ChatMessage, SessionContext, SellerFormPrefill, UsageInfo } from '@/lib/types';
 import { emptySessionContext, toShownUnit } from '@/lib/ai/session-context';
@@ -52,7 +53,6 @@ import InlinePropertiesTable from '@/components/InlinePropertiesTable';
 import SellerPropertiesModal from '@/components/SellerPropertiesModal';
 import DirectSearchPanel from '@/components/DirectSearchPanel';
 import WallpaperSelector, { ChatWallpaper } from '@/components/WallpaperSelector';
-import PalestineRibbon from '@/components/PalestineRibbon';
 import { Locale } from '@/lib/i18n';
 
 const OPEN_FORM_BTN_LABELS: Record<Locale, string> = {
@@ -77,6 +77,7 @@ export default function SkanybotChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [referencedProperty, setReferencedProperty] = useState<Property | null>(null);
+  const [isReferencedCollapsed, setIsReferencedCollapsed] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -88,21 +89,25 @@ export default function SkanybotChatPage() {
   // Application Mode: 'chat' (AI Agent) vs 'direct_search' (Off-Agent Instant Filter)
   const [appMode, setAppMode] = useState<'chat' | 'direct_search'>('chat');
 
-  // Chat Wallpaper: 'whatsapp' (Classic Doodles), 'watermelon' (Palestine Solidarity), 'none' (Clean)
+  // Chat Wallpaper: 'architectural', 'watermelon', 'arabesque', 'none'
   const [chatWallpaper, setChatWallpaper] = useState<ChatWallpaper>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('skanybot_chat_wallpaper');
-      if (saved === 'whatsapp' || saved === 'watermelon' || saved === 'none') {
+      if (saved === 'architectural' || saved === 'watermelon' || saved === 'arabesque' || saved === 'none') {
         return saved as ChatWallpaper;
       }
+      if (saved === 'whatsapp') {
+        return 'architectural';
+      }
     }
-    return 'whatsapp';
+    return 'architectural';
   });
 
   const handleSelectWallpaper = (wp: ChatWallpaper) => {
-    setChatWallpaper(wp);
+    const finalWp = wp === 'whatsapp' ? 'architectural' : wp;
+    setChatWallpaper(finalWp);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('skanybot_chat_wallpaper', wp);
+      localStorage.setItem('skanybot_chat_wallpaper', finalWp);
     }
   };
 
@@ -790,14 +795,16 @@ export default function SkanybotChatPage() {
     // 2. Switch mode to chat & set referenced unit
     setAppMode('chat');
     setReferencedProperty(property);
+    setIsReferencedCollapsed(false);
 
-    // 3. Scroll smoothly to chat input and focus
+    // 3. Scroll smoothly to chat input, focus, and scroll chat above the dock
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
         textareaRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-    }, 100);
+      scrollToBottom();
+    }, 150);
 
     // 4. If explicit custom query was provided, send it
     if (customQuery) {
@@ -885,10 +892,12 @@ export default function SkanybotChatPage() {
       {/* Main Chat Area */}
       <main
         className={`relative flex flex-1 flex-col h-full min-w-0 overflow-hidden transition-colors duration-300 ${
-          appMode === 'chat' && chatWallpaper === 'whatsapp'
-            ? 'chat-theme-whatsapp'
+          appMode === 'chat' && (chatWallpaper === 'architectural' || chatWallpaper === 'whatsapp')
+            ? 'chat-theme-architectural'
             : appMode === 'chat' && chatWallpaper === 'watermelon'
             ? 'chat-theme-watermelon'
+            : appMode === 'chat' && chatWallpaper === 'arabesque'
+            ? 'chat-theme-arabesque'
             : 'bg-white dark:bg-zinc-950'
         }`}
       >
@@ -957,7 +966,7 @@ export default function SkanybotChatPage() {
 
           {/* Quick Header Controls */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Chat Wallpaper Selector (WhatsApp Doodle / Palestine Watermelon) */}
+            {/* Chat Wallpaper Selector (Architectural / Palestine / Arabesque) */}
             <WallpaperSelector
               currentWallpaper={chatWallpaper}
               onSelectWallpaper={handleSelectWallpaper}
@@ -1074,28 +1083,31 @@ export default function SkanybotChatPage() {
           />
         ) : (
           <>
-            {/* Chat Wallpaper Layer (WhatsApp Doodle / Palestine Watermelon) */}
+            {/* Chat Wallpaper Layer (Architectural / Palestine Watermelon / Arabesque) */}
             {chatWallpaper !== 'none' && (
               <div
                 className={`absolute inset-0 pointer-events-none z-0 ${
-                  chatWallpaper === 'whatsapp'
-                    ? 'chat-wallpaper-whatsapp'
-                    : 'chat-wallpaper-watermelon'
+                  chatWallpaper === 'watermelon'
+                    ? 'chat-wallpaper-watermelon'
+                    : chatWallpaper === 'arabesque'
+                    ? 'chat-wallpaper-arabesque'
+                    : 'chat-wallpaper-architectural'
                 }`}
                 aria-hidden="true"
               />
-            )}
-
-            {/* Palestine Solidarity Hanging Ribbon Badge (egxbots design) */}
-            {chatWallpaper === 'watermelon' && (
-              <PalestineRibbon />
             )}
 
             {/* Scrollable Conversation Stream */}
             <div
               ref={chatScrollContainerRef}
               onScroll={handleChatScroll}
-              className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pt-4 pb-36 sm:pb-32 relative z-10"
+              className={`flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pt-4 relative z-10 transition-all duration-200 ${
+                referencedProperty
+                  ? isReferencedCollapsed
+                    ? 'pb-44 sm:pb-40'
+                    : 'pb-80 sm:pb-72 md:pb-80'
+                  : 'pb-36 sm:pb-32'
+              }`}
               dir={dir}
             >
           <div className="mx-auto max-w-3xl">
@@ -1359,10 +1371,12 @@ export default function SkanybotChatPage() {
         {/* Floating Input Area (ChatGPT Style) */}
         <div
           className={`absolute inset-x-0 bottom-0 pt-6 pb-4 px-4 sm:px-6 md:px-8 z-20 ${
-            chatWallpaper === 'whatsapp'
-              ? 'chat-dock-whatsapp'
-              : chatWallpaper === 'watermelon'
+            chatWallpaper === 'watermelon'
               ? 'chat-dock-watermelon'
+              : chatWallpaper === 'arabesque'
+              ? 'chat-dock-arabesque'
+              : chatWallpaper === 'architectural' || chatWallpaper === 'whatsapp'
+              ? 'chat-dock-architectural'
               : 'bg-gradient-to-t from-white via-white/95 to-transparent dark:from-zinc-950 dark:via-zinc-950/95'
           }`}
         >
@@ -1391,7 +1405,7 @@ export default function SkanybotChatPage() {
 
               {/* Referenced / Targeted Unit Focus Strip */}
               {referencedProperty && (
-                <div className="flex flex-col gap-2 border-b border-amber-500/25 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent px-4 pt-3 pb-2.5">
+                <div className="flex flex-col gap-2 border-b border-amber-500/25 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent px-4 pt-3 pb-2.5 transition-all">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-amber-500 text-black font-black text-xs shadow-xs">
@@ -1399,54 +1413,78 @@ export default function SkanybotChatPage() {
                       </span>
                       <div className="min-w-0">
                         <div className="font-black text-xs text-slate-900 dark:text-white line-clamp-1">
-                          {referencedProperty.title}
+                          {isReferencedCollapsed
+                            ? (isRtl ? `تم تحديد: ${referencedProperty.title}` : `Referenced: ${referencedProperty.title}`)
+                            : referencedProperty.title}
                         </div>
                         <div className="text-[11px] text-slate-500 dark:text-zinc-400">
                           {referencedProperty.total_price.toLocaleString(isRtl ? 'ar-EG' : 'en-US')} {referencedProperty.currency || 'ج.م'} • {referencedProperty.area_sqm}م² {referencedProperty.deal_score ? `• ⭐ سكور: ${referencedProperty.deal_score}/100 (${referencedProperty.deal_badge || ''})` : ''}
                         </div>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setReferencedProperty(null)}
-                      className="rounded-full p-1 text-slate-400 hover:bg-slate-200 hover:text-black dark:hover:bg-zinc-800 dark:hover:text-white transition"
-                      title={isRtl ? 'إلغاء الإشارة للوحدة' : 'Clear unit reference'}
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setIsReferencedCollapsed(!isReferencedCollapsed)}
+                        className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-amber-600 hover:bg-amber-500/15 dark:text-amber-400 dark:hover:bg-amber-500/20 transition"
+                        title={isReferencedCollapsed ? (isRtl ? 'إظهار التفاصيل والخيارات' : 'Expand details') : (isRtl ? 'تصغير لمنع تغطية الشات' : 'Collapse to save space')}
+                      >
+                        {isReferencedCollapsed ? (
+                          <>
+                            <ChevronUp className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">{isRtl ? 'إظهار التفاصيل' : 'Expand'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">{isRtl ? 'تصغير' : 'Collapse'}</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setReferencedProperty(null)}
+                        className="rounded-full p-1 text-slate-400 hover:bg-slate-200 hover:text-black dark:hover:bg-zinc-800 dark:hover:text-white transition"
+                        title={isRtl ? 'إلغاء الإشارة للوحدة' : 'Clear unit reference'}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
 
-                  {/* 4 Smart 1-Click Action Chips */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <button
-                      type="button"
-                      onClick={() => handleTriggerReferencedAction('score')}
-                      className="inline-flex items-center gap-1 rounded-full border border-amber-500/50 bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-700 shadow-2xs hover:bg-amber-500 hover:text-black dark:border-amber-400/40 dark:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500 dark:hover:text-black transition"
-                    >
-                      <span>⭐ قيّم لي الصفقة دي وسكورها</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleTriggerReferencedAction('pros_cons')}
-                      className="inline-flex items-center gap-1 rounded-full border border-slate-300/80 bg-white/90 px-3 py-1 text-xs font-bold text-slate-700 shadow-2xs hover:bg-amber-500 hover:text-black dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-amber-500 dark:hover:text-black transition"
-                    >
-                      <span>⚖️ إيه عيوبها ومميزاتها بصراحة؟</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleTriggerReferencedAction('valuation')}
-                      className="inline-flex items-center gap-1 rounded-full border border-slate-300/80 bg-white/90 px-3 py-1 text-xs font-bold text-slate-700 shadow-2xs hover:bg-amber-500 hover:text-black dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-amber-500 dark:hover:text-black transition"
-                    >
-                      <span>💰 تسعيرها العادل وسرعة البيع</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleTriggerReferencedAction('installments')}
-                      className="inline-flex items-center gap-1 rounded-full border border-slate-300/80 bg-white/90 px-3 py-1 text-xs font-bold text-slate-700 shadow-2xs hover:bg-amber-500 hover:text-black dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-amber-500 dark:hover:text-black transition"
-                    >
-                      <span>🧮 احسب خطة أقساطها</span>
-                    </button>
-                  </div>
+                  {/* 4 Smart 1-Click Action Chips (Hidden when collapsed) */}
+                  {!isReferencedCollapsed && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                      <button
+                        type="button"
+                        onClick={() => handleTriggerReferencedAction('score')}
+                        className="inline-flex items-center gap-1 rounded-full border border-amber-500/50 bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-700 shadow-2xs hover:bg-amber-500 hover:text-black dark:border-amber-400/40 dark:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500 dark:hover:text-black transition"
+                      >
+                        <span>⭐ قيّم لي الصفقة دي وسكورها</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleTriggerReferencedAction('pros_cons')}
+                        className="inline-flex items-center gap-1 rounded-full border border-slate-300/80 bg-white/90 px-3 py-1 text-xs font-bold text-slate-700 shadow-2xs hover:bg-amber-500 hover:text-black dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-amber-500 dark:hover:text-black transition"
+                      >
+                        <span>⚖️ إيه عيوبها ومميزاتها بصراحة؟</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleTriggerReferencedAction('valuation')}
+                        className="inline-flex items-center gap-1 rounded-full border border-slate-300/80 bg-white/90 px-3 py-1 text-xs font-bold text-slate-700 shadow-2xs hover:bg-amber-500 hover:text-black dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-amber-500 dark:hover:text-black transition"
+                      >
+                        <span>💰 تسعيرها العادل وسرعة البيع</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleTriggerReferencedAction('installments')}
+                        className="inline-flex items-center gap-1 rounded-full border border-slate-300/80 bg-white/90 px-3 py-1 text-xs font-bold text-slate-700 shadow-2xs hover:bg-amber-500 hover:text-black dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-amber-500 dark:hover:text-black transition"
+                      >
+                        <span>🧮 احسب خطة أقساطها</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 

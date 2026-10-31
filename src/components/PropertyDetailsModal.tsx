@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Property } from '@/lib/types';
+import { getDirectPropertyUrl } from '@/lib/property-link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
   X,
@@ -74,13 +75,7 @@ export default function PropertyDetailsModal({
   };
 
   const isSellerListing = property.platform === 'SellerListing';
-  const affiliateUrl = isSellerListing
-    ? undefined
-    : property.affiliate_url || (
-        property.platform === 'TEKCE' 
-          ? 'https://tekce.com?utm_source=taff&utm_medium=6FPC68983C'
-          : 'https://launches.aqarmap.com/ar/expos/saudi-projects?utm_source=partners&utm_medium=dynamic&utm_campaign=affiliate_759279&partner_code=759279'
-      );
+  const directPropertyUrl = getDirectPropertyUrl(property);
 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md transition-all ${
@@ -424,16 +419,24 @@ export default function PropertyDetailsModal({
           )}
 
           {/* Official Partner Link (Only for Aqarmap/Tekce projects; NEVER for seller listings) */}
-          {affiliateUrl && !isSellerListing && (
+          {directPropertyUrl && !isSellerListing && (
             <a
-              href={affiliateUrl}
+              href={directPropertyUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs sm:text-sm font-bold text-amber-700 transition hover:bg-amber-500/20 dark:border-amber-400/30 dark:text-amber-400"
-              title={isAr ? 'فتح صفحة المشروع الرسمية على منصة الشريك المعتمد' : 'Open official project page'}
+              title={
+                property.platform === 'TEKCE'
+                  ? (isAr ? 'الموقع الرسمي ↗' : 'Official Page ↗')
+                  : (isAr ? 'فتح صفحة وإعلانات المشروع المباشرة على منصة عقارماب الرسمية' : 'Open direct project page & listings on official Aqarmap')
+              }
             >
               <ExternalLink className="h-4 w-4" />
-              <span className="hidden sm:inline">{isAr ? 'صفحة المشروع والأسعار الرسمية' : 'Official Project Page'}</span>
+              <span className="hidden sm:inline">
+                {property.platform === 'TEKCE'
+                  ? (isAr ? 'الموقع الرسمي ↗' : 'Official Page ↗')
+                  : (isAr ? 'فتح الإعلان على عقارماب ↗' : 'View on Aqarmap ↗')}
+              </span>
             </a>
           )}
         </div>

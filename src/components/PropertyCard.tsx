@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Property } from '@/lib/types';
+import { getDirectPropertyUrl } from '@/lib/property-link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { 
   Building2, 
@@ -22,7 +23,8 @@ import {
   CheckCircle2,
   ExternalLink,
   Sparkles,
-  Scale
+  Scale,
+  PhoneCall
 } from 'lucide-react';
 
 interface PropertyCardProps {
@@ -165,13 +167,7 @@ export default function PropertyCard({
   const coverImage = isSellerListing ? undefined : compound?.cover_image;
   const imageUrl = hasRealImage ? property.images![0] : coverImage;
 
-  const affiliateUrl = isSellerListing
-    ? undefined
-    : property.affiliate_url || (
-        isTekce 
-          ? 'https://tekce.com?utm_source=taff&utm_medium=6FPC68983C'
-          : 'https://launches.aqarmap.com/ar/expos/saudi-projects?utm_source=partners&utm_medium=dynamic&utm_campaign=affiliate_759279&partner_code=759279'
-      );
+  const directPropertyUrl = getDirectPropertyUrl(property);
 
   return (
     <div 
@@ -527,18 +523,41 @@ export default function PropertyCard({
             <span>{isAr ? 'طلب معاينة' : 'Visit'}</span>
           </button>
 
-          {/* Official Partner Affiliate Link (Only for verified developer projects, NEVER for seller listings) */}
-          {affiliateUrl && !isSellerListing && (
+          {/* Official Partner / Direct Property Link (Only for verified developer projects, NEVER for seller listings) */}
+          {directPropertyUrl && !isSellerListing && (
             <a
-              href={affiliateUrl}
+              href={directPropertyUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
               className="flex items-center justify-center gap-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2.5 py-2.5 text-xs font-bold text-amber-700 transition hover:bg-amber-500/20 active:scale-[0.98] dark:border-amber-400/30 dark:text-amber-400"
-              title={isAr ? 'فتح صفحة المشروع الرسمية على منصة الشريك' : 'Open official project page'}
+              title={
+                isTekce
+                  ? (isAr ? 'الموقع الرسمي ↗' : 'Official Site ↗')
+                  : (isAr ? 'فتح الإعلان على عقارماب ↗' : 'View on Aqarmap ↗')
+              }
             >
               <ExternalLink className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{isAr ? 'الموقع الرسمي' : 'Official'}</span>
+              <span className="hidden sm:inline">
+                {isTekce
+                  ? (isAr ? 'الموقع الرسمي ↗' : 'Official ↗')
+                  : (isAr ? 'فتح الإعلان على عقارماب ↗' : 'View on Aqarmap ↗')}
+              </span>
+            </a>
+          )}
+
+          {/* Seller Direct WhatsApp Link */}
+          {directPropertyUrl && isSellerListing && property.seller_phone && (
+            <a
+              href={directPropertyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center justify-center gap-1 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-2.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-500/20 active:scale-[0.98] dark:border-emerald-400/30 dark:text-emerald-400"
+              title={isAr ? 'تواصل مع صاحب الإعلان مباشرة عبر واتساب' : 'Chat with owner on WhatsApp'}
+            >
+              <PhoneCall className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{isAr ? 'واتساب المالك' : 'WhatsApp'}</span>
             </a>
           )}
         </div>
