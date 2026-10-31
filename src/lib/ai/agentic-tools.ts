@@ -1,5 +1,6 @@
 import { Property } from '@/lib/types';
 import { getAllCachedProperties } from '@/lib/real-estate-engine';
+import { createSellerProperty, updateSellerProperty, SellerPropertyInput } from '@/lib/seller-listings';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://csuifvyghfsibkrnxrby.supabase.co';
@@ -192,6 +193,115 @@ export const AGENTIC_TOOLS_SCHEMA = [
         }
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'list_property_for_sale',
+      description: 'إضافة وعرض وحدة عقارية أو قطعة أرض يريد العميل (المالك/البائع) بيعها في قاعدة بيانات المنصة لتظهر فوراً في بروفايله الجانبي وللباحثين عن الشراء. استدعِ هذه الأداة بمجرد أن يعطيك البائع بيانات الوحدة أو الأرض التي يريد بيعها (نوع العقار/الأرض، المنطقة، المساحة، السعر، وظروف البيع).',
+      parameters: {
+        type: 'object',
+        required: ['unit_type', 'location_text', 'area_sqm', 'total_price'],
+        properties: {
+          unit_type: {
+            type: 'string',
+            description: 'نوع العقار المراد بيعه: شقة، أرض، فيلا مستقلة، تاون هاوس، دوبلكس، بنتهاوس، استوديو، محل تجاري'
+          },
+          title: {
+            type: 'string',
+            description: 'عنوان مميز للإعلان (مثال: قطعة أرض سكنية 500م للبيع في بيت الوطن، أو شقة 165م سوبر لوكس بالتجمع)'
+          },
+          city: {
+            type: 'string',
+            description: 'المدينة أو المحافظة (مثال: القاهرة الجديدة، الشيخ زايد، 6 أكتوبر، العبور، الشروق، الساحل الشمالي)'
+          },
+          location_text: {
+            type: 'string',
+            description: 'المنطقة أو الحي أو الكمبوند أو رقم القطعة بالتفصيل'
+          },
+          area_sqm: {
+            type: 'number',
+            description: 'المساحة بالمتر المربع'
+          },
+          total_price: {
+            type: 'number',
+            description: 'إجمالي السعر المطلوب بالأرقام (مثال: 3500000)'
+          },
+          currency: {
+            type: 'string',
+            enum: ['EGP', 'USD', 'AED', 'EUR'],
+            description: 'العملة (افتراضياً EGP)'
+          },
+          bedrooms: {
+            type: 'number',
+            description: 'عدد غرف النوم (0 في حالة الأرض)'
+          },
+          bathrooms: {
+            type: 'number',
+            description: 'عدد الحمامات (0 في حالة الأرض)'
+          },
+          finishing_type: {
+            type: 'string',
+            description: 'حالة التشطيب للشقق/الفيلات، أو نوع الأرض ورخصة البناء للأراضي (مثال: أرض سكنية مرخصة بدروم وأرضي و3 أدوار)'
+          },
+          down_payment_pct: {
+            type: 'number',
+            description: 'نسبة المقدم المئوية (100 إذا كان البيع كاش فقط، أو نسبة المقدم مثل 20 أو 50 لو يقبل تقسيط)'
+          },
+          installment_years: {
+            type: 'number',
+            description: 'عدد سنوات التقسيط المتاحة (0 إذا كان البيع كاش فقط)'
+          },
+          delivery_date: {
+            type: 'string',
+            description: 'موعد الاستلام (استلام فوري، أو سنة التسليم)'
+          },
+          sale_circumstances: {
+            type: 'string',
+            description: 'ظروف البيع وكل التفاصيل المهمة للمشتري: هل البيع مستعجل؟ كاش ولا تقسيط؟ هل السعر قابل للتفاوض؟ هل عليها أقساط متبقية للشركة (أوفر برايس + متبقي) أم خالصة الثمن؟ موقف الرخصة والمرافق؟'
+          },
+          seller_name: {
+            type: 'string',
+            description: 'اسم المالك أو البائع إن ذكره'
+          },
+          seller_phone: {
+            type: 'string',
+            description: 'رقم هاتف المالك أو الواتساب للتواصل عند وجود مشتري جاد'
+          }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'update_my_listed_property',
+      description: 'تعديل بيانات وحدة أو أرض معروضة للبيع يملكها المستخدم الحالي (تظهر في seller_own_listed_units_for_sale في سياق المحادثة)، مثل تعديل السعر أو المساحة أو ظروف البيع أو رقم الهاتف.',
+      parameters: {
+        type: 'object',
+        required: ['property_id'],
+        properties: {
+          property_id: {
+            type: 'string',
+            description: 'معرف الوحدة (id) من قائمة seller_own_listed_units_for_sale'
+          },
+          title: { type: 'string' },
+          unit_type: { type: 'string' },
+          city: { type: 'string' },
+          location_text: { type: 'string' },
+          area_sqm: { type: 'number' },
+          total_price: { type: 'number' },
+          bedrooms: { type: 'number' },
+          bathrooms: { type: 'number' },
+          finishing_type: { type: 'string' },
+          down_payment_pct: { type: 'number' },
+          installment_years: { type: 'number' },
+          status: { type: 'string', description: 'متاح | محجوز | مباع' },
+          sale_circumstances: { type: 'string', description: 'تحديث ظروف البيع والتفاصيل' },
+          seller_phone: { type: 'string' }
+        }
+      }
+    }
   }
 ];
 
@@ -225,25 +335,30 @@ export async function executePropertySearch(args: SearchPropertiesArgs): Promise
   const limit = Math.min(Math.max(args.limit || 4, 1), 12);
   const offset = Math.max(args.offset || 0, 0);
 
-  // 1. Check unit type
+  // 1. Check unit type (supports apartments, villas, commercial, AND seller-listed plots of land 'أرض')
   if (args.unit_type) {
     const requestedType = args.unit_type.trim().toLowerCase();
-    
-    // Explicit handle for land (قاعدة البيانات لا تحتوي على أراضي حالياً)
-    if (requestedType.includes('أرض') || requestedType.includes('ارض') || requestedType.includes('land')) {
-      return {
-        found: 0,
-        message: 'لا توجد قطع أراضي مسجلة حالياً في قاعدة بياناتنا المعتمدة. الوحدات المتاحة تشمل شقق، فيلات، تاون هاوس، دوبلكس، استوديوهات ووحدات تجارية.',
-        properties: [],
-        filtersApplied: { unit_type: args.unit_type }
-      };
-    }
+    const isAskingLand = requestedType.includes('أرض') || requestedType.includes('ارض') || requestedType.includes('land');
 
     results = results.filter(p => {
       const pType = (p.unit_type || '').toLowerCase();
       const pTitle = (p.title || '').toLowerCase();
+      if (isAskingLand) {
+        return pType === 'أرض' || pType === 'ارض' || pType.includes('قطعة أرض') || pType.includes('land');
+      }
       return pType.includes(requestedType) || pTitle.includes(requestedType);
     });
+
+    if (isAskingLand && results.length === 0) {
+      return {
+        found: 0,
+        total_matches: 0,
+        all_matches: [],
+        message: 'لا توجد قطع أراضي معروضة حالياً تطابق هذا الشرط، لكن يمكنك عرض أرضك للبيع معنا أو طلب تسجيل رغبتك الشرائية لنتواصل معك فور عرض أرض مطابقة.',
+        properties: [],
+        filtersApplied: { unit_type: args.unit_type }
+      };
+    }
   }
 
   // 2. Currency Determination & Filtering
@@ -504,7 +619,78 @@ export async function executePropertyDetails(args: { property_id: string }): Pro
       developer: p.compound?.developer?.name,
       city: p.compound?.city,
       area_name: p.compound?.area_name,
+      location_text: p.location_text,
+      sale_circumstances: p.sale_circumstances,
+      listing_source: p.platform === 'SellerListing' ? 'معروض مباشرة من المالك' : 'مشروع مطور معتمد',
       country: p.compound?.country
+    }
+  };
+}
+
+
+export async function executeListPropertyForSale(ownerId: string, args: any, uploadedImages: string[] = []) {
+  const created = await createSellerProperty({
+    owner_id: ownerId,
+    unit_type: args.unit_type || 'شقة',
+    title: args.title,
+    city: args.city,
+    area_name: args.location_text || args.city,
+    location_text: args.location_text,
+    area_sqm: Number(args.area_sqm) || 120,
+    total_price: Number(args.total_price) || 1000000,
+    currency: args.currency || 'EGP',
+    bedrooms: args.bedrooms,
+    bathrooms: args.bathrooms,
+    finishing_type: args.finishing_type,
+    down_payment_pct: args.down_payment_pct,
+    installment_years: args.installment_years,
+    delivery_date: args.delivery_date,
+    sale_circumstances: args.sale_circumstances,
+    seller_name: args.seller_name,
+    seller_phone: args.seller_phone,
+    images: uploadedImages.length > 0 ? uploadedImages : undefined,
+  });
+
+  if (!created) {
+    return { success: false, error: 'تعذر حفظ الوحدة في قاعدة البيانات' };
+  }
+
+  return {
+    success: true,
+    property: created,
+    summary: {
+      id: created.id,
+      title: created.title,
+      unit_type: created.unit_type,
+      area_sqm: created.area_sqm,
+      total_price: `${created.total_price.toLocaleString()} ${created.currency}`,
+      location: created.location_text || created.compound?.area_name,
+      sale_circumstances: created.sale_circumstances,
+      message: 'تم تسجيل وإضافة الوحدة/الأرض بنجاح في قاعدة بيانات سكنى بوت وظهرت الآن في قائمة (وحداتي المعروضة للبيع) في الرف الجانبي للبروفايل، وأصبحت متاحة لترشيحها للمشترين الجادين فوراً.'
+    }
+  };
+}
+
+export async function executeUpdateSellerProperty(ownerId: string, args: any, uploadedImages: string[] = []) {
+  if (!args.property_id) {
+    return { success: false, error: 'property_id مطلوب لتعديل الوحدة' };
+  }
+  const patch = uploadedImages.length > 0 ? { ...args, images: uploadedImages } : args;
+  const updated = await updateSellerProperty(args.property_id, ownerId, patch);
+  if (!updated) {
+    return { success: false, error: 'تعذر تحديث الوحدة، تأكد من معرف الوحدة' };
+  }
+  return {
+    success: true,
+    property: updated,
+    summary: {
+      id: updated.id,
+      title: updated.title,
+      total_price: `${updated.total_price.toLocaleString()} ${updated.currency}`,
+      area_sqm: updated.area_sqm,
+      sale_circumstances: updated.sale_circumstances,
+      status: updated.status,
+      message: 'تم تحديث بيانات الوحدة بنجاح في قاعدة البيانات وفي الرف الجانبي.'
     }
   };
 }

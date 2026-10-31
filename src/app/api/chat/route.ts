@@ -7,6 +7,7 @@ import {
 } from '@/lib/real-estate-engine';
 import { runDeepSeekAgenticChat, isDeepSeekConfigured } from '@/lib/deepseek';
 import { sanitizeSessionContext, updateSessionContext } from '@/lib/ai/session-context';
+import { getSellerProperties } from '@/lib/seller-listings';
 import { checkAndIncrementDailyUsage, DAILY_LIMIT, GUEST_LIMIT } from '@/lib/usage-manager';
 import { createClient } from '@supabase/supabase-js';
 import { Property, SessionContext } from '@/lib/types';
@@ -90,7 +91,10 @@ function slimForTable(list: Property[]): Property[] {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const userMessage: string = (body.message || body.prompt || '').trim();
+    const rawMessage: string = (body.message || body.prompt || '').trim();
+    const attachedImages: string[] = Array.isArray(body.attachedImages) ? body.attachedImages.filter((x: any) => typeof x === 'string' && x.length > 5).slice(0, 6) : [];
+    const userMessage: string = rawMessage || (attachedImages.length > 0 ? 'أرفقت صور الوحدة الخاصة بي' : '');
+    const sellerOwnerId: string = body.sellerOwnerId || body.userId || body.clientId || 'guest_seller';
     const sessionId = body.sessionId || body.session_id;
     const userId = body.userId || body.user_id || null;
     const clientId = userId || body.clientId || sessionId || req.headers.get('x-forwarded-for') || 'guest_user';
@@ -146,6 +150,7 @@ export async function POST(req: NextRequest) {
     let allPropertiesToReturn: Property[] = [];
     let totalMatches = 0;
     let detectedIntent = 'search';
+    let sellerUpdated = false;
     let sessionContext: SessionContext = sanitizeSessionContext(body.sessionContext);
 
     // 3. AGENTIC EXECUTION: Pure LLM-driven Function Calling via DeepSeek (inspired by stokscan_AI)
@@ -164,12 +169,18 @@ export async function POST(req: NextRequest) {
           history.pop();
         }
 
+        const currentMyListings = await getSellerProperties(sellerOwnerId);
         const agenticResult = await runDeepSeekAgenticChat(
           userMessage,
           locale,
           history,
           sessionContext,
-          { phoneShared: Boolean(extractedPhone) }
+          {
+            phoneShared: Boolean(extractedPhone),
+            ownerId: sellerOwnerId,
+            myListings: currentMyListings,
+            attachedImages,
+          }
         );
         if (agenticResult && agenticResult.content) {
           finalContent = agenticResult.content;
@@ -177,6 +188,7 @@ export async function POST(req: NextRequest) {
           allPropertiesToReturn = agenticResult.allProperties || [];
           totalMatches = agenticResult.totalMatches || 0;
           sessionContext = agenticResult.sessionContext;
+          sellerUpdated = Boolean(agenticResult.sellerUpdated);
           detectedIntent = agenticResult.toolCallsCount > 0 ? 'agentic_search' : 'general';
         }
       } catch (aiErr) {
@@ -299,6 +311,8 @@ export async function POST(req: NextRequest) {
       allProperties: slimForTable(allPropertiesToReturn),
       totalMatches,
       sessionContext,
+      sellerUpdated,
+      myListings: sellerUpdated ? await getSellerProperties(sellerOwnerId) : undefined,
       suggestedActions: defaultSuggestedActions,
       intent: detectedIntent,
       aiProvider: (isDeepSeekConfigured() && !freeTest) ? 'deepseek-agentic' : 'grounded-engine',

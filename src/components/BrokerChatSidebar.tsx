@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChatSession } from '@/lib/types';
+import { ChatSession, Property } from '@/lib/types';
 import { 
   Plus, 
   MessageSquare, 
@@ -32,6 +32,8 @@ interface BrokerChatSidebarProps {
   onToggle: () => void;
   favoritesCount: number;
   onOpenFavorites: () => void;
+  myListings?: Property[];
+  onOpenSellerModal?: (mode?: 'list' | 'create', editProp?: Property | null) => void;
 }
 
 export default function BrokerChatSidebar({
@@ -45,7 +47,9 @@ export default function BrokerChatSidebar({
   isOpen,
   onToggle,
   favoritesCount,
-  onOpenFavorites
+  onOpenFavorites,
+  myListings = [],
+  onOpenSellerModal,
 }: BrokerChatSidebarProps) {
   const { theme, toggleTheme } = useTheme();
   const { locale, t, isRtl, currentLanguage } = useLanguage();
@@ -123,8 +127,8 @@ export default function BrokerChatSidebar({
           </button>
         </div>
 
-        {/* Favorites & Bookmarks quick pill */}
-        <div className="px-3 pt-3">
+        {/* Favorites & Seller Profile Units in Sidebar */}
+        <div className="px-3 pt-3 space-y-2">
           <button
             onClick={onOpenFavorites}
             className="flex w-full items-center justify-between rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-700 transition hover:bg-amber-500/15 dark:text-amber-400"
@@ -137,6 +141,63 @@ export default function BrokerChatSidebar({
               {favoritesCount}
             </span>
           </button>
+
+          {/* User's Own Listed Units for Sale (بروفايل البائع) */}
+          {onOpenSellerModal && (
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-2.5 dark:border-emerald-500/25 dark:bg-emerald-500/10">
+              <div className="flex items-center justify-between gap-1">
+                <button
+                  type="button"
+                  onClick={() => onOpenSellerModal('list', null)}
+                  className="flex flex-1 items-center justify-between text-xs font-black text-emerald-700 hover:underline dark:text-emerald-300"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5 shrink-0" />
+                    <span>{isRtl ? 'وحداتي المعروضة للبيع' : 'My Listed Units'}</span>
+                  </span>
+                  <span className="rounded-full bg-emerald-500 px-2 py-0.5 font-mono text-[10px] font-black text-black">
+                    {myListings.length}
+                  </span>
+                </button>
+              </div>
+
+              {myListings.length > 0 && (
+                <div className="mt-2 space-y-1.5 border-t border-emerald-500/20 pt-2">
+                  {myListings.slice(0, 3).map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => onOpenSellerModal('list', item)}
+                      className="flex cursor-pointer items-center justify-between gap-2 rounded-lg bg-white/80 px-2 py-1.5 text-[11px] transition hover:bg-white dark:bg-zinc-900/80 dark:hover:bg-zinc-900"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-slate-900 dark:text-white truncate">
+                          {item.unit_type}: {item.title}
+                        </div>
+                        <div className="text-[10px] font-black text-amber-600 dark:text-amber-400">
+                          {(item.total_price || 0).toLocaleString()} {item.currency} • {item.area_sqm}م²
+                        </div>
+                      </div>
+                      <span
+                        className="shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400"
+                        title={isRtl ? 'تعديل الوحدة' : 'Edit'}
+                      >
+                        <Edit2 className="h-3 w-3" />
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => onOpenSellerModal('create', null)}
+                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-500 px-2.5 py-1.5 text-[11px] font-black text-black transition hover:bg-emerald-400"
+              >
+                <Plus className="h-3.5 w-3.5 stroke-[3]" />
+                <span>{isRtl ? 'اعرض وحدة أو أرض للبيع' : 'List Unit / Land for Sale'}</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Quick Discovery Presets */}

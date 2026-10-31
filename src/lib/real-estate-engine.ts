@@ -202,6 +202,56 @@ let cachedProperties: Property[] | null = null;
 let lastCacheTimestamp = 0;
 const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes cache for fresh live updates
 
+export function invalidatePropertiesCache() {
+  cachedProperties = null;
+  lastCacheTimestamp = 0;
+}
+
+function hydrateSellerListing(raw: Property): Property {
+  if (!raw || raw.platform !== 'SellerListing') return raw;
+  const p: Property = { ...raw };
+  let meta: Record<string, any> = {};
+  if (typeof p.affiliate_url === 'string' && p.affiliate_url.trim().startsWith('{')) {
+    try {
+      meta = JSON.parse(p.affiliate_url);
+    } catch {}
+  }
+  p.seller_user_id = meta.seller_user_id || undefined;
+  p.seller_name = meta.seller_name || undefined;
+  p.seller_phone = meta.seller_phone || undefined;
+  p.location_text = meta.location_text || meta.area_name || meta.city || undefined;
+  p.sale_circumstances = meta.sale_circumstances || undefined;
+  p.affiliate_url = undefined;
+
+  const city = meta.city || p.compound?.city || 'مصر';
+  const areaName = meta.area_name || meta.location_text || p.compound?.area_name || city;
+  p.compound = {
+    id: p.project_id,
+    developer_id: p.compound?.developer_id || '',
+    name: meta.location_text ? `${meta.location_text} (${city})` : `عروض الملاك المباشرة — ${areaName}`,
+    slug: p.compound?.slug || 'seller-direct-listing',
+    country: p.compound?.country || 'Egypt',
+    city,
+    area_name: areaName,
+    platform: 'SellerListing',
+    description: meta.sale_circumstances
+      ? `تفاصيل وظروف البيع من المالك مباشرة: ${meta.sale_circumstances}`
+      : p.compound?.description || 'وحدة معروضة للبيع مباشرة من المالك عبر منصة سكنى بوت.',
+    amenities: p.compound?.amenities?.length ? p.compound.amenities : ['معروض من المالك مباشرة', 'معاينة بالتنسيق المباشر'],
+    delivery_year: p.compound?.delivery_year || new Date().getFullYear(),
+    cover_image: p.images?.[0] || p.compound?.cover_image,
+    developer: {
+      id: p.compound?.developer?.id || 'seller-direct',
+      name: meta.seller_name ? `المالك: ${meta.seller_name}` : 'مالك مباشر (عروض الأفراد)',
+      slug: 'direct-owner',
+      phone: meta.seller_phone || undefined,
+      whatsapp: meta.seller_phone || undefined,
+      reputation_score: 4.9,
+    },
+  };
+  return p;
+}
+
 /**
  * Fetch and cache all active properties from Supabase
  * Eliminates repetitive database joins and guarantees zero heavy processing on Vercel
@@ -240,14 +290,14 @@ export async function getAllCachedProperties(forceRefresh = false): Promise<Prop
           )
         )
       `)
-      .order('featured', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error || !data) {
       console.error('Supabase property query error:', error);
       return cachedProperties || [];
     }
 
-    cachedProperties = data as Property[];
+    cachedProperties = (data as Property[]).map(hydrateSellerListing);
     lastCacheTimestamp = now;
     return cachedProperties;
   } catch (err) {
@@ -263,11 +313,6 @@ export async function getAllCachedProperties(forceRefresh = false): Promise<Prop
 export async function queryProperties(filter: PropertyFilter): Promise<Property[]> {
   const allProperties = await getAllCachedProperties();
   let results = [...allProperties];
-
-  // 1. Explicit handle for land (قاعدة البيانات لا تحتوي على أراضي)
-  if (filter.unit_type && (filter.unit_type.includes('أرض') || filter.unit_type.includes('ارض') || filter.unit_type.includes('land'))) {
-    return [];
-  }
 
   if (filter.bedrooms) {
     results = results.filter(p => p.bedrooms === filter.bedrooms);

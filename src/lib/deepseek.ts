@@ -3,13 +3,10 @@
  * Endpoint: https://api.deepseek.com/chat/completions
  * Model: deepseek-chat (OpenAI-compatible Function Calling)
  *
- * Architecture mirrors the stokscan_AI agentic pipeline:
- *  1. The model decides by itself whether a tool is needed (no rigid regex gates).
- *  2. Multi-round tool loop (search -> refine -> answer) with parallel tool execution.
- *  3. Conversation memory: a session-context system message (last search, units shown,
- *     focused unit, buyer profile) + compact recent history, so follow-ups such as
- *     "التانية دي بكام؟" or "وريني أرخص واحدة" are understood.
- *  4. 100% grounded answers: only tool results are allowed as a source of prices/units.
+ * Supports two-sided real estate brokerage (شراء + بيع):
+ *  - Buyers: search properties/lands, view details, calculate installments, book viewings.
+ *  - Sellers: list apartments/villas/lands for sale with full sale circumstances (ظروف البيع)
+ *    and photos uploaded directly from chat or the sidebar profile, and update their listings.
  */
 
 import { Property, SessionContext } from '@/lib/types';
@@ -19,6 +16,8 @@ import {
   executeInstallmentCalculation,
   executeLeadRecording,
   executePropertyDetails,
+  executeListPropertyForSale,
+  executeUpdateSellerProperty,
 } from './ai/agentic-tools';
 import {
   buildContextSystemMessage,
@@ -39,12 +38,14 @@ export interface AgenticChatResult {
   content: string;
   /** Cards shown inline (max 4). */
   properties: Property[];
-  /** Full result list for the "view all" table (only when more than 4 matched). */
+  /** Full result list for the inline results table. */
   allProperties: Property[];
   totalMatches: number;
   toolCallsCount: number;
   /** Updated conversation memory to echo back to the client. */
   sessionContext: SessionContext;
+  /** True when a seller unit/land was created or updated during this turn. */
+  sellerUpdated?: boolean;
 }
 
 const CARDS_PER_REPLY = 4;
@@ -57,33 +58,39 @@ export function isDeepSeekConfigured(): boolean {
   return Boolean(key && key.trim().length > 10 && !key.includes('placeholder'));
 }
 
-const SYSTEM_PROMPT = `أنت "سكنى بوت" (sakanybot) — مستشارك العقاري الذكي والبروكر المعتمد في مصر (التجمع الخامس، الشيخ زايد، العاصمة الإدارية، 6 أكتوبر، مدينتي) ودولياً (دبي، إسبانيا، تركيا).
+const SYSTEM_PROMPT = `أنت "سكنى بوت" (sakanybot) — مستشارك العقاري الذكي والبروكر المعتمد للـ **شراء والبيع** في مصر (التجمع الخامس، الشيخ زايد، العاصمة الإدارية، 6 أكتوبر، مدينتي، الشروق، العبور، الساحل) ودولياً (دبي، إسبانيا، تركيا).
 
-الأدوات:
-1. "search_properties": للبحث في قاعدة بيانات العقارات الحقيقية والمحدثة.
-   - عند أي سؤال عن ميزانية ("في حدود 20 مليون"، "بـ 3 مليون"، "أقل من 5 مليون") أو نوع عقار (شقة، فيلا، استوديو، دوبلكس، أرض) أو منطقة، استدعِ الأداة فوراً بالمحددات الدقيقة (مثل target_price: 20000000).
-   - لا تجب من الذاكرة ولا تخمّن أسعاراً؛ اعتمد 100% على ما ترجعه الأدوات.
-   - إذا سأل عن نوع غير متاح (كالأراضي) ورجعت الأداة بعدم وجوده، وضّح ذلك بلطف ورشّح البدائل في ميزانيته.
-2. "get_property_details": للتفاصيل الكاملة لوحدة معروضة بالفعل (مرافق، تسليم، تشطيب، مطور...).
-3. "calculate_installments": لحساب المقدم والأقساط.
-4. "record_customer_lead": عند كتابة العميل رقم هاتفه أو طلبه معاينة.
-5. التحية والشكر والدردشة العامة: أجب بإيجاز بدون أدوات وبدون عرض عقارات، ولا تمسح السياق.
+الأدوات المتاحة لك:
+1. "search_properties": للبحث عن عقارات أو قطع أراضي معروضة للبيع (سواء من مشاريع المطورين أو من عروض الملاك المباشرة).
+   - استدعِها فوراً عند أي سؤال شرائي بمحددات العميل الدقيقة (target_price, unit_type, location, bedrooms, installment_years, down_payment_pct, sort).
+2. "get_property_details": لجلب التفاصيل الكاملة وظروف البيع لوحدة معروضة بالفعل.
+3. "calculate_installments": لحساب المقدم والأقساط الشهرية والربع سنوية بدقة.
+4. "record_customer_lead": لحفظ رقم هاتف المشتري وتنسيق معاينة.
+5. "list_property_for_sale": لإضافة وتسجيل وحدة عقارية أو قطعة أرض يريد العميل (المالك/البائع) بيعها في قاعدة بياناتنا!
+   - إذا قال العميل "عايز أبيع شقة / أرض / فيلا..." ولم يذكر البيانات الأساسية بعد، اسأله بلطف وبأسلوب بروكر محترف عن:
+     1) نوع العقار أو الأرض (شقة، قطعة أرض، فيلا، محل...) والمنطقة/الحي بالتفصيل.
+     2) المساحة بالمتر المربع (وعدد الغرف والتشطيب للشقق، أو نوع الرخصة والنشاط للأرض).
+     3) السعر المطلوب وطريقة الدفع (كاش فقط أم يقبل تقسيط؟).
+     4) **ظروف البيع (مهم جداً):** هل البيع مستعجل؟ هل السعر قابل للتفاوض؟ هل عليها أقساط متبقية للشركة (أوفر برايس + متبقي) أم خالصة الثمن؟
+     5) رقم هاتفه للتواصل، وذكّره أنه يقدر يرفع صور وحدته مباشرة من زر الصور 📷 في الشات أو من قسم "وحداتي المعروضة للبيع" في الرف الجانبي.
+   - بمجرد أن تتوفر لديك البيانات الأساسية (نوع العقار/الأرض، المنطقة، المساحة، والسعر)، استدعِ "list_property_for_sale" فوراً لتسجيلها في قاعدة البيانات وفي بروفايله الجانبي، وأكّد له أنه يمكنه أيضاً تعديلها أو إضافة صور لها في أي وقت من الرف الجانبي أو من الشات.
+   - إذا أرفق العميل صوراً في رسالته، الأداة ستربط الصور بوحدته تلقائياً.
+6. "update_my_listed_property": لتعديل أي وحدة يملكها العميل حالياً (موجودة في seller_own_listed_units_for_sale في سياق المحادثة) مثل تعديل السعر، المساحة، ظروف البيع، أو إضافة صور جديدة أرفقها في الشات.
+7. التحية والدردشة العامة: أجب بإيجاز وود بدون استدعاء أدوات.
 
-الذاكرة وفهم سياق المحادثة (مهم جداً):
-- يصلك دائماً (عند وجود سياق) رسالة "سياق المحادثة" فيها: آخر بحث (last_search_args)، الوحدات التي عُرضت على العميل في الرد السابق مرقمة n=1..4، الوحدة التي يتصفحها العميل الآن (unit_user_is_looking_at_now)، وملف العميل (ميزانيته ومناطقه المفضلة ونوع الوحدة).
-- عبارات الإشارة مثل "دي"، "دي بكام"، "الأولى"، "التانية"، "الأخيرة"، "اللي قبلها"، "الأرخص منهم" تشير لتلك الوحدات: إن وُجدت unit_user_is_looking_at_now فهي المقصودة بـ "دي/هذه"، وإلا فاستخدم الوحدات المعروضة حسب الترتيب n. لا تسأل العميل "تقصد أنهي وحدة؟" إلا إذا كانت الإشارة غامضة فعلاً.
-- أسئلة المتابعة التي تعدّل البحث ("أرخص"، "3 غرف"، "في الشيخ زايد"، "فيلا بدل شقة"، "بميزانية أقل") ادمج فيها شروط last_search_args مع التعديل واستدعِ search_properties من جديد. "أرخص/أغلى/أكبر واحدة" = نفس الشروط السابقة مع sort المناسب.
-- عند تغيير الدولة أو العملة (مثلاً من التجمع إلى دبي) لا تنقل الميزانية القديمة إلا إذا ذكرها العميل بنفس العملة.
-- الأسئلة عن وحدة معروضة بالفعل (مواصفاتها، مرافقها، قسطها): لا تعد البحث. استخدم get_property_details بمعرّفها (وتظهر بطاقتها تلقائياً) أو احسب القسط بـ calculate_installments من سعرها ومقدمها ومدتها الموجودة في السياق دون سؤال العميل عنها.
-- راعِ ملف العميل (ميزانيته ومناطقه) في اقتراحاتك، ولا تسأله عن شيء ذكره سابقاً.
+الذاكرة وفهم سياق المحادثة:
+- يصلك دائماً في "سياق المحادثة":
+  - "seller_own_listed_units_for_sale": وحدات وأراضي العميل المعروضة للبيع حالياً (إن وجدت) بمعرّفاتها (id) وأسعارها وظروف بيعها.
+  - "last_search_args": آخر بحث شرائي.
+  - "units_shown_to_user_in_last_reply": الوحدات المعروضة في آخر رد مرقمة n=1..4.
+  - "unit_user_is_looking_at_now": الوحدة المفتوحة أمامه الآن.
+  - "pending_uploaded_images_ready_to_attach": عدد الصور التي رفعها العميل في الشات وجاهزة للربط بوحدته.
+- عبارات مثل "الأولى"، "التانية"، "دي"، "عدّل وحدتي"، "ضف الصور دي لشقتي" افهمها فوراً من السياق واستدعِ الأداة المناسبة دون سؤال العميل "أنهي وحدة؟".
 
 أسلوب الرد:
 - راقٍ ومهني وموجز (فقرتان إلى 3 فقرات مركزة) وبلغة العميل.
-- الواجهة تعرض تحت ردك مباشرةً 4 كروت مصورة + جدول تفاعلي بنتائج البحث (بداخله زر "عرض البيانات" لكل وحدة، وتحت الجدول زر "إظهار الكل" لعرض باقي نتائج هذا البحث). لذلك لا تذكر أرقاماً ضخمة لقاعدة البيانات، بل تحدث فقط عن نتائج البحث المطابقة المعروضة في الكروت والجدول بالأسفل.
-- لا تسرد جداولاً ضخمة لأن الواجهة تعرض الكروت التفاعلية بالصور والأسعار مباشرة.
-- وضّح ميزة كل وحدة ومقدمها وفترة تقسيطها، وأنهِ بدعوة لمعاينة مجانية أو توصيله بإدارة المشروع بدون مكالمات سيلز مزعجة.`;
+- الواجهة تعرض تحت ردك مباشرةً 4 كروت مصورة + جدول تفاعلي بنتائج البحث (بداخله زر "عرض البيانات" لكل وحدة، وتحت الجدول زر "إظهار الكل" لعرض باقي نتائج هذا البحث). لذلك لا تذكر أرقاماً ضخمة لقاعدة البيانات، بل تحدث فقط عن نتائج البحث المطابقة المعروضة في الكروت والجدول بالأسفل.`;
 
-/** Keep recent turns, trimmed, so long replies do not flood the context window. */
 function compactHistory(
   history: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>
 ): Array<{ role: 'user' | 'assistant'; content: string }> {
@@ -113,15 +120,17 @@ async function callDeepSeek(apiKey: string, body: Record<string, any>) {
   return data.choices?.[0]?.message || null;
 }
 
-/**
- * Run the agentic chat turn with DeepSeek function calling + conversation memory.
- */
 export async function runDeepSeekAgenticChat(
   userPrompt: string,
   locale: string = 'ar',
   conversationHistory: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [],
   context: SessionContext = emptySessionContext(),
-  options: { phoneShared?: boolean } = {}
+  options: {
+    phoneShared?: boolean;
+    ownerId?: string;
+    myListings?: Property[];
+    attachedImages?: string[];
+  } = {}
 ): Promise<AgenticChatResult | null> {
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!isDeepSeekConfigured() || !apiKey) {
@@ -129,11 +138,29 @@ export async function runDeepSeekAgenticChat(
   }
 
   const isAr = locale === 'ar';
+  const ownerId = options.ownerId || 'guest_seller';
+  const myListings = options.myListings || [];
+  let pendingImages = [
+    ...(context.pending_images || []),
+    ...(options.attachedImages || []),
+  ].slice(0, 6);
+
+  const tempCtx: SessionContext = { ...context, pending_images: pendingImages };
   const messages: any[] = [{ role: 'system', content: SYSTEM_PROMPT }];
-  if (context.turns > 0 || context.shown.length || context.focus) {
-    messages.push({ role: 'system', content: buildContextSystemMessage(context) });
+  if (tempCtx.turns > 0 || tempCtx.shown.length || tempCtx.focus || myListings.length > 0 || pendingImages.length > 0) {
+    messages.push({
+      role: 'system',
+      content: buildContextSystemMessage(tempCtx, myListings.map(toShownUnit)),
+    });
   }
-  messages.push(...compactHistory(conversationHistory), { role: 'user', content: userPrompt });
+
+  const promptWithImageNote =
+    options.attachedImages && options.attachedImages.length > 0
+      ? `${userPrompt}
+[ملاحظة نظام: أرفق المستخدم مع هذه الرسالة ${options.attachedImages.length} صورة لوحدته وجاهزة للحفظ التلقائي عند استدعاء list_property_for_sale أو update_my_listed_property]`
+      : userPrompt;
+
+  messages.push(...compactHistory(conversationHistory), { role: 'user', content: promptWithImageNote });
 
   let searchCards: Property[] = [];
   const detailCards: Property[] = [];
@@ -142,15 +169,19 @@ export async function runDeepSeekAgenticChat(
   let lastSearchArgs: Record<string, any> | null = null;
   let toolCallsCount = 0;
   let finalContent = '';
+  let sellerUpdated = false;
 
   try {
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
       const allowTools = round < MAX_TOOL_ROUNDS;
-      const assistant = await callDeepSeek(apiKey, allowTools ? { messages, tools: AGENTIC_TOOLS_SCHEMA, tool_choice: 'auto' } : { messages });
+      const assistant = await callDeepSeek(
+        apiKey,
+        allowTools ? { messages, tools: AGENTIC_TOOLS_SCHEMA, tool_choice: 'auto' } : { messages }
+      );
 
       if (!assistant) {
         if (round === 0) return null;
-        break; // keep whatever the tools already produced
+        break;
       }
 
       const calls: any[] = allowTools ? assistant.tool_calls || [] : [];
@@ -181,7 +212,7 @@ export async function runDeepSeekAgenticChat(
             totalMatches = res.total_matches || 0;
             output = {
               found_count: res.found,
-              total_matches_in_database: res.total_matches,
+              total_matches_for_this_search: res.total_matches,
               offset: res.offset,
               message: res.message,
               properties_summary: res.properties.map(p => ({
@@ -190,22 +221,42 @@ export async function runDeepSeekAgenticChat(
                 type: p.unit_type,
                 price: `${p.total_price.toLocaleString()} ${p.currency}`,
                 compound: p.compound?.name,
-                location: p.compound?.city || p.compound?.area_name,
+                location: p.location_text || p.compound?.city || p.compound?.area_name,
                 down_payment: `${p.down_payment_pct}% (${(p.down_payment_amount || 0).toLocaleString()} ${p.currency})`,
                 installment_years: p.installment_years,
                 monthly_installment: p.monthly_installment,
                 bedrooms: p.bedrooms,
                 area_sqm: p.area_sqm,
+                sale_circumstances: p.sale_circumstances,
+                listing_source: p.platform === 'SellerListing' ? 'معروض مباشرة من المالك' : 'مشروع مطور معتمد',
               })),
             };
           } else if (fnName === 'get_property_details') {
             const res = await executePropertyDetails(args);
-            if (res.found && res.property && !detailCards.some(c => c.id === res.property!.id)) detailCards.push(res.property);
+            if (res.found && res.property && !detailCards.some(c => c.id === res.property!.id)) {
+              detailCards.push(res.property);
+            }
             output = res.found ? res.details : { error: 'الوحدة غير موجودة في قاعدة البيانات' };
           } else if (fnName === 'calculate_installments') {
             output = executeInstallmentCalculation(args);
           } else if (fnName === 'record_customer_lead') {
             output = await executeLeadRecording(args);
+          } else if (fnName === 'list_property_for_sale') {
+            const res = await executeListPropertyForSale(ownerId, args, pendingImages);
+            if (res.success && res.property) {
+              sellerUpdated = true;
+              pendingImages = []; // consumed
+              detailCards.push(res.property);
+            }
+            output = res.success ? res.summary : { error: res.error };
+          } else if (fnName === 'update_my_listed_property') {
+            const res = await executeUpdateSellerProperty(ownerId, args, pendingImages);
+            if (res.success && res.property) {
+              sellerUpdated = true;
+              pendingImages = []; // consumed
+              detailCards.push(res.property);
+            }
+            output = res.success ? res.summary : { error: res.error };
           } else {
             output = { error: `Tool ${fnName} not recognized` };
           }
@@ -224,10 +275,9 @@ export async function runDeepSeekAgenticChat(
   const cards = searched ? searchCards : detailCards.slice(0, CARDS_PER_REPLY);
 
   if (!finalContent) {
-    // Model failed after tools ran: still give a grounded, concise answer.
     finalContent = isAr
-      ? `وجدت لك ${totalMatches || cards.length} وحدة مطابقة لطلبك. تفقّد الكروت بالأسفل.`
-      : `Found ${totalMatches || cards.length} units matching your request. See the cards below.`;
+      ? `وجدت لك ${totalMatches || cards.length} وحدة مطابقة لطلبك. تفقّد الكروت والجدول بالأسفل.`
+      : `Found ${totalMatches || cards.length} units matching your request. See the cards and table below.`;
   }
 
   const sessionContext = updateSessionContext(context, {
@@ -236,6 +286,7 @@ export async function runDeepSeekAgenticChat(
     total: totalMatches,
     focus: !searched && detailCards.length === 1 ? toShownUnit(detailCards[0]) : undefined,
     phoneShared: options.phoneShared,
+    pendingImages,
   });
 
   return {
@@ -245,5 +296,6 @@ export async function runDeepSeekAgenticChat(
     totalMatches,
     toolCallsCount,
     sessionContext,
+    sellerUpdated,
   };
 }

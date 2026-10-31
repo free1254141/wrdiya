@@ -60,6 +60,11 @@ export interface Property {
   platform?: 'Aqarmap' | 'TEKCE' | string;
   partner_code?: string; // Stored securely on backend, not displayed to customer
   affiliate_url?: string; // Direct URL containing tracking params
+  seller_user_id?: string;
+  seller_name?: string;
+  seller_phone?: string;
+  location_text?: string;
+  sale_circumstances?: string;
   created_at?: string;
   compound?: CompoundProject;
 }
@@ -112,6 +117,7 @@ export interface ChatMessage {
   content: string;
   properties?: Property[];
   all_properties?: Property[];
+  attached_images?: string[];
   total_matches?: number;
   session_context?: SessionContext;
   suggested_actions?: string[];
@@ -133,6 +139,7 @@ export interface ShownUnit {
   down_payment_amount?: number;
   monthly_installment?: number;
   installment_years?: number;
+  sale_circumstances?: string;
 }
 
 /** Per-session conversation memory returned by /api/chat and echoed back by the client. */
@@ -149,5 +156,6 @@ export interface SessionContext {
     bedrooms?: number;
     phone_shared?: boolean;
   };
+  pending_images?: string[];
   turns: number;
 }

@@ -22,7 +22,9 @@ import {
   TrendingUp,
   MapPin,
   ExternalLink,
-  LogOut
+  LogOut,
+  ImagePlus,
+  X
 } from 'lucide-react';
 import { Property, ChatSession, ChatMessage, SessionContext } from '@/lib/types';
 import { emptySessionContext, toShownUnit } from '@/lib/ai/session-context';
@@ -41,6 +43,7 @@ import AuthModal from '@/components/AuthModal';
 import PropertyDetailsModal from '@/components/PropertyDetailsModal';
 import PropertiesTableModal from '@/components/PropertiesTableModal';
 import InlinePropertiesTable from '@/components/InlinePropertiesTable';
+import SellerPropertiesModal from '@/components/SellerPropertiesModal';
 
 export default function SkanybotChatPage() {
   const { locale, t, dir, isRtl } = useLanguage();
@@ -94,6 +97,69 @@ export default function SkanybotChatPage() {
   // Full results table (shown when a search matches more than the 4 cards)
   const [tableProps, setTableProps] = useState<{ list: Property[]; total: number } | null>(null);
   const [sessionContext, setSessionContext] = useState<SessionContext>(() => emptySessionContext());
+
+  // Seller Marketplace State (وحداتي المعروضة للبيع + رفع صور من الشات)
+  const [localSellerId, setLocalSellerId] = useState<string>('guest_seller');
+  const [myListings, setMyListings] = useState<Property[]>([]);
+  const [sellerModalOpen, setSellerModalOpen] = useState(false);
+  const [sellerModalMode, setSellerModalMode] = useState<'list' | 'create'>('list');
+  const [sellerEditingProp, setSellerEditingProp] = useState<Property | null>(null);
+  const [chatAttachedImages, setChatAttachedImages] = useState<string[]>([]);
+
+  const sellerOwnerId = user?.id || localSellerId;
+
+  const refreshMyListings = async (oid?: string) => {
+    const targetOwner = oid || user?.id || localSellerId;
+    if (!targetOwner) return;
+    try {
+      const res = await fetch(`/api/seller/properties?ownerId=${encodeURIComponent(targetOwner)}`);
+      if (res.ok) {
+        const d = await res.json();
+        if (Array.isArray(d.properties)) setMyListings(d.properties);
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    try {
+      let sid = localStorage.getItem('skanybot_seller_owner_id');
+      if (!sid) {
+        sid = `seller_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        localStorage.setItem('skanybot_seller_owner_id', sid);
+      }
+      setLocalSellerId(sid);
+      refreshMyListings(user?.id || sid);
+    } catch {}
+  }, [user?.id]);
+
+  const handleChatImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    Array.from(files)
+      .slice(0, 4)
+      .forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const maxW = 900;
+            const scale = Math.min(1, maxW / img.width);
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+              setChatAttachedImages((prev) => [...prev.slice(0, 5), dataUrl]);
+            }
+          };
+          img.src = String(ev.target?.result || '');
+        };
+        reader.readAsDataURL(file);
+      });
+    e.target.value = '';
+  };
 
   const openPropertyDetails = (p: Property) => {
     setSelectedPropertyForDetails(p);
@@ -432,8 +498,10 @@ export default function SkanybotChatPage() {
   };
 
   const handleSendMessage = async (textToSend?: string) => {
-    const query = (textToSend || inputText).trim();
-    if (!query || loading) return;
+    const rawQuery = (textToSend || inputText).trim();
+    const imagesToSend = textToSend ? [] : [...chatAttachedImages];
+    const query = rawQuery || (imagesToSend.length > 0 ? (isRtl ? 'دي صور الوحدة اللي عايز أبيعها' : 'Here are the photos of my property for sale') : '');
+    if ((!query && imagesToSend.length === 0) || loading) return;
 
     // ── 1. Guest Check: Must login after 3 messages ──
     if (!user) {
@@ -462,6 +530,7 @@ export default function SkanybotChatPage() {
     }
 
     setInputText('');
+    if (!textToSend) setChatAttachedImages([]);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
@@ -477,6 +546,7 @@ export default function SkanybotChatPage() {
       session_id: currSessionId,
       role: 'user',
       content: query,
+      attached_images: imagesToSend.length > 0 ? imagesToSend : undefined,
       created_at: new Date().toISOString()
     };
 
@@ -503,7 +573,9 @@ export default function SkanybotChatPage() {
           message: query,
           locale: locale,
           history: newHistory.slice(-10),
-          sessionContext
+          sessionContext,
+          sellerOwnerId,
+          attachedImages: imagesToSend
         })
       });
 
@@ -548,6 +620,13 @@ export default function SkanybotChatPage() {
       if (data.sessionContext) {
         setSessionContext(data.sessionContext);
         try { localStorage.setItem(`skanybot_ctx_${currSessionId}`, JSON.stringify(data.sessionContext)); } catch {}
+      }
+      if (data.sellerUpdated) {
+        if (Array.isArray(data.myListings)) {
+          setMyListings(data.myListings);
+        } else {
+          refreshMyListings();
+        }
       }
 
       try {
@@ -606,6 +685,12 @@ export default function SkanybotChatPage() {
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         favoritesCount={favorites.length}
         onOpenFavorites={() => setFavoritesModalOpen(true)}
+        myListings={myListings}
+        onOpenSellerModal={(mode = 'list', editProp = null) => {
+          setSellerModalMode(mode);
+          setSellerEditingProp(editProp);
+          setSellerModalOpen(true);
+        }}
       />
 
       {/* Main Chat Area */}
@@ -790,6 +875,20 @@ export default function SkanybotChatPage() {
                         }`}>
                           <MarkdownRenderer content={msg.content} />
 
+                          {/* User Attached Photos in Chat Bubble */}
+                          {msg.attached_images && msg.attached_images.length > 0 && (
+                            <div className="mt-2.5 flex flex-wrap gap-2">
+                              {msg.attached_images.map((imgUrl, i) => (
+                                <img
+                                  key={i}
+                                  src={imgUrl}
+                                  alt="صورة مرفقة"
+                                  className="h-24 w-32 rounded-xl object-cover border border-amber-500/40 shadow-xs"
+                                />
+                              ))}
+                            </div>
+                          )}
+
                           {/* Grounded Property Cards – horizontal scroll on mobile, 2-col grid on sm+ */}
                           {msg.properties && msg.properties.length > 0 && (
                             <div className="mt-4 flex gap-3 overflow-x-auto pb-2.5 pt-1 snap-x snap-mandatory no-scrollbar sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 sm:pt-0 sm:gap-4">
@@ -877,34 +976,74 @@ export default function SkanybotChatPage() {
         {/* Floating Input Area (ChatGPT Style) */}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white/95 to-transparent pt-6 pb-4 px-4 sm:px-6 md:px-8 dark:from-zinc-950 dark:via-zinc-950/95">
           <div className="mx-auto max-w-3xl">
-            <div className="relative flex items-end rounded-3xl border border-slate-300/80 bg-white shadow-lg transition-all focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/20 dark:border-zinc-800 dark:bg-zinc-900/90 dark:focus-within:border-amber-400">
-              <textarea
-                ref={textareaRef}
-                rows={1}
-                value={inputText}
-                onChange={handleInputResize}
-                onKeyDown={handleKeyDown}
-                placeholder={t.searchPlaceholder}
-                className={`max-h-44 flex-1 resize-none bg-transparent py-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden dark:text-white dark:placeholder:text-zinc-500 ${
-                  isRtl ? 'pr-5 pl-14 text-right' : 'pl-5 pr-14 text-left'
-                }`}
-              />
+            <div className="rounded-3xl border border-slate-300/80 bg-white shadow-lg transition-all focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/20 dark:border-zinc-800 dark:bg-zinc-900/90 dark:focus-within:border-amber-400">
+              {/* Preview strip when photos are attached in chat */}
+              {chatAttachedImages.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 border-b border-slate-200/70 px-4 pt-3 pb-2 dark:border-zinc-800">
+                  {chatAttachedImages.map((img, i) => (
+                    <div key={i} className="relative h-14 w-20 overflow-hidden rounded-xl border border-amber-500/50">
+                      <img src={img} alt="" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setChatAttachedImages((prev) => prev.filter((_, idx) => idx !== i))}
+                        className="absolute top-0.5 right-0.5 rounded-full bg-black/75 p-0.5 text-white hover:bg-rose-600"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                    {isRtl ? `تم إرفاق ${chatAttachedImages.length} صورة للوحدة` : `${chatAttachedImages.length} photo(s) attached`}
+                  </span>
+                </div>
+              )}
 
-              {/* Send Button */}
-              <button
-                onClick={() => handleSendMessage()}
-                disabled={!inputText.trim() || loading}
-                className={`absolute bottom-2.5 grid h-9 w-9 place-items-center rounded-2xl bg-amber-500 text-black transition hover:bg-amber-400 disabled:opacity-40 disabled:hover:bg-amber-500 ${
-                  isRtl ? 'left-2.5' : 'right-2.5'
-                }`}
-                title="Send"
-              >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <ArrowUp className="h-4 w-4 stroke-[3]" />
-                )}
-              </button>
+              <div className="relative flex items-end">
+                {/* Upload Unit Photos Button inside Chat Bar */}
+                <label
+                  className={`mb-2.5 grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 transition hover:border-amber-500 hover:bg-amber-500/10 hover:text-amber-600 dark:border-zinc-800 dark:bg-zinc-800/80 dark:text-zinc-300 dark:hover:text-amber-400 ${
+                    isRtl ? 'mr-2.5' : 'ml-2.5'
+                  }`}
+                  title={isRtl ? 'إرفاق صور وحدتك أو أرضك للبيع' : 'Attach photos of your property'}
+                >
+                  <ImagePlus className="h-4 w-4" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleChatImageUpload}
+                    className="hidden"
+                  />
+                </label>
+
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
+                  value={inputText}
+                  onChange={handleInputResize}
+                  onKeyDown={handleKeyDown}
+                  placeholder={t.searchPlaceholder}
+                  className={`max-h-44 flex-1 resize-none bg-transparent py-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden dark:text-white dark:placeholder:text-zinc-500 ${
+                    isRtl ? 'pr-3 pl-14 text-right' : 'pl-3 pr-14 text-left'
+                  }`}
+                />
+
+                {/* Send Button */}
+                <button
+                  onClick={() => handleSendMessage()}
+                  disabled={(!inputText.trim() && chatAttachedImages.length === 0) || loading}
+                  className={`absolute bottom-2.5 grid h-9 w-9 place-items-center rounded-2xl bg-amber-500 text-black transition hover:bg-amber-400 disabled:opacity-40 disabled:hover:bg-amber-500 ${
+                    isRtl ? 'left-2.5' : 'right-2.5'
+                  }`}
+                  title="Send"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ArrowUp className="h-4 w-4 stroke-[3]" />
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Disclaimer */}
@@ -957,6 +1096,27 @@ export default function SkanybotChatPage() {
       />
 
       
+
+      {/* Seller Listed Units Modal (إضافة / تعديل وحداتي المعروضة للبيع) */}
+      <SellerPropertiesModal
+        isOpen={sellerModalOpen}
+        onClose={() => setSellerModalOpen(false)}
+        ownerId={sellerOwnerId}
+        defaultSellerName={user?.name}
+        properties={myListings}
+        onRefresh={() => refreshMyListings(sellerOwnerId)}
+        onViewDetails={(p) => {
+          setSellerModalOpen(false);
+          openPropertyDetails(p);
+        }}
+        onAskAiToMarket={(p) => {
+          handleSendMessage(
+            `عندي ${p.unit_type} معروضة للبيع (${p.title}) بمساحة ${p.area_sqm} م² وسعر ${p.total_price.toLocaleString()} ${p.currency} في ${p.location_text || p.compound?.area_name || ''}. عايزك تساعدني نلاقي ليها مشتري مناسب وتقولي رأيك في تسعيرها.`
+          );
+        }}
+        initialMode={sellerModalMode}
+        initialEditingProperty={sellerEditingProp}
+      />
 
       {/* Supabase Authentication Modal (Google + Email) */}
       <AuthModal
