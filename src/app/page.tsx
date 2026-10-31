@@ -24,7 +24,8 @@ import {
   ExternalLink,
   LogOut
 } from 'lucide-react';
-import { Property, ChatSession, ChatMessage } from '@/lib/types';
+import { Property, ChatSession, ChatMessage, SessionContext } from '@/lib/types';
+import { emptySessionContext, toShownUnit } from '@/lib/ai/session-context';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -91,6 +92,19 @@ export default function SkanybotChatPage() {
 
   // Full results table (shown when a search matches more than the 4 cards)
   const [tableProps, setTableProps] = useState<{ list: Property[]; total: number } | null>(null);
+  const [sessionContext, setSessionContext] = useState<SessionContext>(() => emptySessionContext());
+
+  const openPropertyDetails = (p: Property) => {
+    setSelectedPropertyForDetails(p);
+    setDetailsModalOpen(true);
+    setSessionContext((prev) => {
+      const next = { ...prev, focus: toShownUnit(p) };
+      if (activeSessionId) {
+        try { localStorage.setItem(`skanybot_ctx_${activeSessionId}`, JSON.stringify(next)); } catch {}
+      }
+      return next;
+    });
+  };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -317,13 +331,12 @@ export default function SkanybotChatPage() {
   const loadSessionMessages = (sessionId: string) => {
     try {
       const stored = localStorage.getItem(`skanybot_msgs_${sessionId}`) || localStorage.getItem(`aqar_ai_msgs_${sessionId}`);
-      if (stored) {
-        setMessages(JSON.parse(stored));
-      } else {
-        setMessages([]);
-      }
+      setMessages(stored ? JSON.parse(stored) : []);
+      const ctxRaw = localStorage.getItem(`skanybot_ctx_${sessionId}`);
+      setSessionContext(ctxRaw ? JSON.parse(ctxRaw) : emptySessionContext());
     } catch {
       setMessages([]);
+      setSessionContext(emptySessionContext());
     }
   };
 
@@ -339,6 +352,7 @@ export default function SkanybotChatPage() {
     setSessions(updatedSessions);
     setActiveSessionId(newId);
     setMessages([]);
+    setSessionContext(emptySessionContext());
 
     try {
       localStorage.setItem('skanybot_sessions', JSON.stringify(updatedSessions));
@@ -357,6 +371,7 @@ export default function SkanybotChatPage() {
     setSessions(remaining);
     localStorage.setItem('skanybot_sessions', JSON.stringify(remaining));
     localStorage.removeItem(`skanybot_msgs_${id}`);
+    localStorage.removeItem(`skanybot_ctx_${id}`);
     localStorage.removeItem(`aqar_ai_msgs_${id}`);
 
     if (activeSessionId === id) {
@@ -486,7 +501,8 @@ export default function SkanybotChatPage() {
           plan: 'free',
           message: query,
           locale: locale,
-          history: newHistory.slice(-8)
+          history: newHistory.slice(-10),
+          sessionContext
         })
       });
 
@@ -528,6 +544,10 @@ export default function SkanybotChatPage() {
 
       const finalMessages = [...newHistory, botMsg];
       setMessages(finalMessages);
+      if (data.sessionContext) {
+        setSessionContext(data.sessionContext);
+        try { localStorage.setItem(`skanybot_ctx_${currSessionId}`, JSON.stringify(data.sessionContext)); } catch {}
+      }
 
       try {
         // Only the latest 3 replies keep their full results table in storage (keeps localStorage small)
@@ -778,10 +798,7 @@ export default function SkanybotChatPage() {
                                     property={prop}
                                     onBookViewing={handleBookViewing}
                                     onToggleFavorite={handleToggleFavorite}
-                                    onViewDetails={(p) => {
-                                      setSelectedPropertyForDetails(p);
-                                      setDetailsModalOpen(true);
-                                    }}
+                                    onViewDetails={openPropertyDetails}
                                     isFavorite={favorites.some(f => f.id === prop.id)}
                                   />
                                 </div>
@@ -925,10 +942,7 @@ export default function SkanybotChatPage() {
         properties={tableProps?.list || []}
         totalMatches={tableProps?.total}
         onClose={() => setTableProps(null)}
-        onViewDetails={(p) => {
-          setSelectedPropertyForDetails(p);
-          setDetailsModalOpen(true);
-        }}
+        onViewDetails={openPropertyDetails}
       />
 
       <PropertyDetailsModal

@@ -113,6 +113,41 @@ export interface ChatMessage {
   properties?: Property[];
   all_properties?: Property[];
   total_matches?: number;
+  session_context?: SessionContext;
   suggested_actions?: string[];
   created_at: string;
+}
+
+/** Compact snapshot of a unit, used for conversation memory (never shown as a card). */
+export interface ShownUnit {
+  id: string;
+  title: string;
+  unit_type?: string;
+  price?: number;
+  currency?: string;
+  compound?: string;
+  location?: string;
+  area_sqm?: number;
+  bedrooms?: number;
+  down_payment_pct?: number;
+  down_payment_amount?: number;
+  monthly_installment?: number;
+  installment_years?: number;
+}
+
+/** Per-session conversation memory returned by /api/chat and echoed back by the client. */
+export interface SessionContext {
+  last_search: Record<string, string | number> | null;
+  shown: ShownUnit[];
+  total_matches: number;
+  focus: ShownUnit | null;
+  profile: {
+    budget?: number;
+    currency?: string;
+    locations?: string[];
+    unit_types?: string[];
+    bedrooms?: number;
+    phone_shared?: boolean;
+  };
+  turns: number;
 }

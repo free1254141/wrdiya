@@ -6,9 +6,10 @@ import {
   formatGroundedBrokerResponse 
 } from '@/lib/real-estate-engine';
 import { runDeepSeekAgenticChat, isDeepSeekConfigured } from '@/lib/deepseek';
+import { sanitizeSessionContext, updateSessionContext } from '@/lib/ai/session-context';
 import { checkAndIncrementDailyUsage, DAILY_LIMIT, GUEST_LIMIT } from '@/lib/usage-manager';
 import { createClient } from '@supabase/supabase-js';
-import { Property } from '@/lib/types';
+import { Property, SessionContext } from '@/lib/types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://csuifvyghfsibkrnxrby.supabase.co';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -145,6 +146,7 @@ export async function POST(req: NextRequest) {
     let allPropertiesToReturn: Property[] = [];
     let totalMatches = 0;
     let detectedIntent = 'search';
+    let sessionContext: SessionContext = sanitizeSessionContext(body.sessionContext);
 
     // 3. AGENTIC EXECUTION: Pure LLM-driven Function Calling via DeepSeek (inspired by stokscan_AI)
     if (isDeepSeekConfigured() && !freeTest) {
@@ -162,12 +164,19 @@ export async function POST(req: NextRequest) {
           history.pop();
         }
 
-        const agenticResult = await runDeepSeekAgenticChat(userMessage, locale, history);
+        const agenticResult = await runDeepSeekAgenticChat(
+          userMessage,
+          locale,
+          history,
+          sessionContext,
+          { phoneShared: Boolean(extractedPhone) }
+        );
         if (agenticResult && agenticResult.content) {
           finalContent = agenticResult.content;
           propertiesToReturn = agenticResult.properties || [];
           allPropertiesToReturn = agenticResult.allProperties || [];
           totalMatches = agenticResult.totalMatches || 0;
+          sessionContext = agenticResult.sessionContext;
           detectedIntent = agenticResult.toolCallsCount > 0 ? 'agentic_search' : 'general';
         }
       } catch (aiErr) {
@@ -200,6 +209,13 @@ export async function POST(req: NextRequest) {
       } else {
         propertiesToReturn = [];
       }
+
+      sessionContext = updateSessionContext(sessionContext, {
+        searchArgs: !isGeneral ? (analysis.filter as any) : null,
+        shown: propertiesToReturn,
+        total: totalMatches,
+        phoneShared: Boolean(extractedPhone),
+      });
 
       const formatted = formatGroundedBrokerResponse(
         userMessage,
@@ -281,6 +297,7 @@ export async function POST(req: NextRequest) {
       properties: propertiesToReturn,
       allProperties: slimForTable(allPropertiesToReturn),
       totalMatches,
+      sessionContext,
       suggestedActions: defaultSuggestedActions,
       intent: detectedIntent,
       aiProvider: (isDeepSeekConfigured() && !freeTest) ? 'deepseek-agentic' : 'grounded-engine',

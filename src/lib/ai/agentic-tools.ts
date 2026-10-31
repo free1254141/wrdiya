@@ -22,6 +22,7 @@ export interface SearchPropertiesArgs {
   compound_name?: string;
   limit?: number;
   offset?: number;
+  sort?: 'relevance' | 'price_asc' | 'price_desc' | 'area_desc';
 }
 
 export interface InstallmentCalcArgs {
@@ -93,10 +94,29 @@ export const AGENTIC_TOOLS_SCHEMA = [
             type: 'number',
             description: 'عدد الكروت المطلوب عرضها (افتراضياً 4، ولا تغيّره: الواجهة تعرض الباقي في جدول)'
           },
+          sort: {
+            type: 'string',
+            enum: ['relevance', 'price_asc', 'price_desc', 'area_desc'],
+            description: 'ترتيب النتائج: price_asc للأرخص، price_desc للأغلى، area_desc للأكبر مساحة. استخدمه عندما يطلب العميل "أرخص" أو "أكبر" أو "أغلى".'
+          },
           offset: {
             type: 'number',
             description: 'للاستخدام الداخلي فقط، اتركه فارغاً'
           }
+        }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_property_details',
+      description: 'جلب التفاصيل الكاملة لوحدة معروضة بالفعل (الوصف، المرافق، الاستلام، التشطيب، المطور، العائد). استخدمها عندما يسأل العميل عن وحدة بعينها ("التانية"، "دي"، "الأولى") وتحتاج بيانات أكثر من الملخص الموجود في سياق المحادثة. مرر property_id من سياق المحادثة.',
+      parameters: {
+        type: 'object',
+        required: ['property_id'],
+        properties: {
+          property_id: { type: 'string', description: 'معرف الوحدة كما في سياق المحادثة (id)' }
         }
       }
     }
@@ -291,6 +311,11 @@ export async function executePropertySearch(args: SearchPropertiesArgs): Promise
     });
   }
 
+  // 6.1 Explicit sort requested by the user (cheapest / largest ...)
+  if (args.sort === 'price_asc') results.sort((a, b) => a.total_price - b.total_price);
+  else if (args.sort === 'price_desc') results.sort((a, b) => b.total_price - a.total_price);
+  else if (args.sort === 'area_desc') results.sort((a, b) => (b.area_sqm || 0) - (a.area_sqm || 0));
+
   // 7. General query / compound matching
   if (args.query) {
     const q = args.query.toLowerCase();
@@ -384,4 +409,42 @@ export async function executeLeadRecording(args: LeadCaptureArgs) {
       message: 'تم استلام وتوثيق طلبك وسيتواصل معك مستشارك العقاري مباشرة.'
     };
   }
+}
+
+/**
+ * Fetch full details for one unit from the cached inventory (used for follow-ups like "tell me about the second one").
+ */
+export async function executePropertyDetails(args: { property_id: string }): Promise<{ found: boolean; property?: Property; details?: Record<string, any> }> {
+  const all = await getAllCachedProperties();
+  const p = all.find(x => x.id === args.property_id);
+  if (!p) return { found: false };
+  return {
+    found: true,
+    property: p,
+    details: {
+      id: p.id,
+      title: p.title,
+      type: p.unit_type,
+      price: `${p.total_price.toLocaleString()} ${p.currency}`,
+      area_sqm: p.area_sqm,
+      bedrooms: p.bedrooms,
+      bathrooms: p.bathrooms,
+      finishing: p.finishing_type,
+      delivery: p.delivery_date,
+      status: p.status,
+      down_payment: `${p.down_payment_pct}% (${(p.down_payment_amount || 0).toLocaleString()} ${p.currency})`,
+      installment_years: p.installment_years,
+      monthly_installment: p.monthly_installment,
+      quarterly_installment: p.quarterly_installment,
+      maintenance_fee: p.maintenance_fee,
+      expected_roi_pct: p.roi_expected_pct,
+      compound: p.compound?.name,
+      compound_description: p.compound?.description?.slice(0, 500),
+      amenities: p.compound?.amenities?.slice(0, 12),
+      developer: p.compound?.developer?.name,
+      city: p.compound?.city,
+      area_name: p.compound?.area_name,
+      country: p.compound?.country
+    }
+  };
 }
