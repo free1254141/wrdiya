@@ -750,18 +750,18 @@ export default function SellerPropertiesModal({
   // Form fields
   const [unitType, setUnitType] = useState<CanonicalUnitType>('شقة');
   const [title, setTitle] = useState('');
-  const [city, setCity] = useState(copy.defaultCity);
+  const [city, setCity] = useState('');
   const [locationText, setLocationText] = useState('');
-  const [areaSqm, setAreaSqm] = useState('150');
-  const [bedrooms, setBedrooms] = useState('3');
-  const [bathrooms, setBathrooms] = useState('2');
-  const [finishingType, setFinishingType] = useState(copy.defaultFinishing);
-  const [totalPrice, setTotalPrice] = useState('4500000');
+  const [areaSqm, setAreaSqm] = useState('');
+  const [bedrooms, setBedrooms] = useState('');
+  const [bathrooms, setBathrooms] = useState('');
+  const [finishingType, setFinishingType] = useState('');
+  const [totalPrice, setTotalPrice] = useState('');
   const [currency, setCurrency] = useState('EGP');
   const [paymentMode, setPaymentMode] = useState<'cash' | 'installment'>('cash');
   const [downPaymentPct, setDownPaymentPct] = useState('20');
   const [installmentYears, setInstallmentYears] = useState('5');
-  const [deliveryDate, setDeliveryDate] = useState(copy.defaultHandover);
+  const [deliveryDate, setDeliveryDate] = useState('');
   const [saleCircumstances, setSaleCircumstances] = useState('');
   const [sellerName, setSellerName] = useState(defaultSellerName || '');
   const [sellerPhone, setSellerPhone] = useState('');
@@ -780,15 +780,6 @@ export default function SellerPropertiesModal({
     return raw;
   };
 
-  // Sync default values when locale changes while in create mode (if untouched by user)
-  useEffect(() => {
-    if (!editingId) {
-      setCity((prev) => (!prev || ALL_DEFAULT_CITIES.has(prev) ? copy.defaultCity : prev));
-      setFinishingType((prev) => (!prev || ALL_DEFAULT_FINISHINGS.has(prev) ? copy.defaultFinishing : prev));
-      setDeliveryDate((prev) => (!prev || ALL_DEFAULT_HANDOVERS.has(prev) ? copy.defaultHandover : prev));
-    }
-  }, [locale, editingId, copy.defaultCity, copy.defaultFinishing, copy.defaultHandover]);
-
   useEffect(() => {
     if (!isOpen) return;
     if (initialEditingProperty) {
@@ -804,18 +795,18 @@ export default function SellerPropertiesModal({
     setEditingId(null);
     setUnitType(normalizeCanonicalUnitType(prefill?.unit_type));
     setTitle(prefill?.title || '');
-    setCity(prefill?.city || copy.defaultCity);
+    setCity(prefill?.city || '');
     setLocationText(prefill?.location_text || '');
-    setAreaSqm(prefill?.area_sqm ? String(prefill.area_sqm) : '150');
-    setBedrooms(prefill?.bedrooms !== undefined ? String(prefill.bedrooms) : '3');
-    setBathrooms(prefill?.bathrooms !== undefined ? String(prefill.bathrooms) : '2');
-    setFinishingType(prefill?.finishing_type || copy.defaultFinishing);
-    setTotalPrice(prefill?.total_price ? String(prefill.total_price) : '4500000');
+    setAreaSqm(prefill?.area_sqm ? String(prefill.area_sqm) : '');
+    setBedrooms(prefill?.bedrooms !== undefined ? String(prefill.bedrooms) : '');
+    setBathrooms(prefill?.bathrooms !== undefined ? String(prefill.bathrooms) : '');
+    setFinishingType(prefill?.finishing_type || '');
+    setTotalPrice(prefill?.total_price ? String(prefill.total_price) : '');
     setCurrency(prefill?.currency || 'EGP');
     setPaymentMode(prefill?.payment_mode || ((prefill?.installment_years || 0) > 0 ? 'installment' : 'cash'));
     setDownPaymentPct(prefill?.down_payment_pct !== undefined ? String(prefill.down_payment_pct) : '20');
     setInstallmentYears(prefill?.installment_years !== undefined ? String(prefill.installment_years) : '5');
-    setDeliveryDate(prefill?.delivery_date || copy.defaultHandover);
+    setDeliveryDate(prefill?.delivery_date || '');
     setSaleCircumstances(prefill?.sale_circumstances || '');
     setSellerName(prefill?.seller_name || defaultSellerName || '');
     setSellerPhone(prefill?.seller_phone || '');
@@ -829,19 +820,19 @@ export default function SellerPropertiesModal({
     setEditingId(p.id);
     setUnitType(normalizeCanonicalUnitType(p.unit_type));
     setTitle(p.title || '');
-    setCity(p.compound?.city || copy.defaultCity);
+    setCity(p.compound?.city || '');
     setLocationText(p.location_text || p.compound?.area_name || '');
-    setAreaSqm(String(p.area_sqm || 150));
-    setBedrooms(String(p.bedrooms ?? 3));
-    setBathrooms(String(p.bathrooms ?? 2));
-    setFinishingType(p.finishing_type || copy.defaultFinishing);
-    setTotalPrice(String(p.total_price || 4500000));
+    setAreaSqm(p.area_sqm ? String(p.area_sqm) : '');
+    setBedrooms(p.bedrooms !== undefined && p.bedrooms !== null ? String(p.bedrooms) : '');
+    setBathrooms(p.bathrooms !== undefined && p.bathrooms !== null ? String(p.bathrooms) : '');
+    setFinishingType(p.finishing_type || '');
+    setTotalPrice(p.total_price ? String(p.total_price) : '');
     setCurrency(p.currency || 'EGP');
     const hasInst = (p.installment_years || 0) > 0;
     setPaymentMode(hasInst ? 'installment' : 'cash');
     setDownPaymentPct(String(p.down_payment_pct ?? (hasInst ? 20 : 100)));
     setInstallmentYears(String(p.installment_years || 5));
-    setDeliveryDate(p.delivery_date || copy.defaultHandover);
+    setDeliveryDate(p.delivery_date || '');
     setSaleCircumstances(p.sale_circumstances || '');
     setSellerName(p.seller_name || defaultSellerName || '');
     setSellerPhone(p.seller_phone || '');
@@ -885,28 +876,53 @@ export default function SellerPropertiesModal({
     setSaving(true);
     setFeedback(null);
 
+    const parsedPrice = Number(totalPrice);
+    if (!totalPrice.trim() || isNaN(parsedPrice) || parsedPrice <= 0) {
+      setFeedback(locale === 'ar' ? '⚠️ يرجى إدخال السعر المطلوب للوحدة' : '⚠️ Please enter a valid total price');
+      setSaving(false);
+      return;
+    }
+
+    const parsedArea = Number(areaSqm);
+    if (!areaSqm.trim() || isNaN(parsedArea) || parsedArea <= 0) {
+      setFeedback(locale === 'ar' ? '⚠️ يرجى إدخال المساحة بالمتر المربع' : '⚠️ Please enter a valid area (sqm)');
+      setSaving(false);
+      return;
+    }
+
+    const cleanLocation = locationText.trim() || city.trim();
+    if (!cleanLocation) {
+      setFeedback(locale === 'ar' ? '⚠️ يرجى تحديد المنطقة أو المدينة للوحدة' : '⚠️ Please specify property location or city');
+      setSaving(false);
+      return;
+    }
+
     try {
+      const cleanImages = (imageUrlInput.trim() ? [...images, imageUrlInput.trim()] : images)
+        .map((u) => u.trim())
+        .filter(Boolean);
+
       const payload = {
         id: editingId || undefined,
         owner_id: ownerId,
         unit_type: unitType,
         title: title.trim() || undefined,
-        city: city.trim(),
-        area_name: locationText.trim() || city.trim(),
-        location_text: locationText.trim() || city.trim(),
-        area_sqm: Number(areaSqm) || 100,
-        bedrooms: isLand ? 0 : Number(bedrooms) || 0,
-        bathrooms: isLand ? 0 : Number(bathrooms) || 0,
-        finishing_type: finishingType.trim(),
-        total_price: Number(totalPrice) || 1000000,
+        city: city.trim() || cleanLocation,
+        area_name: cleanLocation,
+        location_text: cleanLocation,
+        area_sqm: parsedArea,
+        bedrooms: isLand ? 0 : (bedrooms.trim() ? Math.max(Number(bedrooms), 0) : 0),
+        bathrooms: isLand ? 0 : (bathrooms.trim() ? Math.max(Number(bathrooms), 0) : 0),
+        finishing_type: finishingType.trim() || 'غير محدد',
+        total_price: parsedPrice,
         currency,
-        down_payment_pct: paymentMode === 'installment' ? Number(downPaymentPct) || 20 : 100,
-        installment_years: paymentMode === 'installment' ? Number(installmentYears) || 1 : 0,
-        delivery_date: deliveryDate.trim(),
+        down_payment_pct: paymentMode === 'installment' ? (Number(downPaymentPct) || 20) : 100,
+        installment_years: paymentMode === 'installment' ? (Number(installmentYears) || 1) : 0,
+        delivery_date: deliveryDate.trim() || 'غير محدد',
         sale_circumstances: saleCircumstances.trim(),
         seller_name: sellerName.trim(),
         seller_phone: sellerPhone.trim(),
-        images: imageUrlInput.trim() ? [...images, imageUrlInput.trim()] : images,
+        images: cleanImages, // Strictly only images provided by user
       };
 
       const res = await fetch('/api/seller/properties', {
@@ -1045,12 +1061,16 @@ export default function SellerPropertiesModal({
                     >
                       <div>
                         <div className="flex items-start gap-3">
-                          {p.images?.[0] && (
+                          {p.images?.[0] ? (
                             <img
                               src={p.images[0]}
                               alt={p.title}
                               className="h-16 w-20 shrink-0 rounded-xl object-cover border border-slate-200 dark:border-zinc-700"
                             />
+                          ) : (
+                            <div className="grid h-16 w-20 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-100 text-slate-400 dark:border-zinc-800 dark:bg-zinc-800/80 dark:text-zinc-500">
+                              <Building2 className="h-6 w-6" />
+                            </div>
                           )}
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5">
@@ -1227,6 +1247,7 @@ export default function SellerPropertiesModal({
                     min={10}
                     value={areaSqm}
                     onChange={(e) => setAreaSqm(e.target.value)}
+                    placeholder={isLand ? '500' : '140'}
                     className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
                   />
                 </div>
@@ -1243,6 +1264,7 @@ export default function SellerPropertiesModal({
                       min={0}
                       value={bedrooms}
                       onChange={(e) => setBedrooms(e.target.value)}
+                      placeholder="3"
                       className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
                     />
                   </div>
@@ -1255,6 +1277,7 @@ export default function SellerPropertiesModal({
                       min={0}
                       value={bathrooms}
                       onChange={(e) => setBathrooms(e.target.value)}
+                      placeholder="2"
                       className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
                     />
                   </div>
@@ -1298,6 +1321,7 @@ export default function SellerPropertiesModal({
                     min={1000}
                     value={totalPrice}
                     onChange={(e) => setTotalPrice(e.target.value)}
+                    placeholder="3500000"
                     className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-amber-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-amber-400"
                   />
                 </div>
