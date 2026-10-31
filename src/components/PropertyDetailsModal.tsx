@@ -81,11 +81,14 @@ export default function PropertyDetailsModal({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const affiliateUrl = property.affiliate_url || (
-    property.platform === 'TEKCE' 
-      ? 'https://tekce.com?utm_source=taff&utm_medium=6FPC68983C'
-      : 'https://launches.aqarmap.com/ar/expos/saudi-projects?utm_source=partners&utm_medium=dynamic&utm_campaign=affiliate_759279&partner_code=759279'
-  );
+  const isSellerListing = property.platform === 'SellerListing';
+  const affiliateUrl = isSellerListing
+    ? undefined
+    : property.affiliate_url || (
+        property.platform === 'TEKCE' 
+          ? 'https://tekce.com?utm_source=taff&utm_medium=6FPC68983C'
+          : 'https://launches.aqarmap.com/ar/expos/saudi-projects?utm_source=partners&utm_medium=dynamic&utm_campaign=affiliate_759279&partner_code=759279'
+      );
 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md transition-all ${
@@ -408,17 +411,33 @@ export default function PropertyDetailsModal({
             <span>{isAr ? 'طلب معاينة مجانية للوحدة' : 'Schedule Free Viewing'}</span>
           </button>
 
-          {/* Official Partner Link */}
-          <a
-            href={affiliateUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs sm:text-sm font-bold text-amber-700 transition hover:bg-amber-500/20 dark:border-amber-400/30 dark:text-amber-400"
-            title={isAr ? 'فتح صفحة المشروع الرسمية على منصة الشريك المعتمد' : 'Open official project page'}
-          >
-            <ExternalLink className="h-4 w-4" />
-            <span className="hidden sm:inline">{isAr ? 'صفحة المشروع والأسعار الرسمية' : 'Official Project Page'}</span>
-          </a>
+          {/* Direct Seller Contact via WhatsApp if phone exists */}
+          {property.seller_phone && (
+            <a
+              href={`https://wa.me/${property.seller_phone.replace(/[^0-9]/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-xs sm:text-sm font-bold text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-400 transition active:scale-[0.98]"
+              title={isAr ? 'تواصل مع صاحب الإعلان مباشرة عبر واتساب' : 'Chat with owner on WhatsApp'}
+            >
+              <PhoneCall className="h-4 w-4" />
+              <span>{isAr ? 'واتساب المالك' : 'WhatsApp Owner'}</span>
+            </a>
+          )}
+
+          {/* Official Partner Link (Only for Aqarmap/Tekce projects; NEVER for seller listings) */}
+          {affiliateUrl && !isSellerListing && (
+            <a
+              href={affiliateUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs sm:text-sm font-bold text-amber-700 transition hover:bg-amber-500/20 dark:border-amber-400/30 dark:text-amber-400"
+              title={isAr ? 'فتح صفحة المشروع الرسمية على منصة الشريك المعتمد' : 'Open official project page'}
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span className="hidden sm:inline">{isAr ? 'صفحة المشروع والأسعار الرسمية' : 'Official Project Page'}</span>
+            </a>
+          )}
         </div>
       </div>
     </div>

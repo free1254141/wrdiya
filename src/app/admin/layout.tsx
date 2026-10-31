@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <AdminAuthGuard>
-      <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-amber-500 selection:text-black">
+      <div className="h-screen w-screen overflow-y-auto overflow-x-hidden bg-black text-white font-sans selection:bg-amber-500 selection:text-black">
         {children}
       </div>
     </AdminAuthGuard>

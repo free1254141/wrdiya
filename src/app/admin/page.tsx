@@ -14,14 +14,10 @@ import {
   ShieldCheck,
   Calendar,
   Clock,
-  CheckCircle2,
   User,
   Bot,
   Sparkles,
-  ArrowRight,
-  TrendingUp,
   Inbox,
-  Filter,
   Copy,
   Check,
   Maximize2,
@@ -77,10 +73,10 @@ interface ChatMessageItem {
 export default function AdminDashboardPage() {
   const { user } = useAuth();
 
-  // Admin Theme: Dark / Light toggle specifically for Admin
+  // Admin Theme: Pure Black ('dark') or Clean White ('light')
   const [adminTheme, setAdminTheme] = useState<'dark' | 'light'>('dark');
 
-  // Fullscreen / Maximize Chat Window
+  // Fullscreen / Maximize Window Toggle
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Active Tab
@@ -173,7 +169,7 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // 3. Fetch Single Session Messages
+  // 3. Fetch Session Messages
   const fetchSessionMessages = async (sessionId: string) => {
     try {
       setLoadingMessages(true);
@@ -182,10 +178,10 @@ export default function AdminDashboardPage() {
         const data = await res.json();
         setActiveSession(data.session);
         setMessages(data.messages || []);
-        // Scroll to bottom on load
+        // Scroll to bottom
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+        }, 120);
       }
     } catch (err) {
       console.error('Failed to fetch session messages:', err);
@@ -323,15 +319,15 @@ export default function AdminDashboardPage() {
 
   return (
     <div
-      className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${
-        isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'
+      className={`min-h-full w-full flex flex-col font-sans transition-colors duration-150 ${
+        isDark ? 'bg-black text-white' : 'bg-zinc-100 text-zinc-900'
       }`}
       dir="rtl"
     >
       {/* Top Admin Navbar */}
       <header
-        className={`sticky top-0 z-40 border-b px-4 sm:px-6 py-3.5 backdrop-blur-md transition-colors ${
-          isDark ? 'border-slate-800 bg-slate-900/90' : 'border-slate-200 bg-white/95 shadow-xs'
+        className={`sticky top-0 z-40 border-b px-4 sm:px-6 py-3 transition-colors ${
+          isDark ? 'border-zinc-800 bg-black/95 backdrop-blur-md' : 'border-zinc-300 bg-white/95 shadow-xs'
         }`}
       >
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
@@ -341,32 +337,32 @@ export default function AdminDashboardPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                <h1 className={`text-base font-black ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                   لوحة تحكم وإدارة سكنى بوت
                 </h1>
-                <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-500 dark:text-amber-400">
+                <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-500">
                   مشرف النظام
                 </span>
               </div>
-              <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                مرحباً بك: <span className="font-mono text-amber-600 dark:text-amber-300 font-bold">{user?.email}</span>
+              <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                مرحباً بك: <span className="font-mono text-amber-500 font-bold">{user?.email}</span>
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Dark / Light Mode Switcher specifically in Admin */}
+            {/* Pure Black / Clean White Theme Switcher */}
             <button
               onClick={toggleTheme}
               className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${
                 isDark
-                  ? 'border-slate-800 bg-slate-800/80 text-amber-300 hover:bg-slate-800'
-                  : 'border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  ? 'border-zinc-800 bg-black text-amber-400 hover:bg-zinc-900'
+                  : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50'
               }`}
-              title={isDark ? 'التبديل إلى الوضع النهاري (Light Mode)' : 'التبديل إلى الوضع الليلي (Dark Mode)'}
+              title={isDark ? 'التبديل إلى الوضع الفاتح (Light)' : 'التبديل إلى الوضع الأسود الخالص (Pure Black)'}
             >
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              <span className="hidden sm:inline">{isDark ? 'نهاري' : 'ليلي'}</span>
+              <span className="hidden sm:inline">{isDark ? 'فاتح' : 'أسود خالص'}</span>
             </button>
 
             {/* Refresh Button */}
@@ -379,8 +375,8 @@ export default function AdminDashboardPage() {
               disabled={loadingStats || loadingSessions}
               className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${
                 isDark
-                  ? 'border-slate-800 bg-slate-800/80 text-slate-200 hover:bg-slate-800 hover:text-white'
-                  : 'border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                  ? 'border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900'
+                  : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50'
               }`}
               title="تحديث البيانات"
             >
@@ -404,48 +400,44 @@ export default function AdminDashboardPage() {
 
       {/* KPI Stats Bar */}
       <section
-        className={`border-b px-4 sm:px-6 py-4 transition-colors ${
-          isDark ? 'border-slate-800/80 bg-slate-900/40' : 'border-slate-200 bg-slate-50/80'
+        className={`border-b px-4 sm:px-6 py-3.5 transition-colors ${
+          isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-white'
         }`}
       >
         <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Card 1: Users */}
           <div
             className={`rounded-2xl border p-3.5 transition ${
-              isDark
-                ? 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
-                : 'border-slate-200 bg-white hover:border-slate-300 shadow-xs'
+              isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-zinc-50 shadow-xs'
             }`}
           >
-            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
               <span>المستخدمين المسجلين</span>
-              <Users className="h-4 w-4 text-sky-500 dark:text-sky-400" />
+              <Users className="h-4 w-4 text-sky-500" />
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className={`text-2xl font-black font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <span className={`text-2xl font-black font-mono ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                 {stats?.totalUsers ?? '—'}
               </span>
-              <span className="text-[11px] text-slate-400">عميل مسجل</span>
+              <span className="text-[11px] text-zinc-500">عميل مسجل</span>
             </div>
           </div>
 
           {/* Card 2: Chat Sessions */}
           <div
             className={`rounded-2xl border p-3.5 transition ${
-              isDark
-                ? 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
-                : 'border-slate-200 bg-white hover:border-slate-300 shadow-xs'
+              isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-zinc-50 shadow-xs'
             }`}
           >
-            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
               <span>جلسات المحادثة</span>
-              <MessageSquare className="h-4 w-4 text-amber-500 dark:text-amber-400" />
+              <MessageSquare className="h-4 w-4 text-amber-500" />
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className={`text-2xl font-black font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <span className={`text-2xl font-black font-mono ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                 {stats?.totalSessions ?? '—'}
               </span>
-              <span className="text-[11px] text-amber-600 dark:text-amber-400 font-bold">
+              <span className="text-[11px] text-amber-500 font-bold">
                 +{stats?.recentSessions24h ?? 0} خلال 24 ساعة
               </span>
             </div>
@@ -454,40 +446,36 @@ export default function AdminDashboardPage() {
           {/* Card 3: Total AI Messages */}
           <div
             className={`rounded-2xl border p-3.5 transition ${
-              isDark
-                ? 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
-                : 'border-slate-200 bg-white hover:border-slate-300 shadow-xs'
+              isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-zinc-50 shadow-xs'
             }`}
           >
-            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
               <span>رسائل الذكاء الاصطناعي</span>
-              <Sparkles className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
+              <Sparkles className="h-4 w-4 text-emerald-500" />
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className={`text-2xl font-black font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <span className={`text-2xl font-black font-mono ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                 {stats?.totalMessages ?? '—'}
               </span>
-              <span className="text-[11px] text-slate-400">رسالة متبادلة</span>
+              <span className="text-[11px] text-zinc-500">رسالة متبادلة</span>
             </div>
           </div>
 
           {/* Card 4: Properties Inventory */}
           <div
             className={`rounded-2xl border p-3.5 transition ${
-              isDark
-                ? 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
-                : 'border-slate-200 bg-white hover:border-slate-300 shadow-xs'
+              isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-zinc-50 shadow-xs'
             }`}
           >
-            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
               <span>العقارات المتاحة</span>
-              <Building2 className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+              <Building2 className="h-4 w-4 text-purple-500" />
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className={`text-2xl font-black font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <span className={`text-2xl font-black font-mono ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                 {stats?.totalProperties ?? '—'}
               </span>
-              <span className="text-[11px] text-slate-400">وحدة معتمدة</span>
+              <span className="text-[11px] text-zinc-500">وحدة معتمدة</span>
             </div>
           </div>
         </div>
@@ -496,7 +484,7 @@ export default function AdminDashboardPage() {
       {/* Navigation Tabs Switcher */}
       <section
         className={`border-b px-4 sm:px-6 transition-colors ${
-          isDark ? 'border-slate-800 bg-slate-900/20' : 'border-slate-200 bg-slate-50/50'
+          isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-zinc-50'
         }`}
       >
         <div className="max-w-7xl mx-auto flex items-center gap-2">
@@ -504,15 +492,15 @@ export default function AdminDashboardPage() {
             onClick={() => setActiveTab('chats')}
             className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition ${
               activeTab === 'chats'
-                ? 'border-amber-500 text-amber-600 dark:text-amber-400'
-                : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                ? 'border-amber-500 text-amber-500'
+                : 'border-transparent text-zinc-400 hover:text-white'
             }`}
           >
             <MessageSquare className="h-4 w-4" />
             <span>مراجعة محادثات العملاء</span>
             <span
               className={`rounded-full px-2 py-0.5 text-xs ${
-                isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                isDark ? 'bg-zinc-900 text-zinc-300 border border-zinc-800' : 'bg-zinc-200 text-zinc-700'
               }`}
             >
               {sessions.length}
@@ -523,15 +511,15 @@ export default function AdminDashboardPage() {
             onClick={() => setActiveTab('users')}
             className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition ${
               activeTab === 'users'
-                ? 'border-amber-500 text-amber-600 dark:text-amber-400'
-                : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                ? 'border-amber-500 text-amber-500'
+                : 'border-transparent text-zinc-400 hover:text-white'
             }`}
           >
             <Users className="h-4 w-4" />
             <span>المستخدمين المسجلين والتحليلات</span>
             <span
               className={`rounded-full px-2 py-0.5 text-xs ${
-                isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                isDark ? 'bg-zinc-900 text-zinc-300 border border-zinc-800' : 'bg-zinc-200 text-zinc-700'
               }`}
             >
               {usersList.length}
@@ -544,65 +532,63 @@ export default function AdminDashboardPage() {
       <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 flex flex-col min-h-0">
         {activeTab === 'chats' ? (
           /* ============================================================== */
-          /* TAB 1: CHAT SESSIONS & CONVERSATION REVIEW                     */
+          /* TAB 1: CHAT SESSIONS & CONVERSATION REVIEW (STOKSCAN LAYOUT)   */
           /* ============================================================== */
           <div
-            className={`transition-all duration-300 ${
+            className={`w-full flex-1 flex flex-col overflow-hidden transition-all duration-200 ${
               isFullscreen
-                ? `fixed inset-0 z-50 p-3 sm:p-4 flex flex-col h-screen w-screen m-0 ${
-                    isDark ? 'bg-slate-950' : 'bg-slate-100'
+                ? `fixed inset-0 z-50 h-screen w-screen m-0 p-3 sm:p-4 rounded-none border-none ${
+                    isDark ? 'bg-black text-white' : 'bg-zinc-100 text-zinc-900'
                   }`
-                : 'flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-270px)] min-h-[580px]'
+                : `rounded-2xl border ${
+                    isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-white shadow-sm'
+                  } h-[calc(100vh-250px)] min-h-[580px]`
             }`}
           >
-            {/* When Fullscreen, top header toolbar inside container */}
-            {isFullscreen && (
-              <div
-                className={`flex items-center justify-between pb-3 border-b mb-3 shrink-0 ${
-                  isDark ? 'border-slate-800' : 'border-slate-200'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-amber-500" />
-                  <span className={`text-sm font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    مراجعة محادثات سكنى بوت (وضع ملء الشاشة الكامل)
-                  </span>
-                </div>
-                <button
-                  onClick={() => setIsFullscreen(false)}
-                  className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition ${
-                    isDark
-                      ? 'border-slate-800 bg-slate-900 text-slate-200 hover:bg-slate-800'
-                      : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-100'
-                  }`}
-                  title="إنهاء وضع ملء الشاشة"
-                >
-                  <Minimize2 className="h-4 w-4" />
-                  <span>تصغير الشاشة</span>
-                </button>
-              </div>
-            )}
-
-            {/* Layout Wrapper when Fullscreen */}
+            {/* Top Toolbar for Chat Window */}
             <div
-              className={`grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0 overflow-hidden ${
-                isFullscreen ? 'h-full' : 'contents'
+              className={`flex items-center justify-between px-4 py-2.5 border-b shrink-0 ${
+                isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-zinc-50'
               }`}
             >
-              {/* Left Column: Sessions List (5 cols) */}
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-amber-500" />
+                <span className={`text-xs font-black ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                  مستعرض محادثات سكنى بوت ({sessions.length} جلسة مسجلة)
+                </span>
+              </div>
+
+              {/* Window Fullscreen Toggle */}
+              <button
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition ${
+                  isDark
+                    ? 'border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900 hover:text-white'
+                    : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100'
+                }`}
+                title={isFullscreen ? 'تصغير النافذة' : 'تكبير النافذة لملء الشاشة بالكامل (Fullscreen)'}
+              >
+                {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                <span className="hidden sm:inline">{isFullscreen ? 'تصغير الشاشة' : 'تكبير الشاشة'}</span>
+              </button>
+            </div>
+
+            {/* Main Area: Sidebar List (Right in RTL) + Conversation Panel (Left in RTL) */}
+            <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
+              {/* Sessions Sidebar List (Fixed Width) */}
               <div
-                className={`lg:col-span-5 flex flex-col rounded-2xl border overflow-hidden min-h-0 ${
-                  isDark ? 'border-slate-800 bg-slate-900/60' : 'border-slate-200 bg-white shadow-sm'
+                className={`w-full md:w-[360px] lg:w-[400px] shrink-0 border-l flex flex-col min-h-0 overflow-hidden ${
+                  isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-white'
                 }`}
               >
                 {/* Search & Filter Header */}
                 <div
                   className={`p-3 border-b space-y-2 shrink-0 ${
-                    isDark ? 'border-slate-800 bg-slate-900/80' : 'border-slate-200 bg-slate-50'
+                    isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-zinc-50'
                   }`}
                 >
                   <div className="relative">
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
                     <input
                       type="text"
                       value={sessionSearch}
@@ -610,15 +596,15 @@ export default function AdminDashboardPage() {
                       placeholder="ابحث بالعنوان أو الكلمات أو المعرف..."
                       className={`w-full rounded-xl border py-2 pr-9 pl-3 text-xs focus:border-amber-500 focus:outline-none transition ${
                         isDark
-                          ? 'border-slate-800 bg-slate-950 text-slate-200 placeholder-slate-500'
-                          : 'border-slate-300 bg-white text-slate-900 placeholder-slate-400'
+                          ? 'border-zinc-800 bg-zinc-950 text-white placeholder-zinc-500'
+                          : 'border-zinc-300 bg-white text-zinc-900 placeholder-zinc-400'
                       }`}
                     />
                   </div>
 
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-slate-400 text-[11px]">الحالة:</span>
+                      <span className="text-zinc-400 text-[11px]">الحالة:</span>
                       {(['all', 'active', 'deleted'] as const).map((mode) => (
                         <button
                           key={mode}
@@ -627,8 +613,8 @@ export default function AdminDashboardPage() {
                             sessionFilter === mode
                               ? 'bg-amber-500 text-black'
                               : isDark
-                              ? 'bg-slate-800 text-slate-400 hover:text-slate-200'
-                              : 'bg-slate-200 text-slate-600 hover:text-slate-900'
+                              ? 'bg-zinc-900 text-zinc-400 hover:text-white'
+                              : 'bg-zinc-200 text-zinc-600 hover:text-zinc-900'
                           }`}
                         >
                           {mode === 'all' ? 'الكل' : mode === 'active' ? 'النشطة' : 'المحذوفة'}
@@ -636,71 +622,55 @@ export default function AdminDashboardPage() {
                       ))}
                     </div>
 
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      {sessions.length} جلسة
+                    <span className="text-[11px] text-zinc-500 font-mono">
+                      {sessions.length}
                     </span>
                   </div>
                 </div>
 
-                {/* Sessions List Scrollable Container with Smooth Scroll */}
-                <div className="flex-1 overflow-y-auto divide-y divide-slate-800/40 p-1.5 space-y-1 min-h-0">
+                {/* Sessions Scrollable List */}
+                <div className={`flex-1 min-h-0 overflow-y-auto divide-y ${isDark ? 'divide-zinc-800/60' : 'divide-zinc-100'}`}>
                   {loadingSessions ? (
-                    <div className="p-8 text-center text-slate-400 text-xs">
+                    <div className="p-8 text-center text-zinc-400 text-xs">
                       <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-amber-500" />
                       جاري تحميل المحادثات...
                     </div>
                   ) : sessions.length === 0 ? (
-                    <div className="p-8 text-center text-slate-400 text-xs">
-                      <Inbox className="h-6 w-6 mx-auto mb-2 text-slate-500" />
+                    <div className="p-8 text-center text-zinc-400 text-xs">
+                      <Inbox className="h-8 w-8 mx-auto mb-2 text-zinc-600" />
                       لا توجد محادثات تطابق البحث
                     </div>
                   ) : (
                     sessions.map((s) => {
-                      const isSelected = selectedSessionId === s.id;
+                      const isSelected = s.id === selectedSessionId;
                       return (
                         <div
                           key={s.id}
                           onClick={() => setSelectedSessionId(s.id)}
-                          className={`group relative cursor-pointer rounded-xl p-3 transition border ${
+                          className={`p-3.5 cursor-pointer transition text-right relative group ${
                             isSelected
-                              ? 'bg-amber-500/15 border-amber-500/50 shadow-xs'
+                              ? isDark
+                                ? 'bg-zinc-900/90 border-r-4 border-amber-500'
+                                : 'bg-amber-500/10 border-r-4 border-amber-500'
                               : isDark
-                              ? 'hover:bg-slate-800/50 border-transparent'
-                              : 'hover:bg-slate-100 border-transparent'
+                              ? 'hover:bg-zinc-900/50'
+                              : 'hover:bg-zinc-50'
                           }`}
                         >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              {s.user_email ? (
-                                <span className="inline-flex items-center gap-1 rounded-md bg-sky-500/15 text-sky-600 dark:text-sky-400 px-1.5 py-0.5 text-[10px] font-bold shrink-0">
-                                  <User className="h-2.5 w-2.5" />
-                                  <span className="truncate max-w-[120px]">{s.user_email}</span>
-                                </span>
-                              ) : (
-                                <span
-                                  className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold shrink-0 ${
-                                    isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-600'
-                                  }`}
-                                >
-                                  زائر مجهول
-                                </span>
-                              )}
-                              {s.is_deleted && (
-                                <span className="rounded-md bg-rose-500/15 text-rose-600 dark:text-rose-400 px-1.5 py-0.5 text-[9px] font-bold shrink-0">
-                                  محذوف
-                                </span>
-                              )}
-                            </div>
+                          {/* Top Row: User identifier + time + quick delete */}
+                          <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                            <span className="font-semibold text-amber-500 truncate max-w-[170px]">
+                              {s.user_email || s.user_name || 'زائر مجهول'}
+                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-[10px] text-zinc-500">{timeAgo(s.last_at || s.updated_at)}</span>
 
-                            <div className="flex items-center gap-1 text-[10px] text-slate-400 shrink-0">
-                              <Clock className="h-2.5 w-2.5" />
-                              <span>{timeAgo(s.created_at)}</span>
-
-                              {/* Hover Quick Delete from List */}
+                              {/* Hard Delete Button in Sidebar Item */}
                               <button
                                 onClick={(e) => handlePermanentDelete(s.id, e)}
-                                className="opacity-0 group-hover:opacity-100 mr-1 p-1 rounded-md hover:bg-rose-500/20 text-rose-500 transition"
-                                title="حذف هذه المحادثة نهائياً من Supabase"
+                                disabled={deletingSessionId === s.id}
+                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 rounded transition"
+                                title="حذف هذه المحادثة نهائياً من قاعدة البيانات"
                               >
                                 <Trash2 className="h-3 w-3" />
                               </button>
@@ -710,7 +680,7 @@ export default function AdminDashboardPage() {
                           {/* Title / Initial question */}
                           <h4
                             className={`mt-1.5 text-xs font-bold line-clamp-2 leading-relaxed ${
-                              isDark ? 'text-slate-200' : 'text-slate-800'
+                              isDark ? 'text-zinc-200' : 'text-zinc-800'
                             }`}
                           >
                             {s.title}
@@ -718,22 +688,22 @@ export default function AdminDashboardPage() {
 
                           {/* Snippet of last message */}
                           {s.last_message && (
-                            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
+                            <p className="mt-1 text-[11px] text-zinc-400 line-clamp-1">
                               {s.last_role === 'assistant' ? '🤖 البوت: ' : '👤 العميل: '}
                               {s.last_message}
                             </p>
                           )}
 
                           {/* Card Footer */}
-                          <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
+                          <div className="mt-2 flex items-center justify-between text-[10px] text-zinc-400">
                             <span
                               className={`rounded-md px-2 py-0.5 font-mono ${
-                                isDark ? 'bg-slate-800/80 text-slate-300' : 'bg-slate-100 text-slate-700'
+                                isDark ? 'bg-zinc-900 text-zinc-300' : 'bg-zinc-100 text-zinc-700'
                               }`}
                             >
                               {s.message_count} رسائل
                             </span>
-                            <span className="font-mono text-[9px] text-slate-400 truncate max-w-[140px]">
+                            <span className="font-mono text-[9px] text-zinc-500 truncate max-w-[140px]">
                               {s.session_token}
                             </span>
                           </div>
@@ -744,10 +714,10 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* Right Column: Full Conversation Timeline (7 cols) */}
+              {/* Conversation Panel (Takes remaining space) */}
               <div
-                className={`lg:col-span-7 flex flex-col rounded-2xl border overflow-hidden min-h-0 ${
-                  isDark ? 'border-slate-800 bg-slate-900/60' : 'border-slate-200 bg-white shadow-sm'
+                className={`flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden ${
+                  isDark ? 'bg-black' : 'bg-zinc-50'
                 }`}
               >
                 {selectedSessionId && activeSession ? (
@@ -755,38 +725,38 @@ export default function AdminDashboardPage() {
                     {/* Conversation Header Bar */}
                     <div
                       className={`p-3.5 border-b flex flex-wrap items-center justify-between gap-3 shrink-0 ${
-                        isDark ? 'border-slate-800 bg-slate-900/90' : 'border-slate-200 bg-slate-50'
+                        isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-white'
                       }`}
                     >
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className={`text-sm font-black truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                          <h3 className={`text-sm font-black truncate ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                             {activeSession.title || 'محادثة عقارية'}
                           </h3>
                           {activeSession.is_deleted && (
-                            <span className="rounded-md bg-rose-500/20 text-rose-500 dark:text-rose-400 px-2 py-0.5 text-[10px] font-bold">
+                            <span className="rounded-md bg-rose-500/20 text-rose-400 px-2 py-0.5 text-[10px] font-bold">
                               محذوفة سابقاً
                             </span>
                           )}
                         </div>
-                        <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                        <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-zinc-400">
                           {activeSession.user?.email ? (
-                            <span className="text-sky-600 dark:text-sky-400 font-semibold flex items-center gap-1">
+                            <span className="text-sky-400 font-semibold flex items-center gap-1">
                               <User className="h-3 w-3" />
                               {activeSession.user.email}
                             </span>
                           ) : (
-                            <span className="text-slate-400">زائر غير مسجل</span>
+                            <span className="text-zinc-500">زائر غير مسجل</span>
                           )}
                           <span>•</span>
                           <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3 text-slate-400" />
+                            <Calendar className="h-3 w-3 text-zinc-500" />
                             {formatDate(activeSession.created_at)}
                           </span>
                           <span>•</span>
                           <button
                             onClick={() => handleCopySessionId(activeSession.id)}
-                            className="flex items-center gap-1 text-[11px] font-mono text-slate-400 hover:text-amber-500"
+                            className="flex items-center gap-1 text-[11px] font-mono text-zinc-400 hover:text-amber-500"
                             title="نسخ معرف الجلسة"
                           >
                             <span>{activeSession.id.slice(0, 8)}...</span>
@@ -800,25 +770,11 @@ export default function AdminDashboardPage() {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        {/* Toggle Fullscreen inside conversation */}
-                        <button
-                          onClick={() => setIsFullscreen(!isFullscreen)}
-                          className={`flex items-center gap-1 rounded-xl border px-2.5 py-1.5 text-xs font-bold transition ${
-                            isDark
-                              ? 'border-slate-800 bg-slate-800 text-slate-200 hover:bg-slate-700'
-                              : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
-                          }`}
-                          title={isFullscreen ? 'تصغير' : 'تكبير ملء الشاشة'}
-                        >
-                          {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-                          <span className="hidden sm:inline">{isFullscreen ? 'تصغير' : 'تكبير'}</span>
-                        </button>
-
                         {/* Permanent Hard Delete Button */}
                         <button
                           onClick={() => handlePermanentDelete(activeSession.id)}
                           disabled={deletingSessionId === activeSession.id}
-                          className="flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/15 hover:bg-rose-500 text-rose-600 dark:text-rose-300 hover:text-white px-3 py-1.5 text-xs font-black transition disabled:opacity-50 shadow-xs"
+                          className="flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/15 hover:bg-rose-500 text-rose-400 hover:text-white px-3 py-1.5 text-xs font-black transition disabled:opacity-50 shadow-xs"
                           title="حذف هذه المحادثة نهائياً من قاعدة بيانات Supabase"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -827,15 +783,15 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    {/* Conversation Messages Feed with Full Smooth Scrolling */}
-                    <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 min-h-0">
+                    {/* Messages Scrollable Timeline */}
+                    <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
                       {loadingMessages ? (
-                        <div className="p-8 text-center text-slate-400 text-xs">
+                        <div className="p-8 text-center text-zinc-400 text-xs">
                           <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-amber-500" />
                           جاري تحميل رسائل المحادثة...
                         </div>
                       ) : messages.length === 0 ? (
-                        <div className="p-8 text-center text-slate-400 text-xs">
+                        <div className="p-8 text-center text-zinc-400 text-xs">
                           لا توجد رسائل مسجلة في هذه الجلسة
                         </div>
                       ) : (
@@ -855,8 +811,8 @@ export default function AdminDashboardPage() {
                                   isBot
                                     ? 'bg-amber-500 text-black shadow-md shadow-amber-500/20'
                                     : isDark
-                                    ? 'bg-slate-800 text-slate-300'
-                                    : 'bg-slate-200 text-slate-700'
+                                    ? 'bg-zinc-900 border border-zinc-800 text-zinc-300'
+                                    : 'bg-zinc-200 text-zinc-700'
                                 }`}
                               >
                                 {isBot ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
@@ -864,8 +820,8 @@ export default function AdminDashboardPage() {
 
                               {/* Message Bubble Container */}
                               <div className={`max-w-[85%] space-y-1.5 ${isBot ? 'text-right' : 'text-right'}`}>
-                                <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                                  <span className={`font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                <div className="flex items-center gap-2 text-[10px] text-zinc-500">
+                                  <span className={`font-bold ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
                                     {isBot ? 'سكنى بوت' : activeSession.user?.name || 'العميل'}
                                   </span>
                                   <span>•</span>
@@ -873,7 +829,7 @@ export default function AdminDashboardPage() {
                                   {isBot && (
                                     <span
                                       className={`font-mono text-[9px] px-1.5 py-0.5 rounded ${
-                                        isDark ? 'bg-slate-800 text-amber-300' : 'bg-slate-200 text-amber-800'
+                                        isDark ? 'bg-zinc-900 text-amber-300 border border-zinc-800' : 'bg-zinc-200 text-amber-800'
                                       }`}
                                     >
                                       {aiModel}
@@ -886,8 +842,8 @@ export default function AdminDashboardPage() {
                                   className={`rounded-2xl p-3.5 text-xs leading-relaxed whitespace-pre-wrap break-words ${
                                     isBot
                                       ? isDark
-                                        ? 'bg-slate-900 border border-slate-800 text-slate-100 shadow-xs'
-                                        : 'bg-slate-100 border border-slate-200 text-slate-900 shadow-xs'
+                                        ? 'bg-zinc-950 border border-zinc-800 text-white shadow-xs'
+                                        : 'bg-white border border-zinc-200 text-zinc-900 shadow-xs'
                                       : 'bg-amber-500 text-black font-semibold shadow-md shadow-amber-500/10'
                                   }`}
                                 >
@@ -896,7 +852,7 @@ export default function AdminDashboardPage() {
 
                                 {/* Properties Recommended Badge */}
                                 {isBot && propCount > 0 && (
-                                  <div className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                                  <div className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] font-bold text-amber-500">
                                     <Building2 className="h-3 w-3" />
                                     <span>اقترح البوت {propCount} وحدات عقارية في هذا الرد</span>
                                   </div>
@@ -910,12 +866,12 @@ export default function AdminDashboardPage() {
                     </div>
                   </>
                 ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center p-8 text-slate-400 text-xs min-h-0">
-                    <MessageSquare className="h-10 w-10 text-slate-400/40 mb-3" />
-                    <p className="font-bold text-slate-500 dark:text-slate-400">
+                  <div className="flex-1 flex flex-col items-center justify-center p-8 text-zinc-400 text-xs min-h-0">
+                    <MessageSquare className="h-10 w-10 text-zinc-700 mb-3" />
+                    <p className="font-bold text-zinc-400">
                       اختر محادثة من القائمة لمراجعتها بالكامل
                     </p>
-                    <p className="mt-1 text-slate-400 text-center">
+                    <p className="mt-1 text-zinc-500 text-center">
                       يمكنك استعراض أسئلة العملاء، ردود الذكاء الاصطناعي، والعقارات المقترحة، وحذف أي محادثة نهائياً من قاعدة البيانات.
                     </p>
                   </div>
@@ -931,11 +887,11 @@ export default function AdminDashboardPage() {
             {/* Search Box */}
             <div
               className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4 ${
-                isDark ? 'border-slate-800 bg-slate-900/60' : 'border-slate-200 bg-white shadow-xs'
+                isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-white shadow-xs'
               }`}
             >
               <div className="relative flex-1 min-w-[240px]">
-                <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                 <input
                   type="text"
                   value={userSearch}
@@ -943,13 +899,13 @@ export default function AdminDashboardPage() {
                   placeholder="ابحث عن مستخدم بالبريد أو الاسم أو المعرف..."
                   className={`w-full rounded-xl border py-2.5 pr-10 pl-4 text-xs focus:border-amber-500 focus:outline-none transition ${
                     isDark
-                      ? 'border-slate-800 bg-slate-950 text-slate-200 placeholder-slate-500'
-                      : 'border-slate-300 bg-white text-slate-900 placeholder-slate-400'
+                      ? 'border-zinc-800 bg-zinc-950 text-white placeholder-zinc-500'
+                      : 'border-zinc-300 bg-white text-zinc-900 placeholder-zinc-400'
                   }`}
                 />
               </div>
 
-              <div className="text-xs text-slate-500 dark:text-slate-400">
+              <div className="text-xs text-zinc-400">
                 إجمالي المسجلين: <span className="font-mono font-bold text-amber-500">{filteredUsers.length}</span>
               </div>
             </div>
@@ -957,14 +913,14 @@ export default function AdminDashboardPage() {
             {/* Users Table */}
             <div
               className={`rounded-2xl border overflow-hidden ${
-                isDark ? 'border-slate-800 bg-slate-900/60' : 'border-slate-200 bg-white shadow-xs'
+                isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-white shadow-xs'
               }`}
             >
               <div className="overflow-x-auto">
                 <table className="w-full text-right text-xs">
                   <thead
                     className={`border-b text-[11px] font-bold uppercase tracking-wider ${
-                      isDark ? 'border-slate-800 bg-slate-900 text-slate-400' : 'border-slate-200 bg-slate-50 text-slate-600'
+                      isDark ? 'border-zinc-800 bg-black text-zinc-400' : 'border-zinc-200 bg-zinc-50 text-zinc-600'
                     }`}
                   >
                     <tr>
@@ -976,17 +932,17 @@ export default function AdminDashboardPage() {
                       <th className="p-3.5 text-center">الإجراءات</th>
                     </tr>
                   </thead>
-                  <tbody className={`divide-y ${isDark ? 'divide-slate-800/60' : 'divide-slate-100'}`}>
+                  <tbody className={`divide-y ${isDark ? 'divide-zinc-800/60' : 'divide-zinc-100'}`}>
                     {loadingStats ? (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-slate-400 text-xs">
+                        <td colSpan={6} className="p-8 text-center text-zinc-400 text-xs">
                           <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-amber-500" />
                           جاري تحميل قائمة المستخدمين...
                         </td>
                       </tr>
                     ) : filteredUsers.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-slate-400 text-xs">
+                        <td colSpan={6} className="p-8 text-center text-zinc-400 text-xs">
                           لا يوجد مستخدمين يطابقون البحث
                         </td>
                       </tr>
@@ -994,10 +950,10 @@ export default function AdminDashboardPage() {
                       filteredUsers.map((u) => (
                         <tr
                           key={u.id}
-                          className={`transition ${isDark ? 'hover:bg-slate-800/40' : 'hover:bg-slate-50'}`}
+                          className={`transition ${isDark ? 'hover:bg-zinc-900/60' : 'hover:bg-zinc-50'}`}
                         >
                           <td className="p-3.5 font-bold flex items-center gap-2">
-                            <div className="grid h-7 w-7 place-items-center rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold shrink-0">
+                            <div className="grid h-7 w-7 place-items-center rounded-full bg-amber-500/20 text-amber-500 font-bold shrink-0">
                               {u.name?.charAt(0)?.toUpperCase() || 'U'}
                             </div>
                             <span className="truncate max-w-[180px]">{u.name}</span>
@@ -1005,21 +961,21 @@ export default function AdminDashboardPage() {
                           <td className="p-3.5 font-mono">
                             {u.email}
                             {u.email === 'weeessd57@gmail.com' && (
-                              <span className="mr-2 rounded-md bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 text-[9px] font-bold">
+                              <span className="mr-2 rounded-md bg-amber-500/20 text-amber-500 px-1.5 py-0.5 text-[9px] font-bold">
                                 Super Admin
                               </span>
                             )}
                           </td>
-                          <td className="p-3.5 text-slate-500 dark:text-slate-400">
+                          <td className="p-3.5 text-zinc-400">
                             {formatDate(u.created_at)}
                           </td>
-                          <td className="p-3.5 text-slate-500 dark:text-slate-400">
+                          <td className="p-3.5 text-zinc-400">
                             {formatDate(u.last_sign_in_at)}
                           </td>
                           <td className="p-3.5">
                             <span
                               className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
-                                isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'
+                                isDark ? 'bg-zinc-900 text-zinc-300 border border-zinc-800' : 'bg-zinc-100 text-zinc-700'
                               }`}
                             >
                               {u.role}
@@ -1031,7 +987,7 @@ export default function AdminDashboardPage() {
                                 setSessionSearch(u.email);
                                 setActiveTab('chats');
                               }}
-                              className="rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 transition"
+                              className="rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 text-[11px] font-bold text-amber-500 transition"
                             >
                               عرض محادثاته
                             </button>

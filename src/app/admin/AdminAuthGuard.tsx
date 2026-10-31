@@ -17,9 +17,9 @@ export default function AdminAuthGuard({ children }: { children: React.ReactNode
   // Show neutral loader while auth state is resolving
   if (loading || !mounted) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-3 text-slate-400">
+      <div className="h-screen w-screen bg-black flex flex-col items-center justify-center gap-3 text-zinc-400">
         <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
-        <span className="text-xs font-mono">Verifying authorization...</span>
+        <span className="text-xs font-mono">Verifying admin access...</span>
       </div>
     );
   }

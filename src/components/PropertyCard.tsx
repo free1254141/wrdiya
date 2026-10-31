@@ -155,26 +155,29 @@ export default function PropertyCard({
     ];
   }, [hasInstallments, basePrice, baseYears, baseDpPct, baseDpAmount, remainingAmount, baseMonthly, property.quarterly_installment, isAr]);
 
-  const affiliateUrl = property.affiliate_url || (
-    isTekce 
-      ? 'https://tekce.com?utm_source=taff&utm_medium=6FPC68983C'
-      : 'https://launches.aqarmap.com/ar/expos/saudi-projects?utm_source=partners&utm_medium=dynamic&utm_campaign=affiliate_759279&partner_code=759279'
-  );
-
-  const handleShare = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const text = isAr 
-      ? `فرصة عقارية: ${property.title}\nالمشروع: ${compound?.name || ''}\nالسعر: ${basePrice.toLocaleString('ar-EG')} ${curr}\nالرابط: ${affiliateUrl}`
-      : `Property Opportunity: ${property.title}\nProject: ${compound?.name || ''}\nPrice: ${basePrice.toLocaleString('en-US')} ${curr}\nLink: ${affiliateUrl}`;
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   const isSellerListing = property.platform === 'SellerListing';
   const hasRealImage = Boolean(property.images && property.images.length > 0 && property.images[0]);
   const coverImage = isSellerListing ? undefined : compound?.cover_image;
   const imageUrl = hasRealImage ? property.images![0] : coverImage;
+
+  const affiliateUrl = isSellerListing
+    ? undefined
+    : property.affiliate_url || (
+        isTekce 
+          ? 'https://tekce.com?utm_source=taff&utm_medium=6FPC68983C'
+          : 'https://launches.aqarmap.com/ar/expos/saudi-projects?utm_source=partners&utm_medium=dynamic&utm_campaign=affiliate_759279&partner_code=759279'
+      );
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const shareUrl = affiliateUrl || (typeof window !== 'undefined' ? `${window.location.origin}?property=${property.id}` : '');
+    const text = isAr 
+      ? `فرصة عقارية: ${property.title}\nالمشروع: ${compound?.name || ''}\nالسعر: ${basePrice.toLocaleString('ar-EG')} ${curr}${shareUrl ? `\nالرابط: ${shareUrl}` : ''}`
+      : `Property Opportunity: ${property.title}\nProject: ${compound?.name || ''}\nPrice: ${basePrice.toLocaleString('en-US')} ${curr}${shareUrl ? `\nLink: ${shareUrl}` : ''}`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div 
@@ -507,17 +510,20 @@ export default function PropertyCard({
             <span>{isAr ? 'طلب معاينة' : 'Visit'}</span>
           </button>
 
-          {/* Official Partner Affiliate Link */}
-          <a
-            href={affiliateUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2.5 py-2.5 text-xs font-bold text-amber-700 transition hover:bg-amber-500/20 active:scale-[0.98] dark:border-amber-400/30 dark:text-amber-400"
-            title={isAr ? 'فتح صفحة المشروع الرسمية على منصة الشريك' : 'Open official project page'}
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{isAr ? 'الموقع الرسمي' : 'Official'}</span>
-          </a>
+          {/* Official Partner Affiliate Link (Only for verified developer projects, NEVER for seller listings) */}
+          {affiliateUrl && !isSellerListing && (
+            <a
+              href={affiliateUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center justify-center gap-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2.5 py-2.5 text-xs font-bold text-amber-700 transition hover:bg-amber-500/20 active:scale-[0.98] dark:border-amber-400/30 dark:text-amber-400"
+              title={isAr ? 'فتح صفحة المشروع الرسمية على منصة الشريك' : 'Open official project page'}
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{isAr ? 'الموقع الرسمي' : 'Official'}</span>
+            </a>
+          )}
         </div>
       </div>
     </div>
