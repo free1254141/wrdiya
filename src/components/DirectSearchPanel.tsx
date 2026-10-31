@@ -31,7 +31,7 @@ interface DirectSearchPanelProps {
   onSwitchToChat: () => void;
 }
 
-type RegionKey = 'all' | 'tagamoa' | 'zayed' | 'capital' | 'coast' | 'dubai' | 'turkey' | 'spain' | 'seller';
+type RegionKey = 'all' | 'tagamoa' | 'zayed' | 'capital' | 'coast' | 'mostakbal' | 'seller';
 type UnitTypeKey = 'all' | 'apartment' | 'villa' | 'townhouse' | 'chalet' | 'duplex';
 type SortKey = 'relevance' | 'price_asc' | 'price_desc' | 'area_desc';
 
@@ -144,12 +144,8 @@ export default function DirectSearchPanel({
             return city.includes('عاصمة') || city.includes('capital') || title.includes('عاصمة') || area.includes('r7') || area.includes('r8');
           case 'coast':
             return city.includes('ساحل') || area.includes('ساحل') || title.includes('ساحل') || area.includes('حكمة') || area.includes('علمين');
-          case 'dubai':
-            return country.includes('uae') || city.includes('دبي') || city.includes('dubai') || p.currency === 'AED';
-          case 'turkey':
-            return country.includes('turkey') || city.includes('إسطنبول') || city.includes('istanbul') || city.includes('أنطاليا');
-          case 'spain':
-            return country.includes('spain') || city.includes('مالقة') || city.includes('malaga') || city.includes('ماربيا') || p.currency === 'EUR';
+          case 'mostakbal':
+            return city.includes('مستقبل') || area.includes('مستقبل') || title.includes('مستقبل') || city.includes('شروق') || area.includes('شروق');
           case 'seller':
             return platform === 'SellerListing';
           default:
@@ -261,7 +257,7 @@ export default function DirectSearchPanel({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={isAr ? 'ابحث باسم الكمبوند، المطور، المنطقة (مثال: ماونتن فيو، التجمع، زايد، دبي)...' : 'Search by compound, developer, area...'}
+                placeholder={isAr ? 'ابحث باسم الكمبوند، المطور، المنطقة (مثال: ماونتن فيو، التجمع، زايد، المستقبل)...' : 'Search by compound, developer, area...'}
                 className={`w-full rounded-2xl border border-slate-300 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 ${
                   isRtl ? 'pr-10 pl-10' : 'pl-10 pr-10'
                 } py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-amber-500 transition`}
@@ -338,9 +334,7 @@ export default function DirectSearchPanel({
               { id: 'zayed', label: isAr ? '🇪🇬 الشيخ زايد وأكتوبر' : '🇪🇬 Zayed & Oct' },
               { id: 'capital', label: isAr ? '🇪🇬 العاصمة الإدارية' : '🇪🇬 New Capital' },
               { id: 'coast', label: isAr ? '🇪🇬 الساحل الشمالي' : '🇪🇬 North Coast' },
-              { id: 'dubai', label: isAr ? '🇦🇪 دبي والإمارات' : '🇦🇪 Dubai & UAE' },
-              { id: 'turkey', label: isAr ? '🇹🇷 تركيا وإسطنبول' : '🇹🇷 Turkey' },
-              { id: 'spain', label: isAr ? '🇪🇸 إسبانيا ومالقة' : '🇪🇸 Spain' },
+              { id: 'mostakbal', label: isAr ? '🇪🇬 المستقبل سيتي والشروق' : '🇪🇬 Mostakbal City' },
               { id: 'seller', label: isAr ? '👤 عروض الملاك المباشرة' : '👤 Direct Owners' },
             ].map((reg) => (
               <button

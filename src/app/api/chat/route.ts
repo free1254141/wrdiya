@@ -377,8 +377,8 @@ export async function POST(req: NextRequest) {
     }
 
     const baseSuggestedActions = locale === 'ar' 
-      ? ['طلب استشارة ومعاينة مجانية 📅', 'حساب خطة الأقساط الشهرية 💰', 'عقارات في دبي والإمارات 🇦🇪']
-      : ['Book Free Viewing 📅', 'Calculate Monthly Installments 💰', 'Dubai & UAE Properties 🇦🇪'];
+      ? ['طلب استشارة ومعاينة مجانية 📅', 'حساب خطة الأقساط الشهرية 💰', 'تقييم سعر المتر وسرعة البيع 📊']
+      : ['Book Free Viewing 📅', 'Calculate Monthly Installments 💰', 'Fair Valuation & Speed of Sale 📊'];
 
     const defaultSuggestedActions = sessionContext.pending_seller_form_offer
       ? [sellerBotCopy.openFormChip, ...baseSuggestedActions.slice(0, 2)]

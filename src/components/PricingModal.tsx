@@ -169,7 +169,7 @@ export default function PricingModal({
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                <span>{isAr ? 'تصفح عقارات مصر ودبي وإسبانيا وتركيا' : 'Access Egypt & Global inventory'}</span>
+                <span>{isAr ? 'تصفح كافة عقارات وكمبوندات مصر الحصرية' : 'Access All Verified Egyptian Inventory'}</span>
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />

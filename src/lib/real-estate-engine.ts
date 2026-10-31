@@ -556,24 +556,14 @@ export function formatGroundedBrokerResponse(
         `👇 **Explore top matching units in the interactive cards below with full photos & direct booking:**`;
     }
 
-    const actionsAr = isInternational ? [
-      'عقارات دبي المؤهلة للإقامة الذهبية',
-      'شقق إسطنبول المناسبة للجنسية التركية',
-      'عقارات إسبانيا وفيزا شنجن الأوروبية',
-      'تحدث مع مستشار الاستثمار الدولي عبر واتساب'
-    ] : [
+    const actionsAr = [
       'احسبلي القسط لو زودت المقدم لـ 20%',
       'عايز وحدات استلام فوري جاهزة للسكن',
       'طلب موعد معاينة في المشروع',
       'أفضل كمبوندات التجمع الخامس بتقسيط 8 سنين'
     ];
 
-    const actionsEn = isInternational ? [
-      'Dubai properties eligible for Golden Visa',
-      'Istanbul units eligible for Turkish Citizenship',
-      'Spain coastal properties with Schengen access',
-      'Chat with international broker via WhatsApp'
-    ] : [
+    const actionsEn = [
       'Calculate monthly installment with 20% down payment',
       'Show ready-to-move units available now',
       'Schedule an on-site project viewing',
@@ -588,22 +578,20 @@ export function formatGroundedBrokerResponse(
     ? `⚠️ **لم أجد وحدات مطابقة تماماً لهذه الشروط المحددة** في قاعدة البيانات الحالية.\n\nحرصاً على الشفافية وعدم إعطائك أي أرقام غير معتمدة، نعتمد حصرياً على قوائم الأسعار الرسمية.\n\n✨ **إليك أبرز الفرص المعتمدة المتاحة حالياً**:`
     : `⚠️ **No exact units found matching these exact criteria** in the verified records.\n\nTo ensure complete accuracy, we rely strictly on accredited developer inventory.\n\n✨ **Here are top verified opportunities currently available**:`;
 
-  // Grounded fallbacks scoped strictly by target platform
-  const targetPlatform = isInternational ? 'TEKCE' : 'Aqarmap';
-  const platformFallbacks = featuredFallbacks.filter(p => p.platform === targetPlatform);
-  const fallbackUnits = (platformFallbacks.length > 0 ? platformFallbacks : featuredFallbacks).slice(0, 3);
+  // Grounded fallbacks scoped strictly by verified Egyptian inventory
+  const fallbackUnits = featuredFallbacks.slice(0, 3);
   const actionsAr = [
     'مشاريع معارض عقارماب الحصرية',
-    'فرص الاستثمار الدولي في دبي وتركيا',
-    'شقق التجمع الخامس بتقسيط 8 سنين',
-    'تواصل مع وسيط عقاري معتمد عبر واتساب'
+    'كمبوندات المستقبل سيتي والشروق',
+    'شقق التجمع الخامس والشيخ زايد بتقسيط مريح',
+    'تواصل مع وسيط عقاري معتمد لحجز معاينة'
   ];
 
   const actionsEn = [
     'Exclusive accredited expo projects',
-    'International Dubai & Turkey investment units',
-    'New Cairo apartments with 8-year installments',
-    'Connect with a verified broker on WhatsApp'
+    'Mostakbal City & Shorouk compounds',
+    'New Cairo & Sheikh Zayed installment units',
+    'Connect with a verified broker for viewing'
   ];
 
   return {
