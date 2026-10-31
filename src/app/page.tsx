@@ -74,6 +74,7 @@ export default function SkanybotChatPage() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
+  const [referencedProperty, setReferencedProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -566,7 +567,18 @@ export default function SkanybotChatPage() {
   };
 
   const handleSendMessage = async (textToSend?: string) => {
-    const rawQuery = (textToSend || inputText).trim();
+    let rawQuery = (textToSend || inputText).trim();
+
+    // If user typed a custom query and there's a referenced unit, prepend unit context:
+    if (!textToSend && referencedProperty && rawQuery) {
+      const loc = referencedProperty.compound?.city || referencedProperty.compound?.area_name || referencedProperty.location_text || '';
+      const prefix = isRtl
+        ? `[بخصوص وحدة: "${referencedProperty.title}" في ${loc} بسعر ${referencedProperty.total_price.toLocaleString('ar-EG')} ج.م ومساحة ${referencedProperty.area_sqm}م²]: `
+        : `[Regarding unit: "${referencedProperty.title}" in ${loc} priced at ${referencedProperty.total_price.toLocaleString()} EGP (${referencedProperty.area_sqm} sqm)]: `;
+      rawQuery = prefix + rawQuery;
+      setReferencedProperty(null);
+    }
+
     const imagesToSend = textToSend ? [] : [...chatAttachedImages];
     const query = rawQuery || (imagesToSend.length > 0 ? (isRtl ? 'دي صور الوحدة اللي عايز أبيعها' : 'Here are the photos of my property for sale') : '');
     if ((!query && imagesToSend.length === 0) || loading) return;
@@ -753,18 +765,52 @@ export default function SkanybotChatPage() {
       return next;
     });
 
-    // 2. Switch mode to chat
+    // 2. Switch mode to chat & set referenced unit
     setAppMode('chat');
+    setReferencedProperty(property);
 
-    // 3. Formulate smart question and ask bot
-    const compoundName = property.compound?.name || property.location_text || '';
-    const q = customQuery || (isRtl 
-      ? `أريد استشارتك بخصوص هذه الوحدة: "${property.title}" في ${compoundName} بسعر ${property.total_price.toLocaleString('ar-EG')} ${property.currency || 'ج.م'}. ما هي أفضل خطة تقسيط شهرية لها وما تقييمك للمشروع استثمارياً؟`
-      : `I want your consultation regarding: "${property.title}" in ${compoundName} priced at ${property.total_price.toLocaleString()} ${property.currency || 'EGP'}. What is the best payment plan and investment appraisal?`);
-
+    // 3. Scroll smoothly to chat input and focus
     setTimeout(() => {
-      handleSendMessage(q);
-    }, 120);
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+
+    // 4. If explicit custom query was provided, send it
+    if (customQuery) {
+      setTimeout(() => {
+        handleSendMessage(customQuery);
+      }, 150);
+    }
+  };
+
+  const handleTriggerReferencedAction = (actionKey: 'score' | 'pros_cons' | 'valuation' | 'installments') => {
+    if (!referencedProperty) return;
+    const p = referencedProperty;
+    const loc = p.compound?.city || p.compound?.area_name || p.location_text || '';
+    let q = '';
+
+    if (actionKey === 'score') {
+      q = isRtl
+        ? `عايزك تقيّم لي الصفقة دي بدقة وسكورها من 0 لـ 100 وهل سعرها عادل ومناسب للشراء مقارنة بالسوق: "${p.title}" في ${loc} بسعر ${p.total_price.toLocaleString('ar-EG')} ج.م ومساحة ${p.area_sqm}م².`
+        : `Please evaluate this property deal score (0-100) and tell me if it is fairly priced: "${p.title}" in ${loc} priced at ${p.total_price.toLocaleString()} EGP (${p.area_sqm} sqm).`;
+    } else if (actionKey === 'pros_cons') {
+      q = isRtl
+        ? `بصراحة وبدون مجاملة، إيه مميزات وعيوب هذه الوحدة وموقعها والمطور والخدمات: "${p.title}" في ${loc} بسعر ${p.total_price.toLocaleString('ar-EG')} ج.م؟`
+        : `Frankly, what are the pros and cons of this unit, its location, and developer: "${p.title}" in ${loc} at ${p.total_price.toLocaleString()} EGP?`;
+    } else if (actionKey === 'valuation') {
+      q = isRtl
+        ? `سعّر لي الوحدة دي بالذكاء الاصطناعي والموديل الكمي (AVM) وقولي نطاق السعر العادل وسرعة البيع المتوقعة: "${p.title}" مساحة ${p.area_sqm}م² في ${loc} بسعر مطلوب ${p.total_price.toLocaleString('ar-EG')} ج.م.`
+        : `Please run AI Automated Valuation (AVM) for: "${p.title}" (${p.area_sqm} sqm in ${loc}) asking price ${p.total_price.toLocaleString()} EGP.`;
+    } else if (actionKey === 'installments') {
+      q = isRtl
+        ? `احسب لي أفضل خطة أقساط ومقدم تفصيلية لوحدة: "${p.title}" بسعر إجمالي ${p.total_price.toLocaleString('ar-EG')} ج.م وتقسيط ${p.installment_years} سنوات ومقدم ${p.down_payment_pct}%.`
+        : `Calculate the best installment plan and schedule for: "${p.title}" at ${p.total_price.toLocaleString()} EGP over ${p.installment_years} years.`;
+    }
+
+    setReferencedProperty(null);
+    handleSendMessage(q);
   };
 
   const handleCompareWithChat = (properties: Property[]) => {
@@ -1132,6 +1178,7 @@ export default function SkanybotChatPage() {
                                     onBookViewing={handleBookViewing}
                                     onToggleFavorite={handleToggleFavorite}
                                     onViewDetails={openPropertyDetails}
+                                    onSendToChat={handleSendToChat}
                                     isFavorite={favorites.some(f => f.id === prop.id)}
                                   />
                                 </div>
@@ -1145,6 +1192,7 @@ export default function SkanybotChatPage() {
                               properties={(msg.all_properties && msg.all_properties.length > 0) ? msg.all_properties : (msg.properties || [])}
                               initialCount={4}
                               onViewDetails={openPropertyDetails}
+                              onSendToChat={handleSendToChat}
                             />
                           )}
 
@@ -1254,6 +1302,67 @@ export default function SkanybotChatPage() {
                 </div>
               )}
 
+              {/* Referenced / Targeted Unit Focus Strip */}
+              {referencedProperty && (
+                <div className="flex flex-col gap-2 border-b border-amber-500/25 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent px-4 pt-3 pb-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-amber-500 text-black font-black text-xs shadow-xs">
+                        📍
+                      </span>
+                      <div className="min-w-0">
+                        <div className="font-black text-xs text-slate-900 dark:text-white line-clamp-1">
+                          {referencedProperty.title}
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-zinc-400">
+                          {referencedProperty.total_price.toLocaleString(isRtl ? 'ar-EG' : 'en-US')} {referencedProperty.currency || 'ج.م'} • {referencedProperty.area_sqm}م² {referencedProperty.deal_score ? `• ⭐ سكور: ${referencedProperty.deal_score}/100 (${referencedProperty.deal_badge || ''})` : ''}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setReferencedProperty(null)}
+                      className="rounded-full p-1 text-slate-400 hover:bg-slate-200 hover:text-black dark:hover:bg-zinc-800 dark:hover:text-white transition"
+                      title={isRtl ? 'إلغاء الإشارة للوحدة' : 'Clear unit reference'}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* 4 Smart 1-Click Action Chips */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => handleTriggerReferencedAction('score')}
+                      className="inline-flex items-center gap-1 rounded-full border border-amber-500/50 bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-700 shadow-2xs hover:bg-amber-500 hover:text-black dark:border-amber-400/40 dark:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500 dark:hover:text-black transition"
+                    >
+                      <span>⭐ قيّم لي الصفقة دي وسكورها</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTriggerReferencedAction('pros_cons')}
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-300/80 bg-white/90 px-3 py-1 text-xs font-bold text-slate-700 shadow-2xs hover:bg-amber-500 hover:text-black dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-amber-500 dark:hover:text-black transition"
+                    >
+                      <span>⚖️ إيه عيوبها ومميزاتها بصراحة؟</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTriggerReferencedAction('valuation')}
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-300/80 bg-white/90 px-3 py-1 text-xs font-bold text-slate-700 shadow-2xs hover:bg-amber-500 hover:text-black dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-amber-500 dark:hover:text-black transition"
+                    >
+                      <span>💰 تسعيرها العادل وسرعة البيع</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTriggerReferencedAction('installments')}
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-300/80 bg-white/90 px-3 py-1 text-xs font-bold text-slate-700 shadow-2xs hover:bg-amber-500 hover:text-black dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-amber-500 dark:hover:text-black transition"
+                    >
+                      <span>🧮 احسب خطة أقساطها</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="relative flex items-end">
                 {/* Upload Unit Photos Button inside Chat Bar */}
                 <label
@@ -1278,7 +1387,11 @@ export default function SkanybotChatPage() {
                   value={inputText}
                   onChange={handleInputResize}
                   onKeyDown={handleKeyDown}
-                  placeholder={t.searchPlaceholder}
+                  placeholder={
+                    referencedProperty
+                      ? (isRtl ? `اسأل البروكر أي سؤال بخصوص "${referencedProperty.title.slice(0, 32)}..."` : `Ask any question about this property...`)
+                      : t.searchPlaceholder
+                  }
                   className={`max-h-44 flex-1 resize-none bg-transparent py-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-hidden dark:text-white dark:placeholder:text-zinc-500 ${
                     isRtl ? 'pr-3 pl-14 text-right' : 'pl-3 pr-14 text-left'
                   }`}

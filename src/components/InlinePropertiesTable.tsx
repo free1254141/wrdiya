@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Eye, ArrowUpDown, Building2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Eye, ArrowUpDown, Building2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { Property } from '@/lib/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -9,6 +9,7 @@ interface InlinePropertiesTableProps {
   properties: Property[];
   initialCount?: number;
   onViewDetails: (property: Property) => void;
+  onSendToChat?: (property: Property) => void;
 }
 
 type SortKey = 'relevance' | 'price_asc' | 'price_desc' | 'area_desc';
@@ -17,8 +18,10 @@ export default function InlinePropertiesTable({
   properties,
   initialCount = 4,
   onViewDetails,
+  onSendToChat,
 }: InlinePropertiesTableProps) {
   const { locale, isRtl } = useLanguage();
+  const isAr = locale === 'ar';
   const [expanded, setExpanded] = useState(false);
   const [sortBy, setSortBy] = useState<SortKey>('relevance');
 
@@ -173,14 +176,27 @@ export default function InlinePropertiesTable({
                   </div>
                 </td>
                 <td className="py-2.5 px-3 text-center whitespace-nowrap">
-                  <button
-                    type="button"
-                    onClick={() => onViewDetails(p)}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-1.5 text-[11px] font-black text-black shadow-2xs transition hover:bg-amber-400 active:scale-95"
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                    {isRtl ? 'عرض البيانات' : 'View details'}
-                  </button>
+                  <div className="flex items-center justify-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onViewDetails(p)}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 px-2.5 py-1.5 text-[11px] font-bold text-slate-800 dark:text-zinc-200 shadow-2xs transition active:scale-95"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      {isRtl ? 'عرض البيانات' : 'View'}
+                    </button>
+                    {onSendToChat && (
+                      <button
+                        type="button"
+                        onClick={() => onSendToChat(p)}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black px-2.5 py-1.5 text-[11px] font-black shadow-2xs transition active:scale-95"
+                        title={isRtl ? 'استشارة وتقييم هذه الوحدة في الشات' : 'Ask AI to evaluate this unit'}
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <span>{isAr ? 'تقييم بالشات' : 'Ask AI'}</span>
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

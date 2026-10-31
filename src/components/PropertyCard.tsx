@@ -546,15 +546,16 @@ export default function PropertyCard({
         {/* Bridge to AI Agent: Direct Conversation on this Property */}
         {onSendToChat && (
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               onSendToChat(property);
             }}
-            className="mt-2.5 w-full flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-transparent hover:from-amber-500/25 hover:to-amber-500/10 py-2 px-3 text-xs font-bold text-amber-600 dark:text-amber-400 transition active:scale-[0.98]"
-            title={isAr ? 'حقن هذه الوحدة في الشات واستشارة سكنى بوت عنها فوراً' : 'Discuss this unit with Skanybot AI'}
+            className="mt-2.5 w-full flex items-center justify-center gap-2 rounded-xl border border-amber-500/50 bg-gradient-to-r from-amber-500/20 via-amber-400/15 to-amber-500/10 hover:from-amber-500 hover:to-amber-400 hover:text-black py-2.5 px-3 text-xs font-black text-amber-700 dark:text-amber-300 transition-all shadow-xs active:scale-[0.98] group/chatbtn"
+            title={isAr ? 'تحديد هذه الوحدة ومناقشتها أو تقييمها في الشات فوراً' : 'Discuss & Evaluate this unit in chat'}
           >
-            <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
-            <span>{isAr ? '🤖 استشارة سكنى بوت عن هذه الوحدة' : '🤖 Ask Skanybot AI About Unit'}</span>
+            <Sparkles className="h-4 w-4 text-amber-500 group-hover/chatbtn:text-black transition" />
+            <span>{isAr ? '🤖 استشارة وتقييم هذه الوحدة في الشات' : '🤖 Discuss & Evaluate in Chat'}</span>
           </button>
         )}
       </div>
