@@ -13,8 +13,14 @@ import {
   Building2, 
   Star, 
   Sun, 
-  Moon, 
+  Moon,
+  User,
+  LogOut,
+  ShieldCheck,
 } from 'lucide-react';
+import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { isAllowedAdminEmail } from '@/lib/admin-auth-client';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import LanguageSelector from '@/components/LanguageSelector';
@@ -34,6 +40,7 @@ interface BrokerChatSidebarProps {
   onOpenFavorites: () => void;
   myListings?: Property[];
   onOpenSellerModal?: (mode?: 'list' | 'create', editProp?: Property | null) => void;
+  onOpenAuthModal?: () => void;
 }
 
 const SIDEBAR_SELLER_COPY: Record<
@@ -98,7 +105,9 @@ export default function BrokerChatSidebar({
   onOpenFavorites,
   myListings = [],
   onOpenSellerModal,
+  onOpenAuthModal,
 }: BrokerChatSidebarProps) {
+  const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { locale, t, isRtl } = useLanguage();
   const sellerCopy = SIDEBAR_SELLER_COPY[locale] || SIDEBAR_SELLER_COPY.en;
@@ -365,13 +374,63 @@ export default function BrokerChatSidebar({
           )}
         </div>
 
-        {/* Footer: Language Switcher and Theme Toggle in Sidebar */}
-        <div className="shrink-0 border-t border-slate-100 p-3 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/40">
-          <div className="flex items-center justify-between gap-2">
-            {/* Language Selector Dropdown */}
+        {/* Footer: User Account + Language Switcher and Theme Toggle in Sidebar */}
+        <div className="shrink-0 border-t border-slate-200/80 p-3 dark:border-zinc-800/80 bg-slate-50/70 dark:bg-zinc-900/50 space-y-2.5">
+          {/* User Account Card */}
+          {user ? (
+            <div className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white p-2 dark:border-zinc-800 dark:bg-zinc-900 shadow-2xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 text-xs font-black text-black shadow-xs">
+                  {user.avatar ? (
+                    <img src={user.avatar} alt={user.name} className="h-full w-full rounded-xl object-cover" />
+                  ) : (
+                    user.name.charAt(0).toUpperCase()
+                  )}
+                  <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-zinc-900" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-bold text-slate-900 dark:text-white">
+                    {user.name}
+                  </p>
+                  <p className="truncate text-[10px] text-slate-500 dark:text-zinc-400">
+                    {user.email}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1 shrink-0">
+                {isAllowedAdminEmail(user.email) && (
+                  <Link
+                    href="/admin"
+                    className="grid h-8 w-8 place-items-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-600 transition hover:bg-amber-500/20 dark:text-amber-400"
+                    title={isRtl ? 'لوحة تحكم الإدارة' : 'Admin Dashboard'}
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                  </Link>
+                )}
+                <button
+                  onClick={() => signOut()}
+                  className="grid h-8 w-8 place-items-center rounded-xl border border-slate-200 text-slate-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-red-900/50 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                  title={isRtl ? 'تسجيل الخروج' : 'Sign Out'}
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={onOpenAuthModal}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 px-3 py-2.5 text-xs font-bold text-black shadow-xs transition hover:brightness-105 active:scale-[0.98]"
+            >
+              <User className="h-4 w-4" />
+              <span>{isRtl ? 'تسجيل الدخول / حساب جديد' : 'Sign In / Register'}</span>
+            </button>
+          )}
+
+          {/* Controls row: Language Selector + Theme Toggle */}
+          <div className="flex items-center justify-between gap-2 pt-0.5">
             <LanguageSelector />
 
-            {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
               className="grid h-8 w-8 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-2xs transition hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"

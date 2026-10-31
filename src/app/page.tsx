@@ -771,6 +771,7 @@ export default function SkanybotChatPage() {
           setSellerPrefill(null);
           setSellerModalOpen(true);
         }}
+        onOpenAuthModal={() => setAuthModalOpen(true)}
       />
 
       {/* Main Chat Area */}
@@ -884,42 +885,6 @@ export default function SkanybotChatPage() {
                 <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
                 <span className="hidden md:inline">{isRtl ? 'الإدارة' : 'Admin'}</span>
               </Link>
-            )}
-
-            {/* User Account / Auth Button */}
-            {user ? (
-              <div className="flex items-center gap-1 rounded-xl border border-slate-200/80 bg-slate-50/90 p-0.5 dark:border-zinc-800/80 dark:bg-zinc-900/90 shadow-2xs">
-                <div 
-                  className="flex items-center gap-1.5 px-1 py-0.5" 
-                  title={user.email || user.name}
-                >
-                  <div className="grid h-6 w-6 place-items-center overflow-hidden rounded-full bg-gradient-to-tr from-amber-500 to-yellow-400 text-[10px] font-black text-black">
-                    {user.avatar ? (
-                      <img src={user.avatar} alt={user.name} className="h-full w-full rounded-full object-cover" />
-                    ) : (
-                      user.name.charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  <span className="hidden xl:inline max-w-[80px] truncate text-xs font-semibold text-slate-800 dark:text-zinc-200">
-                    {user.name}
-                  </span>
-                </div>
-                <button
-                  onClick={() => signOut()}
-                  className="grid h-6 w-6 place-items-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-                  title={isRtl ? 'تسجيل الخروج' : 'Sign Out'}
-                >
-                  <LogOut className="h-3 w-3" />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setAuthModalOpen(true)}
-                className="flex items-center gap-1.5 rounded-xl bg-amber-500 px-2.5 sm:px-3 py-1 text-xs font-bold text-black shadow-xs transition hover:bg-amber-400 active:scale-95 whitespace-nowrap"
-              >
-                <User className="h-3.5 w-3.5 shrink-0" />
-                <span className="hidden sm:inline">{isRtl ? 'تسجيل الدخول' : 'Sign In'}</span>
-              </button>
             )}
           </div>
         </header>
