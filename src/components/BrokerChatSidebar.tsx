@@ -18,6 +18,7 @@ import {
   LogOut,
   ShieldCheck,
   PhoneCall,
+  Palette,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,6 +44,7 @@ interface BrokerChatSidebarProps {
   myListings?: Property[];
   onOpenSellerModal?: (mode?: 'list' | 'create', editProp?: Property | null) => void;
   onOpenContactBroker?: () => void;
+  onOpenWallpaperModal?: () => void;
   onOpenAuthModal?: () => void;
   wallpaper?: ChatWallpaper;
   onSelectWallpaper?: (wp: ChatWallpaper) => void;
@@ -111,6 +113,7 @@ export default function BrokerChatSidebar({
   myListings = [],
   onOpenSellerModal,
   onOpenContactBroker,
+  onOpenWallpaperModal,
   onOpenAuthModal,
   wallpaper,
   onSelectWallpaper,
@@ -457,16 +460,30 @@ export default function BrokerChatSidebar({
             </button>
           )}
 
-          {/* Controls row: Language Selector + Wallpaper + Theme Toggle */}
+          {/* Controls row: Language Selector + Wallpaper Modal Button + Theme Toggle */}
           <div className="flex items-center justify-between gap-1.5 pt-0.5">
             <LanguageSelector />
 
-            {wallpaper && onSelectWallpaper && (
-              <WallpaperSelector
-                currentWallpaper={wallpaper}
-                onSelectWallpaper={onSelectWallpaper}
-                isRtl={isRtl}
-              />
+            {onOpenWallpaperModal ? (
+              <button
+                type="button"
+                onClick={onOpenWallpaperModal}
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-amber-400 hover:bg-slate-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800 cursor-pointer"
+                title={isRtl ? 'تغيير ورق حائط وخلفية الشات' : 'Change Chat Wallpaper'}
+              >
+                <Palette className="h-3.5 w-3.5 text-amber-500" />
+                <span className="text-[11px] font-bold">
+                  {isRtl ? 'ورق الحائط' : 'Wallpaper'}
+                </span>
+              </button>
+            ) : (
+              wallpaper && onSelectWallpaper && (
+                <WallpaperSelector
+                  currentWallpaper={wallpaper}
+                  onSelectWallpaper={onSelectWallpaper}
+                  isRtl={isRtl}
+                />
+              )
             )}
 
             <button

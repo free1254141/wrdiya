@@ -52,6 +52,14 @@ import PropertiesTableModal from '@/components/PropertiesTableModal';
 import InlinePropertiesTable from '@/components/InlinePropertiesTable';
 import SellerPropertiesModal from '@/components/SellerPropertiesModal';
 import DirectSearchPanel from '@/components/DirectSearchPanel';
+import ChatWallpaperModal from '@/components/ChatWallpaperModal';
+import { 
+  CHAT_WALLPAPERS, 
+  DEFAULT_WALLPAPER_ID, 
+  DEFAULT_WALLPAPER_OPACITY, 
+  getSavedWallpaperConfig, 
+  saveWallpaperConfig 
+} from '@/lib/chat-wallpapers';
 import { ChatWallpaper } from '@/components/WallpaperSelector';
 import { Locale } from '@/lib/i18n';
 
@@ -89,26 +97,48 @@ export default function SkanybotChatPage() {
   // Application Mode: 'chat' (AI Agent) vs 'direct_search' (Off-Agent Instant Filter)
   const [appMode, setAppMode] = useState<'chat' | 'direct_search'>('chat');
 
-  // Chat Wallpaper: 'architectural', 'watermelon', 'arabesque', 'none'
-  const [chatWallpaper, setChatWallpaper] = useState<ChatWallpaper>(() => {
+  // Chat Wallpaper State with live user-controlled opacity & custom image support
+  const [showWallpaperModal, setShowWallpaperModal] = useState<boolean>(false);
+  const [wallpaperId, setWallpaperId] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('skanybot_chat_wallpaper');
-      if (saved === 'architectural' || saved === 'watermelon' || saved === 'arabesque' || saved === 'none') {
-        return saved as ChatWallpaper;
-      }
-      if (saved === 'whatsapp') {
-        return 'architectural';
-      }
+      const cfg = getSavedWallpaperConfig();
+      return cfg.id;
     }
-    return 'architectural';
+    return DEFAULT_WALLPAPER_ID;
+  });
+  const [wallpaperOpacity, setWallpaperOpacity] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const cfg = getSavedWallpaperConfig();
+      return cfg.opacity;
+    }
+    return DEFAULT_WALLPAPER_OPACITY;
+  });
+  const [customWallpaperImage, setCustomWallpaperImage] = useState<string | undefined>(() => {
+    if (typeof window !== 'undefined') {
+      const cfg = getSavedWallpaperConfig();
+      return cfg.customImage;
+    }
+    return undefined;
   });
 
-  const handleSelectWallpaper = (wp: ChatWallpaper) => {
-    const finalWp = wp === 'whatsapp' ? 'architectural' : wp;
-    setChatWallpaper(finalWp);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('skanybot_chat_wallpaper', finalWp);
+  const activeWallpaper = useMemo(() => {
+    if (wallpaperId === 'custom' && customWallpaperImage) {
+      return {
+        backgroundColor: '#000000',
+        backgroundImage: `url(${customWallpaperImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center' as const,
+        backgroundRepeat: 'no-repeat' as const,
+      };
     }
+    const found = CHAT_WALLPAPERS.find((w) => w.id === wallpaperId);
+    return found ? found.style : CHAT_WALLPAPERS[0].style;
+  }, [wallpaperId, customWallpaperImage]);
+
+  const handleSelectWallpaper = (wp: ChatWallpaper) => {
+    const id = wp === 'whatsapp' ? 'architectural' : wp;
+    setWallpaperId(id);
+    saveWallpaperConfig(id, wallpaperOpacity, customWallpaperImage);
   };
 
   // Auth modal state
@@ -888,19 +918,20 @@ export default function SkanybotChatPage() {
           setSelectedPropertyForLead(null);
           setBookingModalOpen(true);
         }}
+        onOpenWallpaperModal={() => setShowWallpaperModal(true)}
         onOpenAuthModal={() => setAuthModalOpen(true)}
-        wallpaper={chatWallpaper}
+        wallpaper={wallpaperId as any}
         onSelectWallpaper={handleSelectWallpaper}
       />
 
       {/* Main Chat Area */}
       <main
         className={`relative flex flex-1 flex-col h-full min-w-0 overflow-hidden transition-colors duration-300 ${
-          appMode === 'chat' && (chatWallpaper === 'architectural' || chatWallpaper === 'whatsapp')
+          appMode === 'chat' && (wallpaperId === 'architectural' || wallpaperId === 'whatsapp')
             ? 'chat-theme-architectural'
-            : appMode === 'chat' && chatWallpaper === 'watermelon'
+            : appMode === 'chat' && wallpaperId === 'watermelon'
             ? 'chat-theme-watermelon'
-            : appMode === 'chat' && chatWallpaper === 'arabesque'
+            : appMode === 'chat' && wallpaperId === 'arabesque'
             ? 'chat-theme-arabesque'
             : 'bg-white dark:bg-zinc-950'
         }`}
@@ -1067,16 +1098,14 @@ export default function SkanybotChatPage() {
           />
         ) : (
           <>
-            {/* Chat Wallpaper Layer (Architectural / Palestine Watermelon / Arabesque) */}
-            {chatWallpaper !== 'none' && (
+            {/* Chat Wallpaper Layer with Active Style & Dynamic User Opacity */}
+            {wallpaperId !== 'none' && (
               <div
-                className={`absolute inset-0 pointer-events-none z-0 ${
-                  chatWallpaper === 'watermelon'
-                    ? 'chat-wallpaper-watermelon'
-                    : chatWallpaper === 'arabesque'
-                    ? 'chat-wallpaper-arabesque'
-                    : 'chat-wallpaper-architectural'
-                }`}
+                className="absolute inset-0 pointer-events-none z-0 transition-opacity duration-300"
+                style={{
+                  ...activeWallpaper,
+                  opacity: (wallpaperOpacity ?? DEFAULT_WALLPAPER_OPACITY) / 100,
+                }}
                 aria-hidden="true"
               />
             )}
@@ -1355,11 +1384,11 @@ export default function SkanybotChatPage() {
         {/* Floating Input Area (ChatGPT Style) */}
         <div
           className={`absolute inset-x-0 bottom-0 pt-6 pb-4 px-4 sm:px-6 md:px-8 z-20 ${
-            chatWallpaper === 'watermelon'
+            wallpaperId === 'watermelon'
               ? 'chat-dock-watermelon'
-              : chatWallpaper === 'arabesque'
+              : wallpaperId === 'arabesque'
               ? 'chat-dock-arabesque'
-              : chatWallpaper === 'architectural' || chatWallpaper === 'whatsapp'
+              : wallpaperId === 'architectural' || wallpaperId === 'whatsapp'
               ? 'chat-dock-architectural'
               : 'bg-gradient-to-t from-white via-white/95 to-transparent dark:from-zinc-950 dark:via-zinc-950/95'
           }`}
@@ -1602,6 +1631,21 @@ export default function SkanybotChatPage() {
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
+      />
+
+      {/* Real Estate Blueprint / Heritage Chat Wallpaper Modal (EGX Style - Centered & Responsive) */}
+      <ChatWallpaperModal
+        isOpen={showWallpaperModal}
+        onClose={() => setShowWallpaperModal(false)}
+        currentId={wallpaperId}
+        currentOpacity={wallpaperOpacity}
+        currentCustomImage={customWallpaperImage}
+        onApply={(id, opacity, customImg) => {
+          setWallpaperId(id);
+          setWallpaperOpacity(opacity);
+          setCustomWallpaperImage(customImg);
+        }}
+        isAr={isRtl}
       />
     </div>
   );
