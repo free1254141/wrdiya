@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin-auth';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
+// In-Memory Vercel Function Cache for Admin Stats
+let cachedStatsData: {
+  stats: {
+    totalUsers: number;
+    totalSessions: number;
+    totalMessages: number;
+    totalProperties: number;
+    recentSessions24h: number;
+  };
+  users: any[];
+  timestamp: number;
+} | null = null;
+
+const STATS_CACHE_TTL_MS = 45 * 1000; // 45 seconds cache
+
 export async function GET(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (auth instanceof NextResponse) return auth;
@@ -9,6 +24,25 @@ export async function GET(req: NextRequest) {
   const admin = getSupabaseAdmin();
   if (!admin) {
     return NextResponse.json({ error: 'Database service unavailable' }, { status: 500 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const forceRefresh = searchParams.get('refresh') === 'true' || searchParams.get('force') === 'true';
+
+  const now = Date.now();
+  if (!forceRefresh && cachedStatsData && now - cachedStatsData.timestamp < STATS_CACHE_TTL_MS) {
+    return NextResponse.json(
+      {
+        stats: cachedStatsData.stats,
+        users: cachedStatsData.users,
+        cached: true,
+      },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=15, stale-while-revalidate=30',
+        },
+      }
+    );
   }
 
   try {
@@ -58,7 +92,7 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({
+    const result = {
       stats: {
         totalUsers: rawUsers.length,
         totalSessions,
@@ -67,7 +101,23 @@ export async function GET(req: NextRequest) {
         recentSessions24h,
       },
       users: usersList,
-    });
+      timestamp: now,
+    };
+
+    cachedStatsData = result;
+
+    return NextResponse.json(
+      {
+        stats: result.stats,
+        users: result.users,
+        cached: false,
+      },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=15, stale-while-revalidate=30',
+        },
+      }
+    );
   } catch (err: any) {
     console.error('Admin stats error:', err);
     return NextResponse.json({ error: err.message || 'Internal error' }, { status: 500 });

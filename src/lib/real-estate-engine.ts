@@ -95,6 +95,8 @@ export function analyzeUserQuery(query: string): QueryAnalysis {
     filter.unit_type = 'استوديو';
   } else if (q.includes('بنتهاوس') || q.includes('penthouse') || q.includes('пентхаус')) {
     filter.unit_type = 'بنتهاوس';
+  } else if (q.includes('شاليه') || q.includes('شاليهات') || q.includes('chalet')) {
+    filter.unit_type = 'شاليه';
   }
 
   // 5.1 Extract Numbers & Budget Range (e.g. "20 مليون", "3 مليون", "20M", "500 الف")
@@ -173,6 +175,21 @@ export function analyzeUserQuery(query: string): QueryAnalysis {
     if (!filter.platform) filter.platform = 'Aqarmap';
   } else if (q.includes('مدينتي') || q.includes('madinaty') || q.includes('الرحاب') || q.includes('rehab')) {
     filter.location = 'القاهرة الجديدة';
+    if (!filter.platform) filter.platform = 'Aqarmap';
+  } else if (q.includes('الساحل') || q.includes('رأس الحكمة') || q.includes('راس الحكمة') || q.includes('مراسي') || q.includes('العلمين') || q.includes('north coast')) {
+    filter.location = 'الساحل الشمالي';
+    if (!filter.platform) filter.platform = 'Aqarmap';
+  } else if (q.includes('السخنة') || q.includes('العين السخنة') || q.includes('الجلالة') || q.includes('sokhna')) {
+    filter.location = 'العين السخنة';
+    if (!filter.platform) filter.platform = 'Aqarmap';
+  } else if (q.includes('المستقبل') || q.includes('الشروق') || q.includes('العبور') || q.includes('mostakbal') || q.includes('shorouk')) {
+    filter.location = 'المستقبل سيتي';
+    if (!filter.platform) filter.platform = 'Aqarmap';
+  } else if (q.includes('الإسكندرية') || q.includes('الاسكندرية') || q.includes('اسكندرية') || q.includes('سموحة') || q.includes('alexandria')) {
+    filter.location = 'الإسكندرية';
+    if (!filter.platform) filter.platform = 'Aqarmap';
+  } else if (q.includes('المعادي') || q.includes('مصر الجديدة') || q.includes('مدينة نصر') || q.includes('الزمالك') || q.includes('maadi') || q.includes('heliopolis')) {
+    filter.location = 'المعادي';
     if (!filter.platform) filter.platform = 'Aqarmap';
   } else if (q.includes('مصر') || q.includes('egypt') || q.includes('القاهرة') || q.includes('cairo')) {
     if (!filter.platform) filter.platform = 'Aqarmap';
@@ -388,7 +405,12 @@ export async function queryProperties(filter: PropertyFilter): Promise<Property[
       'التجمع': ['التجمع', 'new cairo', 'القاهرة الجديدة', 'tagamoa', 'قاهرة جديدة', 'icity', 'mivida', 'zed east', 'fifth square'],
       'الشيخ زايد': ['زايد', 'zayed', 'sheikh zayed', 'أكتوبر', 'october', '6 أكتوبر', 'badya', 'بادية', 'westown'],
       'العاصمة الإدارية': ['العاصمة', 'new capital', 'العاصمه', 'البوسكو', 'bosco'],
-      'أكتوبر': ['أكتوبر', 'اكتوبر', 'october', 'زايد', 'zayed', 'badya', 'بادية'],
+      'أكتوبر': ['أكتوبر', 'اكتوبر', 'october', 'زايد', 'zayed', 'badya', 'بادية', 'حدائق أكتوبر'],
+      'الساحل الشمالي': ['الساحل', 'north coast', 'رأس الحكمة', 'راس الحكمة', 'مراسي', 'marassi', 'هاسيندا', 'العلمين'],
+      'العين السخنة': ['السخنة', 'سخنة', 'sokhna', 'الجلالة', 'galala', 'أزها'],
+      'المستقبل سيتي': ['المستقبل', 'mostakbal', 'الشروق', 'shorouk', 'العبور', 'obour', 'سراي', 'بلوم فيلدز'],
+      'الإسكندرية': ['الإسكندرية', 'الاسكندرية', 'اسكندرية', 'alexandria', 'سموحة', 'ستانلي'],
+      'المعادي': ['المعادي', 'maadi', 'مصر الجديدة', 'heliopolis', 'مدينة نصر', 'nasr city', 'الزمالك'],
     };
 
     const synEntry = Object.entries(locSynonyms).find(([k]) => k.includes(filter.location!) || filter.location!.includes(k));

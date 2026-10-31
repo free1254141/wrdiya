@@ -20,6 +20,10 @@ export async function GET(
   }
 
   try {
+    const { searchParams } = new URL(req.url);
+    const limit = Math.min(100, Math.max(10, parseInt(searchParams.get('limit') || '40', 10)));
+    const all = searchParams.get('all') === 'true';
+
     // 1. Fetch session details
     const { data: session, error: sessionErr } = await admin
       .from('chat_sessions')
@@ -31,18 +35,32 @@ export async function GET(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    // 2. Fetch session messages
-    const { data: messages, error: msgErr } = await admin
+    // 2. Count total messages in this session
+    const { count: totalMessages } = await admin
+      .from('chat_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('session_id', sessionId);
+
+    // 3. Fetch messages (if not 'all', fetch the most recent 'limit' messages)
+    let msgQuery = admin
       .from('chat_messages')
       .select('id, role, content, metadata, created_at, is_deleted')
       .eq('session_id', sessionId)
       .order('created_at', { ascending: true });
 
+    if (!all && (totalMessages ?? 0) > limit) {
+      // Fetch only the latest 'limit' messages by taking the end slice
+      const startOffset = Math.max(0, (totalMessages ?? 0) - limit);
+      msgQuery = msgQuery.range(startOffset, (totalMessages ?? 0) - 1);
+    }
+
+    const { data: messages, error: msgErr } = await msgQuery;
+
     if (msgErr) {
       throw msgErr;
     }
 
-    // 3. If session has a user_id, resolve user info
+    // 4. If session has a user_id, resolve user info
     let userInfo = null;
     if (session.user_id) {
       try {
@@ -65,6 +83,8 @@ export async function GET(
         user: userInfo,
       },
       messages: messages || [],
+      totalMessages: totalMessages ?? (messages?.length || 0),
+      hasMore: !all && (totalMessages ?? 0) > (messages?.length || 0),
     });
   } catch (err: any) {
     console.error('Admin get chat session error:', err);
@@ -100,22 +120,19 @@ export async function DELETE(
       console.warn('Error deleting chat_messages permanently:', msgErr);
     }
 
-    // Permanently delete the chat session record from Supabase
-    const { error: sessErr } = await admin
+    // Permanently delete session row from chat_sessions
+    const { error: sessionErr } = await admin
       .from('chat_sessions')
       .delete()
       .eq('id', sessionId);
 
-    if (sessErr) {
-      throw sessErr;
+    if (sessionErr) {
+      throw sessionErr;
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'تم حذف المحادثة ورسائلها نهائياً من قاعدة البيانات (Supabase)',
-    });
+    return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error('Admin permanent delete chat session error:', err);
-    return NextResponse.json({ error: err.message || 'فشل حذف المحادثة نهائياً' }, { status: 500 });
+    console.error('Admin delete chat session error:', err);
+    return NextResponse.json({ error: err.message || 'Internal error' }, { status: 500 });
   }
 }

@@ -49,24 +49,34 @@ TEKCE_AFFILIATE_PARAMS = {
 
 # Compound mapping
 AQARMAP_AREA_MAP = [
-    (['التجمع الخامس', 'new cairo', 'القاهرة الجديدة', 'tagamoa', 'fifth square', 'fifth settlement',
-      'بيت الوطن', 'bait el watan', 'first neighborhood', 'جاردينيا', 'الرحاب', 'مدينتي', 'madinaty', 'mivida', 'ميفيدا', 'zed east', 'زد'],
-     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'التجمع الخامس / القاهرة الجديدة'),
-
-    (['الشيخ زايد', 'sheikh zayed', 'زايد', '6th of october', 'اكتوبر', 'أكتوبر',
-      'october', 'بادية', 'badya', 'وست تاون', 'westown', 'sodic', 'سوديك'],
-     'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'الشيخ زايد / مدينة السادس من أكتوبر'),
-
-    (['العاصمة الإدارية', 'العاصمة الادارية', 'new capital', 'new administrative capital',
-      'ماسبيرو', 'العاصمه', 'ذا كراون', 'the crown', 'البوسكو', 'il bosco', 'bosco'],
+    (['ميفيدا', 'mivida', 'إعمار', 'اعمار', 'emaar'],
+     'cccccccc-cccc-cccc-cccc-cccccccccccc', 'التجمع الخامس / ميفيدا إعمار'),
+    (['فيليت', 'villette', 'سوديك إيست', 'sodic east'],
+     'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'التجمع الخامس / فيليت سوديك'),
+    (['زد إيست', 'زد ايست', 'zed east', 'أورا', 'اورا', 'ora'],
+     'ffffffff-ffff-ffff-ffff-ffffffffffff', 'التجمع الخامس / زد إيست'),
+    (['مدينتي', 'madinaty', 'الرحاب', 'rehab', 'طلعت مصطفى', 'سيليا', 'celia', 'نور'],
+     '00000000-0000-0000-0000-000000000001', 'مدينتي والرحاب / شرق القاهرة'),
+    (['ويست تاون', 'وست تاون', 'westown', 'سوديك ويست', 'أليجريا', 'allegria'],
+     '00000000-0000-0000-0000-000000000002', 'الشيخ زايد / سوديك ويست'),
+    (['الساحل', 'north-coast', 'north coast', 'رأس الحكمة', 'راس الحكمة', 'مراسي', 'marassi', 'هاسيندا', 'hacienda', 'العلمين', 'alamein'],
+     '00000000-0000-0000-0000-000000000003', 'الساحل الشمالي / رأس الحكمة'),
+    (['السخنة', 'سخنة', 'sokhna', 'الجلالة', 'جلالة', 'galala', 'أزها', 'azha'],
+     '00000000-0000-0000-0000-000000000004', 'العين السخنة / الجلالة'),
+    (['المستقبل', 'mostakbal', 'الشروق', 'shorouk', 'العبور', 'obour', 'سراي', 'sarai', 'بلوم فيلدز', 'bloomfields'],
+     '00000000-0000-0000-0000-000000000005', 'المستقبل سيتي / الشروق / العبور'),
+    (['الإسكندرية', 'الاسكندرية', 'إسكندرية', 'اسكندرية', 'alexandria', '/alex', 'سموحة', 'smouha', 'ستانلي', 'stanley', 'جليم', 'كفر عبده'],
+     '00000000-0000-0000-0000-000000000006', 'الإسكندرية'),
+    (['المعادي', 'معادي', 'maadi', 'مصر الجديدة', 'heliopolis', 'مدينة نصر', 'nasr-city', 'nasr city', 'الزمالك', 'zamalek', 'الدقي', 'المهندسين', 'المقطم'],
+     '00000000-0000-0000-0000-000000000007', 'المعادي / مصر الجديدة / مدينة نصر'),
+    (['العاصمة الإدارية', 'العاصمة الادارية', 'new-capital', 'new capital', 'new administrative capital', 'البوسكو', 'il bosco', 'bosco', 'R7', 'R8'],
      'dddddddd-dddd-dddd-dddd-dddddddddddd', 'العاصمة الإدارية الجديدة'),
-
-    (['الشروق', 'shorouk', 'مدينة نصر', 'nasr city', 'هليوبوليس', 'heliopolis',
-      'العبور', 'obour', 'المعادي', 'maadi', 'مصر الجديدة', 'cairo'],
-     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'القاهرة الكبرى'),
-
-    (['الجيزة', 'giza', 'الهرم', 'الدقي', 'المهندسين'],
-     'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'الجيزة / السادس من أكتوبر'),
+    (['الشيخ زايد', 'sheikh zayed', 'زايد', 'بادية', 'badya'],
+     'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'الشيخ زايد / بادية بالم هيلز'),
+    (['6th of october', '6th-of-october', 'اكتوبر', 'أكتوبر', 'october', 'حدائق أكتوبر', 'أو ويست', 'o west', 'بيفرلي'],
+     '00000000-0000-0000-0000-000000000008', 'مدينة 6 أكتوبر / حدائق أكتوبر'),
+    (['التجمع الخامس', 'new cairo', 'القاهرة الجديدة', 'tagamoa', 'fifth square', 'fifth settlement', 'بيت الوطن', 'جاردينيا', 'ماونتن فيو', 'icity'],
+     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'التجمع الخامس / القاهرة الجديدة'),
 ]
 
 def map_area_to_compound(text: str) -> str:
@@ -319,11 +329,17 @@ def fetch_aqarmap_direct_parallel(max_pages=20) -> list:
 
     search_templates = [
         'https://aqarmap.com.eg/ar/for-sale/property-type/cairo/new-cairo/?page={}',
-        'https://aqarmap.com.eg/ar/for-sale/property-type/giza/sheikh-zayed/?page={}',
-        'https://aqarmap.com.eg/ar/for-sale/property-type/cairo/new-capital/?page={}',
-        'https://aqarmap.com.eg/ar/for-sale/property-type/giza/october-city/?page={}',
         'https://aqarmap.com.eg/ar/for-sale/villa/cairo/new-cairo/?page={}',
-        'https://aqarmap.com.eg/ar/for-sale/property-type/cairo/al-shorouk/?page={}'
+        'https://aqarmap.com.eg/ar/for-sale/property-type/cairo/el-sheikh-zayed-city/?page={}',
+        'https://aqarmap.com.eg/ar/for-sale/property-type/cairo/6th-of-october/?page={}',
+        'https://aqarmap.com.eg/ar/for-sale/property-type/cairo/new-administrative-capital/?page={}',
+        'https://aqarmap.com.eg/ar/for-sale/chalet/matrouh/north-coast/?page={}',
+        'https://aqarmap.com.eg/ar/for-sale/property-type/suez/ain-sokhna/?page={}',
+        'https://aqarmap.com.eg/ar/for-sale/property-type/cairo/el-shorouk/?page={}',
+        'https://aqarmap.com.eg/ar/for-sale/property-type/cairo/heliopolis/?page={}',
+        'https://aqarmap.com.eg/ar/for-sale/property-type/cairo/nasr-city/?page={}',
+        'https://aqarmap.com.eg/ar/for-sale/property-type/cairo/el-maadi/?page={}',
+        'https://aqarmap.com.eg/ar/for-sale/property-type/alexandria/?page={}'
     ]
 
     all_listing_urls = set()

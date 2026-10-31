@@ -24,7 +24,8 @@ import {
   Minimize2,
   Sun,
   Moon,
-  AlertTriangle
+  ArrowDown,
+  ChevronDown
 } from 'lucide-react';
 
 interface AdminStats {
@@ -87,25 +88,34 @@ export default function AdminDashboardPage() {
   const [usersList, setUsersList] = useState<AdminUser[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
 
-  // Chat Sessions state
+  // Chat Sessions state (Paginated)
   const [sessions, setSessions] = useState<ChatSessionItem[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [sessionSearch, setSessionSearch] = useState('');
   const [sessionFilter, setSessionFilter] = useState<'all' | 'active' | 'deleted'>('all');
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [sessionsPage, setSessionsPage] = useState(1);
+  const [hasMoreSessions, setHasMoreSessions] = useState(false);
+  const [loadingMoreSessions, setLoadingMoreSessions] = useState(false);
+  const [totalSessionsCount, setTotalSessionsCount] = useState<number | null>(null);
 
-  // Active Conversation state
+  // Active Conversation state (Windowed / Paginated)
   const [activeSession, setActiveSession] = useState<any | null>(null);
   const [messages, setMessages] = useState<ChatMessageItem[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [totalMessagesCount, setTotalMessagesCount] = useState<number>(0);
+  const [loadingMoreMessages, setLoadingMoreMessages] = useState(false);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState(false);
 
+  // Floating Scroll to Bottom state
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   // User search
   const [userSearch, setUserSearch] = useState('');
-
-  // Messages container scroll ref
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load saved admin theme
   useEffect(() => {
@@ -125,11 +135,11 @@ export default function AdminDashboardPage() {
     } catch {}
   };
 
-  // 1. Fetch Stats & Users
-  const fetchStats = async () => {
+  // 1. Fetch Stats & Users (with optional force cache bypass)
+  const fetchStats = async (force = false) => {
     try {
       setLoadingStats(true);
-      const res = await fetch('/api/admin/stats');
+      const res = await fetch(`/api/admin/stats${force ? '?force=true' : ''}`);
       if (res.ok) {
         const data = await res.json();
         setStats(data.stats);
@@ -142,52 +152,97 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // 2. Fetch Sessions
-  const fetchSessions = async () => {
+  // 2. Fetch Sessions (Paginated — loads 25 at a time)
+  const fetchSessions = async (page = 1, append = false) => {
     try {
-      setLoadingSessions(true);
+      if (append) {
+        setLoadingMoreSessions(true);
+      } else {
+        setLoadingSessions(true);
+      }
+
       const params = new URLSearchParams();
       if (sessionSearch) params.set('q', sessionSearch);
       if (sessionFilter !== 'all') params.set('filter', sessionFilter);
+      params.set('page', String(page));
+      params.set('pageSize', '25');
 
       const res = await fetch(`/api/admin/chats?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         const loadedSessions: ChatSessionItem[] = data.sessions || [];
-        setSessions(loadedSessions);
-        // Auto-select first session if none selected
-        if (!selectedSessionId && loadedSessions.length > 0) {
-          setSelectedSessionId(loadedSessions[0].id);
-        } else if (selectedSessionId && !loadedSessions.find((s) => s.id === selectedSessionId)) {
-          setSelectedSessionId(loadedSessions[0]?.id || null);
+        setHasMoreSessions(Boolean(data.hasMore));
+        setTotalSessionsCount(data.totalCount ?? null);
+        setSessionsPage(page);
+
+        if (append) {
+          setSessions((prev) => [...prev, ...loadedSessions]);
+        } else {
+          setSessions(loadedSessions);
+          // Auto-select first session if none selected
+          if (!selectedSessionId && loadedSessions.length > 0) {
+            setSelectedSessionId(loadedSessions[0].id);
+          } else if (selectedSessionId && !loadedSessions.find((s) => s.id === selectedSessionId)) {
+            setSelectedSessionId(loadedSessions[0]?.id || null);
+          }
         }
       }
     } catch (err) {
       console.error('Failed to fetch admin chats:', err);
     } finally {
       setLoadingSessions(false);
+      setLoadingMoreSessions(false);
     }
   };
 
-  // 3. Fetch Session Messages
-  const fetchSessionMessages = async (sessionId: string) => {
+  const loadMoreSessions = () => {
+    if (!loadingMoreSessions && hasMoreSessions) {
+      fetchSessions(sessionsPage + 1, true);
+    }
+  };
+
+  // 3. Fetch Session Messages (loads latest 35 messages by default)
+  const fetchSessionMessages = async (sessionId: string, loadAll = false) => {
     try {
-      setLoadingMessages(true);
-      const res = await fetch(`/api/admin/chats/${sessionId}`);
+      if (loadAll) {
+        setLoadingMoreMessages(true);
+      } else {
+        setLoadingMessages(true);
+      }
+
+      const res = await fetch(`/api/admin/chats/${sessionId}${loadAll ? '?all=true' : '?limit=35'}`);
       if (res.ok) {
         const data = await res.json();
         setActiveSession(data.session);
         setMessages(data.messages || []);
-        // Scroll to bottom
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 120);
+        setHasMoreMessages(Boolean(data.hasMore));
+        setTotalMessagesCount(data.totalMessages || (data.messages || []).length);
+
+        if (!loadAll) {
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 120);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch session messages:', err);
     } finally {
       setLoadingMessages(false);
+      setLoadingMoreMessages(false);
     }
+  };
+
+  // Handle scroll detection inside the messages container
+  const handleMessagesScroll = () => {
+    const el = messagesScrollRef.current;
+    if (!el) return;
+    const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setShowScrollBottom(distanceToBottom > 160);
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setShowScrollBottom(false);
   };
 
   // 4. Permanent Hard Delete Session from Supabase
@@ -211,7 +266,6 @@ export default function AdminDashboardPage() {
         method: 'DELETE',
       });
       if (res.ok) {
-        // Remove permanently from local state
         setSessions((prev) => {
           const updated = prev.filter((s) => s.id !== sessionId);
           if (selectedSessionId === sessionId) {
@@ -224,7 +278,7 @@ export default function AdminDashboardPage() {
           return updated;
         });
 
-        // Update stats
+        // Update stats locally
         setStats((prev) =>
           prev
             ? {
@@ -248,19 +302,19 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     fetchStats();
-    fetchSessions();
+    fetchSessions(1, false);
   }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchSessions();
+      fetchSessions(1, false);
     }, 300);
     return () => clearTimeout(timer);
   }, [sessionSearch, sessionFilter]);
 
   useEffect(() => {
     if (selectedSessionId) {
-      fetchSessionMessages(selectedSessionId);
+      fetchSessionMessages(selectedSessionId, false);
     }
   }, [selectedSessionId]);
 
@@ -365,12 +419,12 @@ export default function AdminDashboardPage() {
               <span className="hidden sm:inline">{isDark ? 'فاتح' : 'أسود خالص'}</span>
             </button>
 
-            {/* Refresh Button */}
+            {/* Refresh Button (with forced cache bypass) */}
             <button
               onClick={() => {
-                fetchStats();
-                fetchSessions();
-                if (selectedSessionId) fetchSessionMessages(selectedSessionId);
+                fetchStats(true);
+                fetchSessions(1, false);
+                if (selectedSessionId) fetchSessionMessages(selectedSessionId, false);
               }}
               disabled={loadingStats || loadingSessions}
               className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${
@@ -378,7 +432,7 @@ export default function AdminDashboardPage() {
                   ? 'border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900'
                   : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50'
               }`}
-              title="تحديث البيانات"
+              title="تحديث البيانات فورياً من سوبابيز"
             >
               <RefreshCw
                 className={`h-3.5 w-3.5 ${loadingStats || loadingSessions ? 'animate-spin text-amber-500' : ''}`}
@@ -503,7 +557,7 @@ export default function AdminDashboardPage() {
                 isDark ? 'bg-zinc-900 text-zinc-300 border border-zinc-800' : 'bg-zinc-200 text-zinc-700'
               }`}
             >
-              {sessions.length}
+              {totalSessionsCount ?? sessions.length}
             </span>
           </button>
 
@@ -532,7 +586,7 @@ export default function AdminDashboardPage() {
       <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 flex flex-col min-h-0">
         {activeTab === 'chats' ? (
           /* ============================================================== */
-          /* TAB 1: CHAT SESSIONS & CONVERSATION REVIEW (STOKSCAN LAYOUT)   */
+          /* TAB 1: CHAT SESSIONS & CONVERSATION REVIEW (OPTIMIZED STREAM)  */
           /* ============================================================== */
           <div
             className={`w-full flex-1 flex flex-col overflow-hidden transition-all duration-200 ${
@@ -554,7 +608,7 @@ export default function AdminDashboardPage() {
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-amber-500" />
                 <span className={`text-xs font-black ${isDark ? 'text-white' : 'text-zinc-900'}`}>
-                  مستعرض محادثات سكنى بوت ({sessions.length} جلسة مسجلة)
+                  مستعرض محادثات سكنى بوت ({sessions.length} معروضة من أصل {totalSessionsCount ?? sessions.length})
                 </span>
               </div>
 
@@ -575,7 +629,7 @@ export default function AdminDashboardPage() {
 
             {/* Main Area: Sidebar List (Right in RTL) + Conversation Panel (Left in RTL) */}
             <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
-              {/* Sessions Sidebar List (Fixed Width) */}
+              {/* Sessions Sidebar List (Fixed Width, Paginated) */}
               <div
                 className={`w-full md:w-[360px] lg:w-[400px] shrink-0 border-l flex flex-col min-h-0 overflow-hidden ${
                   isDark ? 'border-zinc-800 bg-black' : 'border-zinc-200 bg-white'
@@ -633,7 +687,7 @@ export default function AdminDashboardPage() {
                   {loadingSessions ? (
                     <div className="p-8 text-center text-zinc-400 text-xs">
                       <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-amber-500" />
-                      جاري تحميل المحادثات...
+                      جاري تحميل المحادثات تدريجياً...
                     </div>
                   ) : sessions.length === 0 ? (
                     <div className="p-8 text-center text-zinc-400 text-xs">
@@ -641,82 +695,111 @@ export default function AdminDashboardPage() {
                       لا توجد محادثات تطابق البحث
                     </div>
                   ) : (
-                    sessions.map((s) => {
-                      const isSelected = s.id === selectedSessionId;
-                      return (
-                        <div
-                          key={s.id}
-                          onClick={() => setSelectedSessionId(s.id)}
-                          className={`p-3.5 cursor-pointer transition text-right relative group ${
-                            isSelected
-                              ? isDark
+                    <>
+                      {sessions.map((s) => {
+                        const isSelected = s.id === selectedSessionId;
+                        return (
+                          <div
+                            key={s.id}
+                            onClick={() => setSelectedSessionId(s.id)}
+                            className={`p-3.5 cursor-pointer transition text-right relative group ${
+                              isSelected
+                                ? isDark
                                 ? 'bg-zinc-900/90 border-r-4 border-amber-500'
                                 : 'bg-amber-500/10 border-r-4 border-amber-500'
-                              : isDark
-                              ? 'hover:bg-zinc-900/50'
-                              : 'hover:bg-zinc-50'
-                          }`}
-                        >
-                          {/* Top Row: User identifier + time + quick delete */}
-                          <div className="flex items-center justify-between text-[11px] text-zinc-400">
-                            <span className="font-semibold text-amber-500 truncate max-w-[170px]">
-                              {s.user_email || s.user_name || 'زائر مجهول'}
-                            </span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <span className="text-[10px] text-zinc-500">{timeAgo(s.last_at || s.updated_at)}</span>
-
-                              {/* Hard Delete Button in Sidebar Item */}
-                              <button
-                                onClick={(e) => handlePermanentDelete(s.id, e)}
-                                disabled={deletingSessionId === s.id}
-                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 rounded transition"
-                                title="حذف هذه المحادثة نهائياً من قاعدة البيانات"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Title / Initial question */}
-                          <h4
-                            className={`mt-1.5 text-xs font-bold line-clamp-2 leading-relaxed ${
-                              isDark ? 'text-zinc-200' : 'text-zinc-800'
+                                : isDark
+                                ? 'hover:bg-zinc-900/50'
+                                : 'hover:bg-zinc-50'
                             }`}
                           >
-                            {s.title}
-                          </h4>
+                            {/* Top Row: User identifier + time + quick delete */}
+                            <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                              <span className="font-semibold text-amber-500 truncate max-w-[170px]">
+                                {s.user_email || s.user_name || 'زائر مجهول'}
+                              </span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="text-[10px] text-zinc-500">{timeAgo(s.last_at || s.updated_at)}</span>
 
-                          {/* Snippet of last message */}
-                          {s.last_message && (
-                            <p className="mt-1 text-[11px] text-zinc-400 line-clamp-1">
-                              {s.last_role === 'assistant' ? '🤖 البوت: ' : '👤 العميل: '}
-                              {s.last_message}
-                            </p>
-                          )}
+                                {/* Hard Delete Button in Sidebar Item */}
+                                <button
+                                  onClick={(e) => handlePermanentDelete(s.id, e)}
+                                  disabled={deletingSessionId === s.id}
+                                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 rounded transition"
+                                  title="حذف هذه المحادثة نهائياً من قاعدة البيانات"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </div>
 
-                          {/* Card Footer */}
-                          <div className="mt-2 flex items-center justify-between text-[10px] text-zinc-400">
-                            <span
-                              className={`rounded-md px-2 py-0.5 font-mono ${
-                                isDark ? 'bg-zinc-900 text-zinc-300' : 'bg-zinc-100 text-zinc-700'
+                            {/* Title / Initial question */}
+                            <h4
+                              className={`mt-1.5 text-xs font-bold line-clamp-2 leading-relaxed ${
+                                isDark ? 'text-zinc-200' : 'text-zinc-800'
                               }`}
                             >
-                              {s.message_count} رسائل
-                            </span>
-                            <span className="font-mono text-[9px] text-zinc-500 truncate max-w-[140px]">
-                              {s.session_token}
-                            </span>
+                              {s.title}
+                            </h4>
+
+                            {/* Snippet of last message */}
+                            {s.last_message && (
+                              <p className="mt-1 text-[11px] text-zinc-400 line-clamp-1">
+                                {s.last_role === 'assistant' ? '🤖 البوت: ' : '👤 العميل: '}
+                                {s.last_message}
+                              </p>
+                            )}
+
+                            {/* Card Footer */}
+                            <div className="mt-2 flex items-center justify-between text-[10px] text-zinc-400">
+                              <span
+                                className={`rounded-md px-2 py-0.5 font-mono ${
+                                  isDark ? 'bg-zinc-900 text-zinc-300' : 'bg-zinc-100 text-zinc-700'
+                                }`}
+                              >
+                                {s.message_count} رسائل
+                              </span>
+                              <span className="font-mono text-[9px] text-zinc-500 truncate max-w-[140px]">
+                                {s.session_token}
+                              </span>
+                            </div>
                           </div>
+                        );
+                      })}
+
+                      {/* Load More Sessions Button (Pagination to save Supabase reads) */}
+                      {hasMoreSessions && (
+                        <div className="p-3 text-center">
+                          <button
+                            onClick={loadMoreSessions}
+                            disabled={loadingMoreSessions}
+                            className={`w-full py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 ${
+                              isDark
+                                ? 'border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-amber-400'
+                                : 'border-zinc-300 bg-zinc-50 hover:bg-zinc-100 text-zinc-700'
+                            }`}
+                          >
+                            {loadingMoreSessions ? (
+                              <>
+                                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                <span>جاري تحميل المزيد...</span>
+                              </>
+                            ) : (
+                              <>
+                                <ChevronDown className="h-3.5 w-3.5" />
+                                <span>تحميل المزيد من المحادثات (صفحة {sessionsPage + 1})</span>
+                              </>
+                            )}
+                          </button>
                         </div>
-                      );
-                    })
+                      )}
+                    </>
                   )}
                 </div>
               </div>
 
               {/* Conversation Panel (Takes remaining space) */}
               <div
-                className={`flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden ${
+                className={`relative flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden ${
                   isDark ? 'bg-black' : 'bg-zinc-50'
                 }`}
               >
@@ -738,6 +821,9 @@ export default function AdminDashboardPage() {
                               محذوفة سابقاً
                             </span>
                           )}
+                          <span className="rounded-full bg-amber-500/10 text-amber-500 text-[10px] px-2 py-0.5 font-bold font-mono">
+                            {totalMessagesCount} رسالة
+                          </span>
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-zinc-400">
                           {activeSession.user?.email ? (
@@ -783,8 +869,36 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    {/* Messages Scrollable Timeline */}
-                    <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
+                    {/* Messages Scrollable Timeline with progressive loading */}
+                    <div
+                      ref={messagesScrollRef}
+                      onScroll={handleMessagesScroll}
+                      className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4"
+                    >
+                      {/* Top Load Previous Messages Button if conversation is long */}
+                      {hasMoreMessages && (
+                        <div className="text-center py-2">
+                          <button
+                            onClick={() => fetchSessionMessages(selectedSessionId, true)}
+                            disabled={loadingMoreMessages}
+                            className={`rounded-full border px-4 py-1.5 text-xs font-bold transition flex items-center justify-center gap-2 mx-auto ${
+                              isDark
+                                ? 'border-zinc-800 bg-zinc-900 text-amber-400 hover:bg-zinc-800'
+                                : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 shadow-xs'
+                            }`}
+                          >
+                            {loadingMoreMessages ? (
+                              <>
+                                <RefreshCw className="h-3 w-3 animate-spin" />
+                                <span>جاري استرجاع باقي الرسائل...</span>
+                              </>
+                            ) : (
+                              <span>تحميل الرسائل السابقة بالكامل ({totalMessagesCount - messages.length} رسالة أقدم)</span>
+                            )}
+                          </button>
+                        </div>
+                      )}
+
                       {loadingMessages ? (
                         <div className="p-8 text-center text-zinc-400 text-xs">
                           <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-amber-500" />
@@ -864,6 +978,18 @@ export default function AdminDashboardPage() {
                       )}
                       <div ref={messagesEndRef} />
                     </div>
+
+                    {/* Floating Scroll to Bottom Button in Admin */}
+                    {showScrollBottom && (
+                      <button
+                        onClick={scrollToBottom}
+                        className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-black/90 text-amber-400 hover:text-white px-3.5 py-1.5 text-xs font-bold shadow-xl backdrop-blur-md transition-all hover:scale-105 active:scale-95 animate-bounce"
+                        title="الانتقال لآخر رسالة"
+                      >
+                        <ArrowDown className="h-3.5 w-3.5" />
+                        <span>الانتقال لآخر رسالة</span>
+                      </button>
+                    )}
                   </>
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center p-8 text-zinc-400 text-xs min-h-0">

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { 
   Send, 
@@ -28,7 +28,9 @@ import {
   X,
   Plus,
   Zap,
-  ShieldCheck
+  ShieldCheck,
+  ArrowDown,
+  ChevronDown
 } from 'lucide-react';
 import { Property, ChatSession, ChatMessage, SessionContext, SellerFormPrefill, UsageInfo } from '@/lib/types';
 import { emptySessionContext, toShownUnit } from '@/lib/ai/session-context';
@@ -203,7 +205,33 @@ export default function SkanybotChatPage() {
   };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Floating Scroll to Bottom & Progressive Message Windowing
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [showAllMessages, setShowAllMessages] = useState(false);
+
+  const handleChatScroll = () => {
+    const el = chatScrollContainerRef.current;
+    if (!el) return;
+    const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setShowScrollBottom(distanceToBottom > 160);
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setShowScrollBottom(false);
+  };
+
+  // Keep device snappy by windowing to latest 25 messages unless user requests all
+  const MESSAGE_CHUNK_LIMIT = 25;
+  const displayedMessages = useMemo(() => {
+    if (showAllMessages || messages.length <= MESSAGE_CHUNK_LIMIT) {
+      return messages;
+    }
+    return messages.slice(messages.length - MESSAGE_CHUNK_LIMIT);
+  }, [messages, showAllMessages]);
 
   // Dynamic multilingual welcome prompts per selected country/language
   const getWelcomePrompts = () => {
@@ -814,7 +842,12 @@ export default function SkanybotChatPage() {
         </header>
 
         {/* Scrollable Conversation Stream */}
-        <div className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pt-4 pb-36 sm:pb-32" dir={dir}>
+        <div
+          ref={chatScrollContainerRef}
+          onScroll={handleChatScroll}
+          className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pt-4 pb-36 sm:pb-32 relative"
+          dir={dir}
+        >
           <div className="mx-auto max-w-3xl">
             {messages.length === 0 ? (
               /* Welcome Screen with Grounded Suggestions */
@@ -859,7 +892,25 @@ export default function SkanybotChatPage() {
             ) : (
               /* Messages Stream */
               <div className="space-y-6 pb-6">
-                {messages.map((msg) => {
+                {/* Progressive Windowing: Load previous messages if conversation is long */}
+                {messages.length > MESSAGE_CHUNK_LIMIT && !showAllMessages && (
+                  <div className="text-center py-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAllMessages(true)}
+                      className="rounded-full border border-slate-300/80 bg-white dark:border-zinc-800 dark:bg-zinc-900 px-4 py-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 shadow-xs hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-zinc-800 transition inline-flex items-center gap-1.5"
+                    >
+                      <Clock className="h-3.5 w-3.5" />
+                      <span>
+                        {isRtl
+                          ? `تحميل الرسائل السابقة (${messages.length - MESSAGE_CHUNK_LIMIT} رسالة أقدم)`
+                          : `Load previous messages (${messages.length - MESSAGE_CHUNK_LIMIT} older)`}
+                      </span>
+                    </button>
+                  </div>
+                )}
+
+                {displayedMessages.map((msg) => {
                   const isUser = msg.role === 'user';
 
                   return (
@@ -1020,6 +1071,19 @@ export default function SkanybotChatPage() {
             )}
           </div>
         </div>
+
+        {/* Floating Scroll to Bottom Button */}
+        {showScrollBottom && (
+          <button
+            type="button"
+            onClick={scrollToBottom}
+            className="fixed sm:absolute bottom-32 sm:bottom-28 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 rounded-full border border-amber-500/50 bg-black/90 dark:bg-zinc-900/95 text-amber-400 hover:text-white px-4 py-2 text-xs font-bold shadow-2xl backdrop-blur-md transition-all hover:scale-105 active:scale-95 animate-bounce"
+            title={isRtl ? 'الانتقال لآخر رسالة' : 'Jump to latest message'}
+          >
+            <ArrowDown className="h-4 w-4" />
+            <span>{isRtl ? 'الانتقال لآخر رسالة' : 'Jump to latest message'}</span>
+          </button>
+        )}
 
         {/* Floating Input Area (ChatGPT Style) */}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white/95 to-transparent pt-6 pb-4 px-4 sm:px-6 md:px-8 dark:from-zinc-950 dark:via-zinc-950/95">

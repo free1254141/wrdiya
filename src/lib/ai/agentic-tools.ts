@@ -367,8 +367,14 @@ export const AGENTIC_TOOLS_SCHEMA = [
 const LOCATION_SYNONYMS: Record<string, string[]> = {
   'التجمع': ['التجمع', 'new cairo', 'القاهرة الجديدة', 'tagamoa', 'icity', 'mivida', 'zed east', 'fifth square', 'galleria', 'نرجس', 'أندلس', 'لوتس', 'بنفسج', 'بيت الوطن'],
   'الشيخ زايد': ['زايد', 'zayed', 'sheikh zayed', 'أكتوبر', 'october', '6 أكتوبر', 'badya', 'بادية', 'westown'],
-  'العاصمة الإدارية': ['العاصمة', 'new capital', 'العاصمه', 'bosco', 'البوسكو'],
-  'مدينتي': ['مدينتي', 'madينتي', 'rehab', 'الرحاب'],
+  'أكتوبر': ['أكتوبر', 'اكتوبر', 'october', '6 أكتوبر', 'حدائق أكتوبر', 'حدائق اكتوبر', 'o west', 'بيفرلي', 'بادية', 'badya'],
+  'العاصمة الإدارية': ['العاصمة', 'new capital', 'العاصمه', 'bosco', 'البوسكو', 'r7', 'r8'],
+  'مدينتي': ['مدينتي', 'madinaty', 'rehab', 'الرحاب'],
+  'الساحل الشمالي': ['الساحل', 'ساحل', 'north coast', 'رأس الحكمة', 'راس الحكمة', 'مراسي', 'marassi', 'هاسيندا', 'hacienda', 'العلمين', 'alamein', 'سيدي عبدالرحمن'],
+  'العين السخنة': ['السخنة', 'سخنة', 'sokhna', 'الجلالة', 'galala', 'أزها', 'azha'],
+  'المستقبل سيتي': ['المستقبل', 'mostakbal', 'الشروق', 'shorouk', 'العبور', 'obour', 'سراي', 'sarai', 'بلوم فيلدز', 'bloomfields'],
+  'الإسكندرية': ['الإسكندرية', 'الاسكندرية', 'إسكندرية', 'اسكندرية', 'alexandria', 'سموحة', 'smouha', 'ستانلي', 'stanley', 'جليم', 'كفر عبده', 'سيدي بشر'],
+  'المعادي': ['المعادي', 'معادي', 'maadi', 'مصر الجديدة', 'heliopolis', 'مدينة نصر', 'nasr city', 'الزمالك', 'zamalek', 'الدقي', 'dokki', 'المهندسين', 'mohandessin'],
   'دبي': ['دبي', 'dubai', 'dxb', 'الإمارات', 'uae', 'business bay', 'palm jumeirah', 'creek', 'meydan', 'marina'],
   'إسبانيا': ['إسبانيا', 'اسبانيا', 'spain', 'malaga', 'مالقة', 'marbella', 'ماربيا', 'estepona', 'costa del sol'],
   'تركيا': ['تركيا', 'turkey', 'türkiye', 'إسطنبول', 'اسطنبول', 'istanbul', 'أنطاليا', 'انطاليا', 'antalya', 'alanya']
