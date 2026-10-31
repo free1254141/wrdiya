@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { 
   Send, 
   Bot, 
@@ -26,13 +27,15 @@ import {
   ImagePlus,
   X,
   Plus,
-  Zap
+  Zap,
+  ShieldCheck
 } from 'lucide-react';
 import { Property, ChatSession, ChatMessage, SessionContext, SellerFormPrefill, UsageInfo } from '@/lib/types';
 import { emptySessionContext, toShownUnit } from '@/lib/ai/session-context';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { isAllowedAdminEmail } from '@/lib/admin-auth-client';
 import BrokerChatSidebar from '@/components/BrokerChatSidebar';
 import PropertyCard from '@/components/PropertyCard';
 import BookingLeadModal from '@/components/BookingLeadModal';
@@ -763,6 +766,18 @@ export default function SkanybotChatPage() {
                 <Sparkles className="h-3.5 w-3.5 shrink-0" />
                 <span>{usage.remaining} {isRtl ? 'رسائل تجريبية' : 'trials'}</span>
               </button>
+            )}
+
+            {/* Admin Dashboard Quick Link (Strictly visible ONLY to authorized admin) */}
+            {user && isAllowedAdminEmail(user.email) && (
+              <Link
+                href="/admin"
+                className="flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/15 px-2.5 py-1 text-xs font-bold text-amber-600 transition hover:bg-amber-500/25 dark:text-amber-400 shadow-xs"
+                title={isRtl ? 'لوحة تحكم الإدارة' : 'Admin Dashboard'}
+              >
+                <ShieldCheck className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{isRtl ? 'لوحة الإدارة' : 'Admin'}</span>
+              </Link>
             )}
 
             {/* User Account / Auth Button */}
