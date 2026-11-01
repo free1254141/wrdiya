@@ -64,6 +64,29 @@ export default function DirectSearchPanel({
   // Pagination for smooth rendering
   const [visibleCount, setVisibleCount] = useState(24);
 
+  // Mobile filters collapsible state
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  // Active filters count
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (selectedRegion !== 'all') count++;
+    if (selectedType !== 'all') count++;
+    if (selectedBedrooms !== 'all') count++;
+    if (paymentMethod !== 'all') count++;
+    if (sortBy !== 'relevance') count++;
+    return count;
+  }, [selectedRegion, selectedType, selectedBedrooms, paymentMethod, sortBy]);
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setSelectedRegion('all');
+    setSelectedType('all');
+    setSelectedBedrooms('all');
+    setPaymentMethod('all');
+    setSortBy('relevance');
+  };
+
   // 1. Fetch all properties once from cached API
   const fetchProperties = async () => {
     try {
@@ -207,9 +230,9 @@ export default function DirectSearchPanel({
   const displayedList = filteredProperties.slice(0, visibleCount);
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-slate-50 dark:bg-black text-slate-900 dark:text-white" dir={isRtl ? 'rtl' : 'ltr'}>
-      {/* Top Banner & Mode Switch Bar */}
-      <div className="sticky top-0 z-30 border-b border-slate-200 dark:border-zinc-800 bg-white/95 dark:bg-black/95 backdrop-blur-md px-4 sm:px-6 py-3 transition-colors">
+    <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-black text-slate-900 dark:text-white scroll-smooth" dir={isRtl ? 'rtl' : 'ltr'}>
+      {/* Top Banner (Hidden on Mobile to maximize card visibility) */}
+      <div className="hidden sm:block border-b border-slate-200 dark:border-zinc-800 bg-white/95 dark:bg-black/95 backdrop-blur-md px-4 sm:px-6 py-3 transition-colors">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
           {/* Title & Quota-Free Badge */}
           <div className="flex items-center gap-2.5">
@@ -246,39 +269,58 @@ export default function DirectSearchPanel({
         </div>
       </div>
 
-      {/* Filter Controls Bar */}
-      <div className="border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-4 sm:px-6 py-3.5">
-        <div className="max-w-7xl mx-auto space-y-3">
-          {/* Search Input + Sort Dropdown */}
-          <div className="flex flex-col sm:flex-row items-center gap-2.5">
-            <div className="relative flex-1 w-full">
-              <Search className={`absolute ${isRtl ? 'right-3.5' : 'left-3.5'} top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-zinc-500`} />
+      {/* Sticky Search & Filter Controls Bar */}
+      <div className="sticky top-0 z-20 border-b border-slate-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md px-3 sm:px-6 py-2.5 sm:py-3.5 shadow-xs">
+        <div className="max-w-7xl mx-auto space-y-2.5">
+          {/* Search Input + Mobile Filter Toggle + Desktop Sort */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className={`absolute ${isRtl ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-zinc-500`} />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={isAr ? 'ابحث باسم الكمبوند، المطور، المنطقة (مثال: ماونتن فيو، التجمع، زايد، المستقبل)...' : 'Search by compound, developer, area...'}
-                className={`w-full rounded-2xl border border-slate-300 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 ${
-                  isRtl ? 'pr-10 pl-10' : 'pl-10 pr-10'
-                } py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-amber-500 transition`}
+                placeholder={isAr ? 'ابحث باسم الكمبوند، المطور، المنطقة...' : 'Search by compound, developer, area...'}
+                className={`w-full rounded-xl sm:rounded-2xl border border-slate-300 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 ${
+                  isRtl ? 'pr-9 pl-8' : 'pl-9 pr-8'
+                } py-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-amber-500 transition`}
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className={`absolute ${isRtl ? 'left-3.5' : 'right-3.5'} top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white`}
+                  className={`absolute ${isRtl ? 'left-2.5' : 'right-2.5'} top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white p-0.5`}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
 
-            {/* Sort Selection */}
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="relative flex-1 sm:w-44">
+            {/* Mobile Filter Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setMobileFiltersOpen((prev) => !prev)}
+              className={`sm:hidden flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition shrink-0 ${
+                mobileFiltersOpen || activeFiltersCount > 0
+                  ? 'border-amber-500 bg-amber-500/15 text-amber-600 dark:text-amber-400 font-black'
+                  : 'border-slate-300 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-900 text-slate-700 dark:text-zinc-300'
+              }`}
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              <span>{isAr ? 'الفلاتر' : 'Filters'}</span>
+              {activeFiltersCount > 0 && (
+                <span className="grid h-4 min-w-4 px-1 place-items-center rounded-full bg-amber-500 text-[10px] font-black text-black">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
+
+            {/* Desktop Sort & Payment Selection (>= sm) */}
+            <div className="hidden sm:flex items-center gap-2 shrink-0">
+              <div className="relative w-44">
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortKey)}
-                  className="w-full rounded-2xl border border-slate-300 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 px-3 py-2.5 text-xs font-bold text-slate-800 dark:text-zinc-200 focus:outline-none focus:border-amber-500"
+                  className="w-full rounded-2xl border border-slate-300 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 px-3 py-2 text-xs font-bold text-slate-800 dark:text-zinc-200 focus:outline-none focus:border-amber-500"
                 >
                   <option value="relevance">{isAr ? 'الأكثر مطابقة' : 'Most Relevant'}</option>
                   <option value="price_asc">{isAr ? 'السعر: من الأقل للأعلى' : 'Price: Low to High'}</option>
@@ -290,6 +332,7 @@ export default function DirectSearchPanel({
               {/* Payment filter toggle */}
               <div className="flex items-center rounded-2xl border border-slate-300 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 p-1">
                 <button
+                  type="button"
                   onClick={() => setPaymentMethod('all')}
                   className={`rounded-xl px-2.5 py-1 text-[11px] font-bold transition ${
                     paymentMethod === 'all'
@@ -300,6 +343,7 @@ export default function DirectSearchPanel({
                   {isAr ? 'الكل' : 'All'}
                 </button>
                 <button
+                  type="button"
                   onClick={() => setPaymentMethod('installment')}
                   className={`rounded-xl px-2.5 py-1 text-[11px] font-bold transition ${
                     paymentMethod === 'installment'
@@ -310,6 +354,7 @@ export default function DirectSearchPanel({
                   {isAr ? 'تقسيط فقط' : 'Installments'}
                 </button>
                 <button
+                  type="button"
                   onClick={() => setPaymentMethod('cash')}
                   className={`rounded-xl px-2.5 py-1 text-[11px] font-bold transition ${
                     paymentMethod === 'cash'
@@ -323,7 +368,7 @@ export default function DirectSearchPanel({
             </div>
           </div>
 
-          {/* Region Quick Filters */}
+          {/* Region Quick Filters (Touch-scrollable) */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide text-xs">
             <span className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 shrink-0 ml-1">
               {isAr ? 'الوجهة:' : 'Region:'}
@@ -339,8 +384,9 @@ export default function DirectSearchPanel({
             ].map((reg) => (
               <button
                 key={reg.id}
+                type="button"
                 onClick={() => setSelectedRegion(reg.id as RegionKey)}
-                className={`shrink-0 rounded-full border px-3 py-1 font-bold transition ${
+                className={`shrink-0 rounded-full border px-2.5 sm:px-3 py-1 text-[11px] sm:text-xs font-bold transition ${
                   selectedRegion === reg.id
                     ? 'border-amber-500 bg-amber-500 text-black shadow-xs'
                     : 'border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 hover:border-amber-400'
@@ -351,60 +397,155 @@ export default function DirectSearchPanel({
             ))}
           </div>
 
-          {/* Unit Type & Bedroom Filters */}
-          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100 dark:border-zinc-800/60 text-xs">
-            <span className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 ml-1">
-              {isAr ? 'النوع:' : 'Type:'}
+          {/* Detailed Filters: Accordion on Mobile, Always Visible on Desktop */}
+          <div className={`${mobileFiltersOpen ? 'block animate-in slide-in-from-top-2 duration-150' : 'hidden'} sm:block space-y-2.5 pt-2 border-t border-slate-100 dark:border-zinc-800/60`}>
+            {/* Mobile Sort & Payment Controls (Shown inside accordion on mobile) */}
+            <div className="sm:hidden flex flex-col gap-2 pt-1 pb-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 w-12 shrink-0">
+                  {isAr ? 'الترتيب:' : 'Sort:'}
+                </span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortKey)}
+                  className="flex-1 rounded-xl border border-slate-300 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-zinc-200 focus:outline-none focus:border-amber-500"
+                >
+                  <option value="relevance">{isAr ? 'الأكثر مطابقة' : 'Most Relevant'}</option>
+                  <option value="price_asc">{isAr ? 'السعر: من الأقل للأعلى' : 'Price: Low to High'}</option>
+                  <option value="price_desc">{isAr ? 'السعر: من الأعلى للأقل' : 'Price: High to Low'}</option>
+                  <option value="area_desc">{isAr ? 'المساحة: الأكبر أولاً' : 'Area: Largest First'}</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 w-12 shrink-0">
+                  {isAr ? 'السداد:' : 'Payment:'}
+                </span>
+                <div className="flex-1 flex items-center rounded-xl border border-slate-300 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('all')}
+                    className={`flex-1 rounded-lg py-1 text-[11px] font-bold transition text-center ${
+                      paymentMethod === 'all'
+                        ? 'bg-amber-500 text-black shadow-xs'
+                        : 'text-slate-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    {isAr ? 'الكل' : 'All'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('installment')}
+                    className={`flex-1 rounded-lg py-1 text-[11px] font-bold transition text-center ${
+                      paymentMethod === 'installment'
+                        ? 'bg-amber-500 text-black shadow-xs'
+                        : 'text-slate-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    {isAr ? 'تقسيط' : 'Installment'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('cash')}
+                    className={`flex-1 rounded-lg py-1 text-[11px] font-bold transition text-center ${
+                      paymentMethod === 'cash'
+                        ? 'bg-amber-500 text-black shadow-xs'
+                        : 'text-slate-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    {isAr ? 'كاش' : 'Cash'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Unit Type & Bedroom Filters */}
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
+              <span className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 ml-1">
+                {isAr ? 'النوع:' : 'Type:'}
+              </span>
+              {[
+                { id: 'all', label: isAr ? 'الكل' : 'All' },
+                { id: 'apartment', label: isAr ? 'شقق' : 'Apartments' },
+                { id: 'villa', label: isAr ? 'فيلات' : 'Villas' },
+                { id: 'townhouse', label: isAr ? 'تاون هاوس' : 'Townhouses' },
+                { id: 'chalet', label: isAr ? 'شاليهات' : 'Chalets' },
+                { id: 'duplex', label: isAr ? 'دوبلكس' : 'Duplexes' },
+              ].map((type) => (
+                <button
+                  key={type.id}
+                  type="button"
+                  onClick={() => setSelectedType(type.id as UnitTypeKey)}
+                  className={`rounded-lg px-2 sm:px-2.5 py-0.5 text-[11px] font-bold transition ${
+                    selectedType === type.id
+                      ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/40'
+                      : 'bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:text-black dark:hover:text-white'
+                  }`}
+                >
+                  {type.label}
+                </button>
+              ))}
+
+              <span className="hidden sm:inline text-[11px] font-bold text-slate-400 dark:text-zinc-500 mx-1">•</span>
+
+              <span className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 ml-1">
+                {isAr ? 'الغرف:' : 'Beds:'}
+              </span>
+              {['all', '1', '2', '3', '4', '5'].map((b) => (
+                <button
+                  key={b}
+                  type="button"
+                  onClick={() => setSelectedBedrooms(b)}
+                  className={`rounded-lg px-2 sm:px-2.5 py-0.5 text-[11px] font-bold transition ${
+                    selectedBedrooms === b
+                      ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/40'
+                      : 'bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:text-black dark:hover:text-white'
+                  }`}
+                >
+                  {b === 'all' ? (isAr ? 'الكل' : 'All') : b === '5' ? '5+' : b}
+                </button>
+              ))}
+
+              {/* Mobile Close / Reset Action in Accordion */}
+              <div className="sm:hidden flex items-center justify-between w-full pt-2 border-t border-slate-100 dark:border-zinc-800">
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="text-[11px] text-slate-500 dark:text-zinc-400 hover:text-amber-500 font-semibold"
+                >
+                  {isAr ? 'تصفير الفلاتر ↺' : 'Reset All ↺'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileFiltersOpen(false)}
+                  className="rounded-lg bg-amber-500 px-3 py-1 text-xs font-black text-black shadow-xs"
+                >
+                  {isAr ? `تطبيق (${filteredProperties.length} وحدة)` : `Apply (${filteredProperties.length})`}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Result Feedback Line */}
+          <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-zinc-400 pt-0.5">
+            <span className="font-mono text-amber-600 dark:text-amber-400">
+              {isAr ? `مطابق: ${filteredProperties.length.toLocaleString('ar-EG')} وحدة موثقة` : `Matches: ${filteredProperties.length} verified listings`}
             </span>
-            {[
-              { id: 'all', label: isAr ? 'الكل' : 'All' },
-              { id: 'apartment', label: isAr ? 'شقق' : 'Apartments' },
-              { id: 'villa', label: isAr ? 'فيلات' : 'Villas' },
-              { id: 'townhouse', label: isAr ? 'تاون هاوس' : 'Townhouses' },
-              { id: 'chalet', label: isAr ? 'شاليهات' : 'Chalets' },
-              { id: 'duplex', label: isAr ? 'دوبلكس' : 'Duplexes' },
-            ].map((type) => (
+            {activeFiltersCount > 0 && (
               <button
-                key={type.id}
-                onClick={() => setSelectedType(type.id as UnitTypeKey)}
-                className={`rounded-lg px-2.5 py-0.5 text-[11px] font-bold transition ${
-                  selectedType === type.id
-                    ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/40'
-                    : 'bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:text-black dark:hover:text-white'
-                }`}
+                type="button"
+                onClick={handleResetFilters}
+                className="text-[11px] text-slate-400 hover:text-amber-500 transition underline underline-offset-2"
               >
-                {type.label}
+                {isAr ? 'مسح الفلاتر' : 'Clear filters'}
               </button>
-            ))}
-
-            <span className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 mx-1">•</span>
-
-            <span className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 ml-1">
-              {isAr ? 'الغرف:' : 'Beds:'}
-            </span>
-            {['all', '1', '2', '3', '4', '5'].map((b) => (
-              <button
-                key={b}
-                onClick={() => setSelectedBedrooms(b)}
-                className={`rounded-lg px-2.5 py-0.5 text-[11px] font-bold transition ${
-                  selectedBedrooms === b
-                    ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/40'
-                    : 'bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:text-black dark:hover:text-white'
-                }`}
-              >
-                {b === 'all' ? (isAr ? 'الكل' : 'All') : b === '5' ? '5+' : b}
-              </button>
-            ))}
-
-            <span className="mr-auto text-[11px] font-mono text-slate-400 dark:text-zinc-500">
-              {isAr ? `مطابق: ${filteredProperties.length} وحدة` : `Matches: ${filteredProperties.length}`}
-            </span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Main Properties Grid */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 pb-28">
+      {/* Main Properties Grid in Natural Smooth Scroll Flow */}
+      <div className="px-3 sm:px-6 py-4 pb-32">
         <div className="max-w-7xl mx-auto">
           {loading ? (
             <div className="py-20 text-center text-slate-400 text-xs">
@@ -424,13 +565,7 @@ export default function DirectSearchPanel({
               </p>
               <div className="mt-4 flex items-center justify-center gap-2">
                 <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedRegion('all');
-                    setSelectedType('all');
-                    setSelectedBedrooms('all');
-                    setPaymentMethod('all');
-                  }}
+                  onClick={handleResetFilters}
                   className="rounded-xl border border-slate-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2 text-xs font-bold text-slate-700 dark:text-zinc-300 hover:border-amber-500 transition"
                 >
                   {isAr ? 'إعادة ضبط الفلاتر' : 'Reset Filters'}
@@ -445,7 +580,7 @@ export default function DirectSearchPanel({
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {displayedList.map((property) => (
                   <PropertyCard
                     key={property.id}
@@ -466,7 +601,7 @@ export default function DirectSearchPanel({
                 <div className="mt-8 text-center">
                   <button
                     onClick={() => setVisibleCount((prev) => prev + 24)}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 py-2.5 text-xs font-bold text-slate-800 dark:text-zinc-200 hover:border-amber-500 hover:text-amber-500 transition shadow-xs"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 py-2.5 text-xs font-bold text-slate-800 dark:text-zinc-200 hover:border-amber-500 hover:text-amber-500 transition shadow-xs cursor-pointer"
                   >
                     <span>{isAr ? `عرض المزيد (متبقي ${filteredProperties.length - visibleCount} وحدة)` : 'Load More'}</span>
                     <ChevronDown className="h-4 w-4" />
@@ -477,7 +612,6 @@ export default function DirectSearchPanel({
           )}
         </div>
       </div>
-
       {/* Floating Bottom AI Comparison Dock (Appears when 1-3 units are checked for comparison) */}
       {comparedProperties.length > 0 && (
         <div className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 max-w-2xl w-full z-40">
