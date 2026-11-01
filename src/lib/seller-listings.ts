@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Property } from './types';
 import { invalidatePropertiesCache } from './real-estate-engine';
-import { notifySellerListing } from './notify';
+import { notifySellerListing, notifyBuyerSellerMatch } from './notify';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://csuifvyghfsibkrnxrby.supabase.co';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -236,8 +236,31 @@ export async function createSellerProperty(input: SellerPropertyInput): Promise<
       saleCircumstances: input.sale_circumstances,
       imagesCount: cleanImages.length,
     }).catch(e => console.warn('[notify] Failed to dispatch seller telegram alert:', e));
+
+    // Automated matching: check if any buyer is waiting for this area/budget
+    const { data: waitingBuyers } = await supabaseAdmin
+      .from('leads_inquiries')
+      .select('*')
+      .or(`preferred_location.ilike.%${city}%,preferred_location.ilike.%${areaName}%`)
+      .limit(3);
+
+    if (waitingBuyers && waitingBuyers.length > 0) {
+      for (const buyer of waitingBuyers) {
+        notifyBuyerSellerMatch({
+          buyerName: buyer.user_name || 'عميل في قائمة الانتظار',
+          buyerPhone: buyer.phone,
+          buyerEmail: buyer.email,
+          buyerBudget: buyer.budget_max,
+          propertyTitle: autoTitle,
+          propertyLocation: locationText,
+          propertyPrice: totalPrice,
+          sellerName: input.seller_name,
+          sellerPhone: input.seller_phone,
+        }).catch(() => {});
+      }
+    }
   } catch (err) {
-    console.warn('[notify] Telegram seller error:', err);
+    console.warn('[notify] Telegram seller / matching error:', err);
   }
 
   invalidatePropertiesCache();

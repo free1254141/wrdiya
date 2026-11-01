@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 /**
- * Instant Telegram notifications for leads and seller listings.
+ * Instant Telegram notifications for leads, seller listings, and wishlist alerts.
  * Target bot: https://t.me/sakanyBOT_SUPPORT_BOT
  */
 
@@ -35,6 +35,29 @@ export interface SellerPropertyNotification {
   sellerPhone?: string | null;
   saleCircumstances?: string | null;
   imagesCount?: number;
+}
+
+export interface WishlistAlertNotification {
+  name?: string | null;
+  phone: string;
+  email?: string | null;
+  location: string;
+  unitType?: string | null;
+  budget?: number | string | null;
+  paymentMethod?: string | null;
+  notes?: string | null;
+}
+
+export interface BuyerSellerMatchNotification {
+  buyerName: string;
+  buyerPhone: string;
+  buyerEmail?: string | null;
+  buyerBudget?: number | string | null;
+  propertyTitle: string;
+  propertyLocation: string;
+  propertyPrice: number | string;
+  sellerName?: string | null;
+  sellerPhone?: string | null;
 }
 
 let cachedChatId: string | null = null;
@@ -108,7 +131,6 @@ export async function getAdminChatId(token: string): Promise<string | null> {
 
     const body = await res.json();
     if (body.ok && Array.isArray(body.result) && body.result.length > 0) {
-      // Find the latest message with a valid chat id
       for (let i = body.result.length - 1; i >= 0; i--) {
         const update = body.result[i];
         const chat = update.message?.chat || update.channel_post?.chat || update.callback_query?.message?.chat;
@@ -194,6 +216,65 @@ export async function notifyNewLead(lead: LeadNotification): Promise<void> {
     '━━━━━━━━━━━━━━━━━━',
     waLink ? `💬 <a href="${waLink}"><b>فتح محادثة واتساب فوري مع العميل</b></a>` : '',
     `📋 <a href="https://sakanybot.vercel.app/admin"><b>عرض الطلب في لوحة الإدارة</b></a>`,
+  ].filter(Boolean);
+
+  await sendTelegramMessage(lines.join('\n'));
+}
+
+/**
+ * Notify admin when a user registers for the Wishlist / Property Alert waiting list
+ */
+export async function notifyWishlistAlert(alert: WishlistAlertNotification): Promise<void> {
+  const waLink = formatWhatsAppLink(alert.phone);
+  const now = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+  const lines = [
+    '🎯 <b>تسجيل عميل جديد في قائمة الانتظار والتنبيهات الذكية!</b>',
+    '━━━━━━━━━━━━━━━━━━',
+    `👤 <b>الاسم:</b> ${esc(alert.name || 'عميل في قائمة التنبيهات')}`,
+    `📞 <b>الهاتف / واتساب:</b> <code>${esc(alert.phone)}</code>`,
+    alert.email ? `✉️ <b>البريد الإلكتروني:</b> ${esc(alert.email)}` : '',
+    `📍 <b>المنطقة المطلوبة:</b> <b>${esc(alert.location)}</b>`,
+    alert.unitType ? `🏢 <b>نوع الوحدة:</b> ${esc(alert.unitType)}` : '',
+    alert.budget ? `💰 <b>الميزانية:</b> <b>${formatEGP(alert.budget)}</b>` : '',
+    alert.paymentMethod ? `💳 <b>طريقة الدفع:</b> ${esc(alert.paymentMethod)}` : '',
+    alert.notes ? `📝 <b>تفاصيل الطلب:</b> ${esc(alert.notes)}` : '',
+    `⏰ <b>التوقيت:</b> ${now}`,
+    '━━━━━━━━━━━━━━━━━━',
+    waLink ? `💬 <a href="${waLink}"><b>محادثة العميل عبر واتساب فوراً</b></a>` : '',
+    `📋 <a href="https://sakanybot.vercel.app/admin"><b>متابعة في لوحة الإدارة</b></a>`,
+  ].filter(Boolean);
+
+  await sendTelegramMessage(lines.join('\n'));
+}
+
+/**
+ * Notify admin when an existing wishlist buyer matches a newly listed property
+ */
+export async function notifyBuyerSellerMatch(match: BuyerSellerMatchNotification): Promise<void> {
+  const buyerWa = formatWhatsAppLink(match.buyerPhone);
+  const sellerWa = match.sellerPhone ? formatWhatsAppLink(match.sellerPhone) : null;
+  const now = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+  const lines = [
+    '⚡ <b>تطابق فوري: مشتري في قائمة الانتظار مع وحدة جديدة للبيع! 🔥</b>',
+    '━━━━━━━━━━━━━━━━━━',
+    '👤 <b>بيانات المشتري المنتظر:</b>',
+    `• الاسم: ${esc(match.buyerName)}`,
+    `• الهاتف: <code>${esc(match.buyerPhone)}</code>`,
+    match.buyerEmail ? `• الإيميل: ${esc(match.buyerEmail)}` : '',
+    match.buyerBudget ? `• الميزانية: ${formatEGP(match.buyerBudget)}` : '',
+    buyerWa ? `💬 <a href="${buyerWa}"><b>تواصل مع المشتري على واتساب الآن</b></a>` : '',
+    '──────────────────',
+    '🏡 <b>الوحدة المعروضة للبيع المطابقة:</b>',
+    `• العنوان: ${esc(match.propertyTitle)}`,
+    `• الموقع: ${esc(match.propertyLocation)}`,
+    `• السعر: <b>${formatEGP(match.propertyPrice)}</b>`,
+    match.sellerName ? `• المالك: ${esc(match.sellerName)} (${esc(match.sellerPhone || '')})` : '',
+    sellerWa ? `💬 <a href="${sellerWa}"><b>تواصل مع المالك على واتساب</b></a>` : '',
+    `⏰ <b>التوقيت:</b> ${now}`,
+    '━━━━━━━━━━━━━━━━━━',
+    `🚀 <i>فرصة إتمام صفقة سريعة بدون تكلفة تسويق إضافية!</i>`,
   ].filter(Boolean);
 
   await sendTelegramMessage(lines.join('\n'));

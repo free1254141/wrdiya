@@ -454,6 +454,27 @@ html.light .chat-theme-arabesque {
   background-color: #fbfbfa !important;
 }
 
+.chat-theme-blueprint_grid {
+  background-color: #050b14 !important;
+}
+html.light .chat-theme-blueprint_grid {
+  background-color: #f0f7ff !important;
+}
+
+.chat-theme-dots {
+  background-color: #060608 !important;
+}
+html.light .chat-theme-dots {
+  background-color: #f8fafc !important;
+}
+
+.chat-theme-solid_oled {
+  background-color: #000000 !important;
+}
+html.light .chat-theme-solid_oled {
+  background-color: #ffffff !important;
+}
+
 /* Chat Input Floating Dock Gradients */
 .chat-dock-architectural,
 .chat-dock-whatsapp {
@@ -476,6 +497,27 @@ html.light .chat-dock-watermelon {
 }
 html.light .chat-dock-arabesque {
   background: linear-gradient(to top, rgba(251, 251, 250, 0.98) 0%, rgba(251, 251, 250, 0.88) 60%, transparent 100%) !important;
+}
+
+.chat-dock-blueprint_grid {
+  background: linear-gradient(to top, rgba(5, 11, 20, 0.98) 0%, rgba(5, 11, 20, 0.88) 60%, transparent 100%) !important;
+}
+html.light .chat-dock-blueprint_grid {
+  background: linear-gradient(to top, rgba(240, 247, 255, 0.98) 0%, rgba(240, 247, 255, 0.88) 60%, transparent 100%) !important;
+}
+
+.chat-dock-dots {
+  background: linear-gradient(to top, rgba(6, 6, 8, 0.98) 0%, rgba(6, 6, 8, 0.88) 60%, transparent 100%) !important;
+}
+html.light .chat-dock-dots {
+  background: linear-gradient(to top, rgba(248, 250, 252, 0.98) 0%, rgba(248, 250, 252, 0.88) 60%, transparent 100%) !important;
+}
+
+.chat-dock-solid_oled {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.98) 0%, rgba(0, 0, 0, 0.88) 60%, transparent 100%) !important;
+}
+html.light .chat-dock-solid_oled {
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.88) 60%, transparent 100%) !important;
 }
 
 

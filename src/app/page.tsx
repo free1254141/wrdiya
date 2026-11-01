@@ -142,7 +142,7 @@ export default function SkanybotChatPage() {
   }, [wallpaperId, customWallpaperImage]);
 
   const handleSelectWallpaper = (wp: ChatWallpaper) => {
-    const id = wp === 'whatsapp' ? 'architectural' : wp;
+    const id = (wp as string) === 'whatsapp' ? 'architectural' : wp;
     setWallpaperId(id);
     saveWallpaperConfig(id, wallpaperOpacity, customWallpaperImage);
   };

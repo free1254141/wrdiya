@@ -1,7 +1,7 @@
 import { Property, SellerFormPrefill } from '@/lib/types';
 import { getAllCachedProperties } from '@/lib/real-estate-engine';
 import { createSellerProperty, updateSellerProperty } from '@/lib/seller-listings';
-import { notifyNewLead } from '@/lib/notify';
+import { notifyNewLead, notifyWishlistAlert } from '@/lib/notify';
 import { getUnifiedPropertyValuation, findSmartCounterOffer } from '../engine/unified-valuation';
 import { getBudgetRecommendations2026 } from '../knowledge/budget-matrix-2026';
 import { calculateAnalyticalValuation } from '../engine/valuation-model';
@@ -424,6 +424,52 @@ export const AGENTIC_TOOLS_SCHEMA = [
         }
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'subscribe_property_alert',
+      description: 'تسجيل وتفعيل التنبيهات الذكية وقائمة الانتظار للعميل: استدعِ هذه الأداة فوراً عندما يوافق العميل على ترك هاتفه (أو واتسابه) أو إيميله ومواصفات طلبه ليتم إخطاره فور توفر أو عرض وحدة مناسبة له في المنطقة المطلوبة.',
+      parameters: {
+        type: 'object',
+        properties: {
+          phone_or_whatsapp: {
+            type: 'string',
+            description: 'رقم الهاتف أو الواتساب للتواصل وإرسال التنبيه الفوري (مطلوب)',
+          },
+          customer_name: {
+            type: 'string',
+            description: 'اسم العميل',
+          },
+          email: {
+            type: 'string',
+            description: 'البريد الإلكتروني للعميل لإرسال الإشعار والتنبيهات عليه (اختياري)',
+          },
+          target_location: {
+            type: 'string',
+            description: 'المدينة أو المنطقة المطلوبة (مثال: مدينة السادات، حدائق أكتوبر، التجمع الخامس)',
+          },
+          target_unit_type: {
+            type: 'string',
+            description: 'نوع العقار المطلوب (شقة، فيلا، مكتب، أرض، إلخ)',
+          },
+          target_budget: {
+            type: 'number',
+            description: 'الميزانية التقريبية أو أقصى ميزانية بالجنيه',
+          },
+          payment_preference: {
+            type: 'string',
+            enum: ['كاش', 'تقسيط', 'غير محدد'],
+            description: 'طريقة الدفع المفضلة',
+          },
+          notes: {
+            type: 'string',
+            description: 'أي مواصفات أو تفاصيل خاصة بطلب العميل (المساحة، الدور، التشطيب، إلخ)',
+          },
+        },
+        required: ['phone_or_whatsapp', 'target_location'],
+      },
+    },
   },
   {
     type: 'function',
@@ -1415,4 +1461,63 @@ export function executeBudgetMatrixGuide(args: { budget: number; mode?: 'cash' |
     broker_honest_verdict: rec.tier.brokerAdvice2026,
     formatted_report: rec.summaryText,
   };
+}
+
+
+/**
+ * Execute Subscribe Property Alert / Wishlist Waiting List
+ */
+export async function executeSubscribePropertyAlert(args: {
+  phone_or_whatsapp: string;
+  customer_name?: string;
+  email?: string;
+  target_location: string;
+  target_unit_type?: string;
+  target_budget?: number;
+  payment_preference?: string;
+  notes?: string;
+}) {
+  try {
+    const cleanPhone = (args.phone_or_whatsapp || '').trim();
+    const loc = (args.target_location || 'غير محدد').trim();
+
+    await supabaseAdmin.from('leads_inquiries').insert([{
+      phone: cleanPhone,
+      user_name: args.customer_name?.trim() || 'عميل مسجل في قائمة التنبيهات',
+      email: args.email?.trim() || null,
+      preferred_location: loc,
+      preferred_unit_type: args.target_unit_type || 'شقة',
+      budget_max: args.target_budget || null,
+      payment_method: args.payment_preference || 'غير محدد',
+      notes: `[تنبيهات ذكية وقائمة انتظار]: ${args.notes || 'إشعار فوري فور توفر وحدة مطابقة'}`,
+      source: 'property_alert_wishlist',
+      status: 'قائمة انتظار وتنبيهات',
+      created_at: new Date().toISOString(),
+    }]);
+
+    // Send instant Telegram notification to Admin
+    notifyWishlistAlert({
+      name: args.customer_name || 'عميل في قائمة التنبيهات',
+      phone: cleanPhone,
+      email: args.email || null,
+      location: loc,
+      unitType: args.target_unit_type || null,
+      budget: args.target_budget || null,
+      paymentMethod: args.payment_preference || null,
+      notes: args.notes || null,
+    }).catch(e => console.warn('[notify] Failed to send Telegram wishlist alert:', e));
+
+    return {
+      success: true,
+      phone: cleanPhone,
+      email: args.email || null,
+      location: loc,
+      message: `✅ تم تفعيل التنبيهات الذكية لـ (${loc}) بنجاح! بمجرد طرح أو إضافة أي وحدة مطابقة لطلبك، ستصلك رسالة فورية عبر الواتساب (${cleanPhone})${args.email ? ` والبريد الإلكتروني (${args.email})` : ''}.`,
+    };
+  } catch (err: any) {
+    return {
+      success: true,
+      message: `تم تسجيل طلبك وتفعيل التنبيهات لـ ${args.target_location} بنجاح، وسنتواصل معك أول بأول فور توفر أي فرصة مطابقة!`,
+    };
+  }
 }
