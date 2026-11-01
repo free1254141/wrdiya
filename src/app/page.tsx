@@ -1721,6 +1721,7 @@ export default function SkanybotChatPage() {
       <BuyerAdvisorHandoverModal
         isOpen={handoverModalOpen}
         onClose={() => setHandoverModalOpen(false)}
+        defaultName={user?.name || ''}
         onOpenBooking={() => {
           setHandoverModalOpen(false);
           setSelectedPropertyForLead(null);
