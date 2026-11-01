@@ -1035,7 +1035,7 @@ export default function SkanybotChatPage() {
               <button
                 type="button"
                 onClick={() => setAppMode('chat')}
-                className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-2.5 py-1 text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
+                className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-1.5 sm:px-2.5 py-1 text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   appMode === 'chat'
                     ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-amber-400 shadow-2xs font-black'
                     : 'text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200'
@@ -1044,13 +1044,12 @@ export default function SkanybotChatPage() {
               >
                 <Bot className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                 <span className="hidden sm:inline">{isRtl ? 'مستشار الشات' : 'AI Broker'}</span>
-                <span className="sm:hidden text-[11px]">{isRtl ? 'شات' : 'Chat'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setAppMode('direct_search')}
-                className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-2.5 py-1 text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
+                className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-1.5 sm:px-2.5 py-1 text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   appMode === 'direct_search'
                     ? 'bg-amber-500 text-black shadow-2xs font-black'
                     : 'text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200'
@@ -1059,23 +1058,25 @@ export default function SkanybotChatPage() {
               >
                 <Zap className="h-3.5 w-3.5 shrink-0" />
                 <span className="hidden sm:inline">{isRtl ? 'البحث المباشر ⚡' : 'Off-Agent ⚡'}</span>
-                <span className="sm:hidden text-[11px]">{isRtl ? 'بحث ⚡' : 'Search ⚡'}</span>
               </button>
             </div>
           </div>
 
           {/* Quick Header Controls (Streamlined: wallpaper & contact broker moved to sidebar) */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {/* User Persona Pill (Buyer / Seller / Broker) */}
             {user && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 shrink-0">
                 <button
                   type="button"
                   onClick={() => setPersonaModalOpen(true)}
-                  className="flex items-center gap-1 rounded-xl border border-slate-200/80 bg-slate-50/90 dark:border-zinc-800/80 dark:bg-zinc-900/90 px-2 sm:px-2.5 py-1 text-xs font-bold text-slate-700 dark:text-zinc-200 shadow-2xs hover:border-amber-500/50 hover:bg-amber-500/10 transition cursor-pointer whitespace-nowrap"
+                  className="flex items-center gap-1 rounded-xl border border-slate-200/80 bg-slate-50/90 dark:border-zinc-800/80 dark:bg-zinc-900/90 px-1.5 sm:px-2.5 py-1 text-xs font-bold text-slate-700 dark:text-zinc-200 shadow-2xs hover:border-amber-500/50 hover:bg-amber-500/10 transition cursor-pointer whitespace-nowrap"
                   title={isRtl ? 'صفتك العقارية (اضغط للتغيير: مشتري / بائع / بروكر)' : 'Your Real Estate Persona (Click to switch)'}
                 >
-                  <span>
+                  <span className="sm:hidden text-xs">
+                    {currentPersona === 'seller' ? '🏷️' : currentPersona === 'broker' ? '💼' : '🏠'}
+                  </span>
+                  <span className="hidden sm:inline">
                     {currentPersona === 'seller' ? '🏷️ بائع' : currentPersona === 'broker' ? '💼 بروكر' : '🏠 مشتري'}
                   </span>
                 </button>
@@ -1084,11 +1085,12 @@ export default function SkanybotChatPage() {
                   <button
                     type="button"
                     onClick={() => setPricingModalOpen(true)}
-                    className="flex items-center gap-1 rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-amber-500/15 px-2 sm:px-2.5 py-1 text-xs font-black text-amber-700 dark:text-amber-300 shadow-2xs hover:scale-105 active:scale-95 transition cursor-pointer whitespace-nowrap"
+                    className="flex items-center gap-1 rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-amber-500/15 px-1.5 sm:px-2.5 py-1 text-xs font-black text-amber-700 dark:text-amber-300 shadow-2xs hover:scale-105 active:scale-95 transition cursor-pointer whitespace-nowrap"
                     title={isRtl ? 'عرض باقة البروكر (Pro) - 250 ج.م' : 'Broker Pro Plan (250 EGP)'}
                   >
-                    <Zap className="h-3 w-3 text-amber-500 fill-amber-500" />
-                    <span>{isRtl ? 'باقة البروكر ⚡' : 'Broker Pro ⚡'}</span>
+                    <Zap className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />
+                    <span className="sm:hidden font-mono text-[11px] font-black">Pro ⚡</span>
+                    <span className="hidden sm:inline">{isRtl ? 'باقة البروكر ⚡' : 'Broker Pro ⚡'}</span>
                   </button>
                 )}
               </div>
@@ -1096,9 +1098,9 @@ export default function SkanybotChatPage() {
 
             {/* Daily Protection Quota Pill & Bonus Unlock Pill */}
             {user ? (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                 <div
-                  className={`flex items-center gap-1.5 rounded-xl border px-2 sm:px-2.5 py-1 text-xs font-bold shadow-2xs whitespace-nowrap ${
+                  className={`flex items-center gap-1 sm:gap-1.5 rounded-xl border px-1.5 sm:px-2.5 py-1 text-xs font-bold shadow-2xs whitespace-nowrap ${
                     isAllowedAdminEmail(user.email) || usage.plan === 'admin'
                       ? 'border-amber-500/40 bg-amber-500/15 text-amber-500 font-black'
                       : 'border-slate-200/80 bg-slate-50/90 text-slate-700 dark:border-zinc-800/80 dark:bg-zinc-900/90 dark:text-zinc-200'
@@ -1109,9 +1111,11 @@ export default function SkanybotChatPage() {
                       : (isRtl ? 'استفساراتك اليومية المجانية المتبقية (تتجدد كل ليلة)' : 'Free daily inquiries left (resets nightly)')
                   }
                 >
-                  <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                  <Sparkles className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-amber-500 shrink-0" />
                   {isAllowedAdminEmail(user.email) || usage.plan === 'admin' ? (
-                    <span className="font-mono text-xs font-black">∞ {isRtl ? 'غير محدود' : 'Unlimited'}</span>
+                    <span className="font-mono text-xs font-black">
+                      ∞ <span className="hidden sm:inline">{isRtl ? 'غير محدود' : 'Unlimited'}</span>
+                    </span>
                   ) : (
                     <>
                       <span className="font-mono text-xs font-bold">{usage.remaining}/{usage.limit}</span>
@@ -1130,10 +1134,11 @@ export default function SkanybotChatPage() {
                   <button
                     type="button"
                     onClick={() => setLeadUnlockModalOpen(true)}
-                    className="flex items-center gap-1 rounded-xl border border-amber-500/50 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 px-2 sm:px-2.5 py-1 text-xs font-black text-amber-600 dark:text-amber-400 shadow-2xs hover:scale-105 active:scale-95 transition cursor-pointer animate-pulse whitespace-nowrap"
+                    className="flex items-center gap-1 rounded-xl border border-amber-500/50 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 px-1.5 sm:px-2.5 py-1 text-xs font-black text-amber-600 dark:text-amber-400 shadow-2xs hover:scale-105 active:scale-95 transition cursor-pointer animate-pulse whitespace-nowrap"
                     title={isRtl ? 'افتح +50 استفساراً إضافياً مجاناً برقم هاتفك' : 'Unlock +50 free queries with your phone'}
                   >
-                    <span>🎁 +50 مجاناً</span>
+                    <span className="sm:hidden text-[11px]">🎁 +50</span>
+                    <span className="hidden sm:inline">🎁 +50 مجاناً</span>
                   </button>
                 )}
               </div>
@@ -1154,7 +1159,7 @@ export default function SkanybotChatPage() {
             {user && isAllowedAdminEmail(user.email) && (
               <Link
                 href="/admin"
-                className="flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/15 px-2 sm:px-2.5 py-1 text-xs font-bold text-amber-600 transition hover:bg-amber-500/25 dark:text-amber-400 shadow-2xs whitespace-nowrap"
+                className="flex items-center gap-1 rounded-xl border border-amber-500/40 bg-amber-500/15 p-1 sm:px-2.5 sm:py-1 text-xs font-bold text-amber-600 transition hover:bg-amber-500/25 dark:text-amber-400 shadow-2xs whitespace-nowrap shrink-0"
                 title={isRtl ? 'لوحة تحكم الإدارة' : 'Admin Dashboard'}
               >
                 <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
