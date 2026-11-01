@@ -29,9 +29,9 @@ export async function POST(req: NextRequest) {
     const cleanSenderPhone = String(senderPhone || '').trim();
     const phoneDigits = cleanSenderPhone.replace(/\D/g, '');
 
-    if (phoneDigits.length < 8) {
+    if (!/^01[0125]\d{8}$/.test(phoneDigits)) {
       return NextResponse.json(
-        { error: 'يرجى إدخال رقم الهاتف أو المحفظة المحول منها بشكل صحيح' },
+        { error: 'يرجى إدخال رقم هاتف مصري كامل مكون من 11 رقماً يبدأ بـ (010 أو 011 أو 012 أو 015)' },
         { status: 400 }
       );
     }
@@ -95,8 +95,8 @@ export async function POST(req: NextRequest) {
         status: 'مكتمل - تفعيل فوري',
         user_id: user?.id || null,
         budget_max: PRO_PRICE_EGP,
-        payment_method: `تحويل محفظة/إنستاباي -> ${OFFICIAL_WALLET_NUMBER}`,
-        notes: `تحويل مبلغ ${PRO_PRICE_EGP} ج.م لرقم ${OFFICIAL_WALLET_NUMBER}. تم ربط الهاتف بحساب العميل وتفعيل باقة Pro فوراً.`,
+        payment_method: `تحويل فودافون كاش -> ${OFFICIAL_WALLET_NUMBER}`,
+        notes: `تحويل مبلغ ${PRO_PRICE_EGP} ج.م على فودافون كاش لرقم ${OFFICIAL_WALLET_NUMBER}. تم ربط الهاتف بحساب العميل وتفعيل باقة Pro فوراً.`,
       }]);
     } catch (dbErr) {
       console.warn('[wallet-checkout] Failed to log lead in Supabase:', dbErr);

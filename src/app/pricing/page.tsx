@@ -34,6 +34,10 @@ export default function PricingPage() {
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Strict Egyptian phone validation: exactly 11 digits starting with 010, 011, 012, or 015
+  const cleanDigits = senderPhone.replace(/\D/g, '').slice(0, 11);
+  const isValidPhone = /^01[0125]\d{8}$/.test(cleanDigits);
+
   const handleCopyNumber = () => {
     navigator.clipboard.writeText(OFFICIAL_WALLET_NUMBER);
     setCopied(true);
@@ -44,12 +48,11 @@ export default function PricingPage() {
     e.preventDefault();
     setErrorMessage(null);
 
-    const digits = senderPhone.replace(/\D/g, '');
-    if (digits.length < 8) {
+    if (!isValidPhone) {
       setErrorMessage(
         isAr 
-          ? 'يرجى إدخال رقم هاتفك أو محفظتك التي قمت بالتحويل منها' 
-          : 'Please enter your phone or wallet number'
+          ? 'يرجى إدخال رقم هاتف مصري كامل مكون من 11 رقماً (مثال: 010XXXXXXXX)' 
+          : 'Please enter a complete 11-digit Egyptian phone number (e.g. 010XXXXXXXX)'
       );
       return;
     }
@@ -65,7 +68,7 @@ export default function PricingPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({
-          senderPhone: senderPhone.trim(),
+          senderPhone: cleanDigits,
         }),
       });
 
@@ -197,12 +200,12 @@ export default function PricingPage() {
                 </div>
               )}
 
-              {/* Destination Box */}
+              {/* Destination Box: Vodafone Cash ONLY */}
               <div className="rounded-2xl border-2 border-amber-500/30 bg-amber-500/5 p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider block">
-                      {isAr ? 'حول 250 ج.م كاش أو إنستاباي لرقم:' : 'Transfer 250 EGP to Official Wallet:'}
+                      {isAr ? 'حول 250 ج.م على فودافون كاش لرقم:' : 'Transfer 250 EGP via Vodafone Cash:'}
                     </span>
                     <div className="flex items-center gap-3 mt-1.5">
                       <span className="text-3xl font-black font-mono tracking-widest text-slate-900 dark:text-white">
@@ -211,7 +214,7 @@ export default function PricingPage() {
                       <button
                         type="button"
                         onClick={handleCopyNumber}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black px-3.5 py-2 text-xs font-black transition active:scale-95 shadow-xs"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black px-3.5 py-2 text-xs font-black transition active:scale-95 shadow-xs cursor-pointer"
                       >
                         {copied ? (
                           <>
@@ -238,35 +241,73 @@ export default function PricingPage() {
 
                 <p className="mt-3 pt-3 border-t border-amber-500/20 text-[11px] text-slate-500 dark:text-zinc-400 text-center">
                   {isAr 
-                    ? 'يقبل التحويل من أي محفظة: فودافون كاش، إنستاباي (InstaPay)، أورنج، اتصالات، وي باي، والمحافظ البنكية.' 
-                    : 'Accepted from Vodafone Cash, InstaPay, Orange, Etisalat, WE Pay, and Bank Wallets.'}
+                    ? 'يقبل التحويل من أي محفظة كاش (فودافون كاش، أورنج كاش، اتصالات كاش، وي باي، أو المحافظ البنكية الذكية).' 
+                    : 'Accepted from any cash mobile wallet (Vodafone Cash, Orange, Etisalat, WE Pay, Bank Smart Wallets).'}
                 </p>
               </div>
 
               {/* Simple Activation Form */}
               <form onSubmit={handleWalletSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5">
-                    {isAr ? 'اكتب رقم هاتفك أو محفظتك التي قمت بالتحويل منها *' : 'Enter your phone or wallet number *'}
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300">
+                      {isAr ? 'رقم هاتفك / محفظتك المحول منها *' : 'Phone / Wallet number transferred from *'}
+                    </label>
+                    {/* Visual 11-digit Completion Counter */}
+                    <span className={`text-[11px] font-mono font-bold ${
+                      isValidPhone 
+                        ? 'text-emerald-500' 
+                        : cleanDigits.length > 0 
+                          ? 'text-amber-500' 
+                          : 'text-slate-400'
+                    }`}>
+                      {isValidPhone 
+                        ? (isAr ? '✓ الرقم مكتمل (11 رقماً)' : '✓ 11 Digits Complete') 
+                        : `${cleanDigits.length} / 11 ${isAr ? 'رقم' : 'digits'}`}
+                    </span>
+                  </div>
+
                   <div className="relative">
                     <input
                       type="tel"
+                      inputMode="numeric"
                       required
                       autoFocus
+                      maxLength={11}
                       value={senderPhone}
-                      onChange={(e) => setSenderPhone(e.target.value)}
-                      placeholder="01XXXXXXXXX"
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 dark:border-zinc-800 dark:bg-zinc-900 px-3.5 py-3 text-base font-mono text-slate-900 dark:text-white focus:border-amber-500 focus:bg-white dark:focus:bg-zinc-950 focus:outline-hidden ltr:pl-10 rtl:pr-10"
+                      onChange={(e) => setSenderPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                      placeholder="010XXXXXXXX"
+                      className={`w-full rounded-xl border bg-slate-50 dark:bg-zinc-900 px-3.5 py-3 text-base font-mono text-slate-900 dark:text-white transition focus:bg-white dark:focus:bg-zinc-950 focus:outline-hidden ltr:pl-10 rtl:pr-10 ${
+                        isValidPhone 
+                          ? 'border-emerald-500 dark:border-emerald-500 focus:border-emerald-500' 
+                          : cleanDigits.length > 0 
+                            ? 'border-amber-500/60 focus:border-amber-500' 
+                            : 'border-slate-200 dark:border-zinc-800 focus:border-amber-500'
+                      }`}
                     />
-                    <Phone className="absolute top-3.5 ltr:left-3.5 rtl:right-3.5 h-4 w-4 text-slate-400" />
+                    <Phone className={`absolute top-3.5 ltr:left-3.5 rtl:right-3.5 h-4 w-4 transition ${
+                      isValidPhone ? 'text-emerald-500' : 'text-slate-400'
+                    }`} />
                   </div>
+
+                  {!isValidPhone && cleanDigits.length > 0 && (
+                    <p className="mt-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+                      {cleanDigits.length < 11 
+                        ? (isAr ? `متبقي ${11 - cleanDigits.length} أرقام لتفعيل زر الدفع (يجب أن يتكون من 11 رقماً)` : `${11 - cleanDigits.length} digits left`)
+                        : (isAr ? 'رقم غير صحيح: يجب أن يبدأ بـ 010 أو 011 أو 012 أو 015' : 'Must start with 010, 011, 012 or 015')}
+                    </p>
+                  )}
                 </div>
 
+                {/* Instant Activation Button - STRICTLY disabled until 11 valid digits */}
                 <button
                   type="submit"
-                  disabled={loading || !senderPhone}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 py-3.5 text-sm font-black text-black shadow-md transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
+                  disabled={loading || !isValidPhone}
+                  className={`w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-black transition active:scale-[0.99] shadow-md ${
+                    isValidPhone && !loading
+                      ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 text-black hover:brightness-105 cursor-pointer animate-pulse'
+                      : 'bg-slate-200 dark:bg-zinc-800 text-slate-400 dark:text-zinc-600 cursor-not-allowed opacity-60 shadow-none'
+                  }`}
                 >
                   {loading ? (
                     <>
@@ -275,8 +316,16 @@ export default function PricingPage() {
                     </>
                   ) : (
                     <>
-                      <Zap className="h-4 w-4 fill-black" />
-                      <span>{isAr ? 'تأكيد التحويل وتفعيل باقة Pro فوراً ⚡' : 'Confirm & Activate Pro Instantly ⚡'}</span>
+                      <Zap className="h-4 w-4 fill-current" />
+                      <span>
+                        {isValidPhone 
+                          ? (isAr ? 'تأكيد التحويل وتفعيل باقة Pro فوراً ⚡' : 'Confirm & Activate Pro Instantly ⚡')
+                          : cleanDigits.length === 0
+                            ? (isAr ? 'أدخل رقم الهاتف لتفعيل زر الدفع (11 رقماً)' : 'Enter phone to enable button')
+                            : cleanDigits.length < 11
+                              ? (isAr ? `اكتب باقي الرقم (متبقي ${11 - cleanDigits.length} أرقام)` : `Complete Phone (${11 - cleanDigits.length} remaining)`)
+                              : (isAr ? 'رقم غير صحيح (يبدأ بـ 010 أو 011 أو 012 أو 015)' : 'Invalid prefix')}
+                      </span>
                     </>
                   )}
                 </button>
