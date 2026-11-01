@@ -91,7 +91,6 @@ export default function SkanybotChatPage() {
   const [inputText, setInputText] = useState('');
   const [referencedProperty, setReferencedProperty] = useState<Property | null>(null);
   const [isReferencedCollapsed, setIsReferencedCollapsed] = useState<boolean>(false);
-  const [isDockPeeking, setIsDockPeeking] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -147,8 +146,11 @@ export default function SkanybotChatPage() {
     saveWallpaperConfig(id, wallpaperOpacity, customWallpaperImage);
   };
 
-  // Auth modal state
+  // Modals state
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [leadUnlockModalOpen, setLeadUnlockModalOpen] = useState(false);
+  const [handoverModalOpen, setHandoverModalOpen] = useState(false);
+  const [pricingModalOpen, setPricingModalOpen] = useState(false);
 
   // Daily Free Quota — enforced on the server to protect AI costs and keep service fast
   // Guest: 3 free trials · Registered: 20 free inquiries / day (resets daily at midnight)
@@ -651,16 +653,35 @@ export default function SkanybotChatPage() {
         setAuthModalOpen(true);
         return;
       }
-      const errorMsg: ChatMessage = {
-        id: `msg_${Date.now()}_limit`,
-        session_id: activeSessionId || 'limit_session',
+
+      // Tier 1 reached (20 queries) -> Offer +50 bonus unlock with phone for serious buyers
+      if (!usage.hasUnlockedBonus) {
+        setLeadUnlockModalOpen(true);
+        const errorMsg: ChatMessage = {
+          id: `msg_${Date.now()}_limit`,
+          session_id: activeSessionId || 'limit_session',
+          role: 'assistant',
+          content: isRtl
+            ? `🎁 **لقد بلغت حد الاستفسارات اليومية (${usage.limit} استفساراً).**\n\nلأنك مهتم بجدية وتفاضل بين أفضل العروض، يمكنك فوراً فتح **+50 استفساراً مجاناً** برقم هاتفك لربطك مع مستشارك العقاري وتنسيق معاينات حصرية!\n\n*(اضغط على الزر الذهبي بالأعلى أو عبر النافذة الظاهرة الآن لإدخال رقمك وتفعيل الـ 50 استفساراً فوراً)*.`
+            : `🎁 **You reached your daily quota (${usage.limit} queries).**\n\nUnlock **+50 bonus queries for free** right now with your phone number to connect with an accredited real estate consultant!`,
+          created_at: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, errorMsg]);
+        return;
+      }
+
+      // Tier 2 reached (70 queries) -> Human advisor handover & schedule viewings
+      setHandoverModalOpen(true);
+      const handoverMsg: ChatMessage = {
+        id: `msg_${Date.now()}_handover`,
+        session_id: activeSessionId || 'handover_session',
         role: 'assistant',
         content: isRtl
-          ? `⚠️ **لقد استهلكت رصيدك اليومي المجاني (${DAILY_LIMIT} استفسارات).**\n\nنحدد هذا الحد اليومي للحفاظ على سرعة واستقرار الذكاء الاصطناعي لجميع المستخدمين مجاناً.\n\nيتجدد رصيدك تلقائياً عند منتصف الليل! وإذا كنت ترغب بمعاينة أي وحدة أو التواصل مع المطور اضغط على زر "طلب معاينة" على أي عقار.`
-          : `⚠️ **You have reached your free daily limit (${DAILY_LIMIT} queries).**\n\nYour free daily quota resets automatically tomorrow at midnight!`,
+          ? `🤝 **لقد أتممت 70 استفساراً عقارياً اليوم بنجاح!**\n\nوصولك لهذه المرحلة يعني أنك جاهز للمعاينات الميدانية والتفاوض على العقود. مستشارك العقاري المعتمد جاهز الآن لمرافقتك شخصياً مجاناً وترتيب زيارات المشاريع والحصول على خصومات كاش إضافية من المطورين.\n\nيتجدد رصيدك الرقمي مجاناً بالكامل عند منتصف الليل (12:00 صباحاً بتوقيت القاهرة).`
+          : `🤝 **You have completed 70 property queries today!**\n\nYour accredited real estate advisor is ready right now to assist you 1-on-1 for on-site viewings and developer discounts. Your quota resets at midnight Cairo time.`,
         created_at: new Date().toISOString()
       };
-      setMessages(prev => [...prev, errorMsg]);
+      setMessages(prev => [...prev, handoverMsg]);
       return;
     }
 
@@ -736,7 +757,12 @@ export default function SkanybotChatPage() {
       }
 
       if (response.status === 429) {
-        throw new Error(data.message || (isRtl ? 'وصلت للحد الأقصى اليومي (20 استفساراً). يتجدد رصيدك تلقائياً عند منتصف الليل!' : 'Daily limit reached (20 queries). Resets tomorrow!'));
+        if (data.canUnlockBonus || !usage.hasUnlockedBonus) {
+          setLeadUnlockModalOpen(true);
+        } else if (data.reason === 'buyer_consultant_handover') {
+          setHandoverModalOpen(true);
+        }
+        throw new Error(data.message || (isRtl ? 'وصلت للحد الأقصى اليومي. يتجدد رصيدك تلقائياً عند منتصف الليل!' : 'Daily limit reached. Resets tomorrow!'));
       }
 
       if (!response.ok) {
@@ -939,6 +965,12 @@ export default function SkanybotChatPage() {
             ? 'chat-theme-watermelon'
             : appMode === 'chat' && wallpaperId === 'arabesque'
             ? 'chat-theme-arabesque'
+            : appMode === 'chat' && wallpaperId === 'blueprint_grid'
+            ? 'chat-theme-blueprint_grid'
+            : appMode === 'chat' && wallpaperId === 'dots'
+            ? 'chat-theme-dots'
+            : appMode === 'chat' && wallpaperId === 'solid_oled'
+            ? 'chat-theme-solid_oled'
             : 'bg-white dark:bg-zinc-950'
         }`}
       >
@@ -1007,28 +1039,47 @@ export default function SkanybotChatPage() {
 
           {/* Quick Header Controls (Streamlined: wallpaper & contact broker moved to sidebar) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Daily Protection Quota Pill */}
+            {/* Daily Protection Quota Pill & Bonus Unlock Pill */}
             {user ? (
-              <div
-                className={`flex items-center gap-1.5 rounded-xl border px-2 sm:px-2.5 py-1 text-xs font-bold shadow-2xs whitespace-nowrap ${
-                  isAllowedAdminEmail(user.email) || usage.plan === 'admin'
-                    ? 'border-amber-500/40 bg-amber-500/15 text-amber-500 font-black'
-                    : 'border-slate-200/80 bg-slate-50/90 text-slate-700 dark:border-zinc-800/80 dark:bg-zinc-900/90 dark:text-zinc-200'
-                }`}
-                title={
-                  isAllowedAdminEmail(user.email) || usage.plan === 'admin'
-                    ? (isRtl ? 'حساب الإدارة: محادثات واستفسارات غير محدودة مدى الحياة ⚡' : 'Admin Account: Unlimited Inquiries ⚡')
-                    : (isRtl ? 'استفساراتك اليومية المجانية المتبقية (تتجدد كل ليلة)' : 'Free daily inquiries left (resets nightly)')
-                }
-              >
-                <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                {isAllowedAdminEmail(user.email) || usage.plan === 'admin' ? (
-                  <span className="font-mono text-xs font-black">∞ {isRtl ? 'غير محدود' : 'Unlimited'}</span>
-                ) : (
-                  <>
-                    <span className="font-mono text-xs font-bold">{usage.remaining}/{usage.limit}</span>
-                    <span className="hidden sm:inline text-[11px] font-normal text-slate-500 dark:text-zinc-400">{isRtl ? 'اليوم' : 'today'}</span>
-                  </>
+              <div className="flex items-center gap-1.5">
+                <div
+                  className={`flex items-center gap-1.5 rounded-xl border px-2 sm:px-2.5 py-1 text-xs font-bold shadow-2xs whitespace-nowrap ${
+                    isAllowedAdminEmail(user.email) || usage.plan === 'admin'
+                      ? 'border-amber-500/40 bg-amber-500/15 text-amber-500 font-black'
+                      : 'border-slate-200/80 bg-slate-50/90 text-slate-700 dark:border-zinc-800/80 dark:bg-zinc-900/90 dark:text-zinc-200'
+                  }`}
+                  title={
+                    isAllowedAdminEmail(user.email) || usage.plan === 'admin'
+                      ? (isRtl ? 'حساب الإدارة: محادثات واستفسارات غير محدودة مدى الحياة ⚡' : 'Admin Account: Unlimited Inquiries ⚡')
+                      : (isRtl ? 'استفساراتك اليومية المجانية المتبقية (تتجدد كل ليلة)' : 'Free daily inquiries left (resets nightly)')
+                  }
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                  {isAllowedAdminEmail(user.email) || usage.plan === 'admin' ? (
+                    <span className="font-mono text-xs font-black">∞ {isRtl ? 'غير محدود' : 'Unlimited'}</span>
+                  ) : (
+                    <>
+                      <span className="font-mono text-xs font-bold">{usage.remaining}/{usage.limit}</span>
+                      <span className="hidden sm:inline text-[11px] font-normal text-slate-500 dark:text-zinc-400">{isRtl ? 'اليوم' : 'today'}</span>
+                      {usage.hasUnlockedBonus && (
+                        <span className="rounded-full bg-emerald-500/20 px-1 py-0.2 text-[9px] font-black text-emerald-600 dark:text-emerald-400">
+                          +50 🎁
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Lead bonus unlock pill for serious buyers when quota is low */}
+                {!isAllowedAdminEmail(user.email) && usage.plan !== 'admin' && !usage.hasUnlockedBonus && usage.remaining <= 10 && (
+                  <button
+                    type="button"
+                    onClick={() => setLeadUnlockModalOpen(true)}
+                    className="flex items-center gap-1 rounded-xl border border-amber-500/50 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 px-2 sm:px-2.5 py-1 text-xs font-black text-amber-600 dark:text-amber-400 shadow-2xs hover:scale-105 active:scale-95 transition cursor-pointer animate-pulse whitespace-nowrap"
+                    title={isRtl ? 'افتح +50 استفساراً إضافياً مجاناً برقم هاتفك' : 'Unlock +50 free queries with your phone'}
+                  >
+                    <span>🎁 +50 مجاناً</span>
+                  </button>
                 )}
               </div>
             ) : (
@@ -1072,7 +1123,7 @@ export default function SkanybotChatPage() {
             onSwitchToChat={() => setAppMode('chat')}
           />
         ) : (
-          <>
+          <div className="relative flex flex-1 flex-col min-h-0 overflow-hidden">
             {/* Chat Wallpaper Layer with Active Style & Dynamic User Opacity */}
             {wallpaperId !== 'none' && (
               <div
@@ -1085,17 +1136,11 @@ export default function SkanybotChatPage() {
               />
             )}
 
-            {/* Scrollable Conversation Stream */}
+            {/* Scrollable Conversation Stream (Flex child, ends cleanly above dock) */}
             <div
               ref={chatScrollContainerRef}
               onScroll={handleChatScroll}
-              className={`flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pt-4 relative z-10 transition-all duration-200 ${
-                referencedProperty
-                  ? isReferencedCollapsed
-                    ? 'pb-56 sm:pb-52'
-                    : 'pb-[380px] sm:pb-[360px] md:pb-[400px]'
-                  : 'pb-40 sm:pb-36'
-              }`}
+              className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pt-4 pb-4 relative z-10 transition-all duration-200"
               dir={dir}
             >
           <div className="mx-auto max-w-3xl">
@@ -1346,42 +1391,33 @@ export default function SkanybotChatPage() {
           </div>
         </div>
 
-        {/* Floating Scroll to Bottom Button (Discreet, off-center & unobtrusive) */}
+        {/* Floating Scroll to Bottom Button */}
         {showScrollBottom && (
           <button
             type="button"
             onClick={scrollToBottom}
-            className="fixed bottom-24 ltr:right-6 rtl:left-6 z-30 flex h-9 w-9 items-center justify-center rounded-full border border-amber-500/40 bg-zinc-900/95 text-amber-400 shadow-xl backdrop-blur-md transition-all hover:scale-110 active:scale-95 hover:bg-black hover:text-amber-300"
+            className="absolute bottom-24 ltr:right-6 rtl:left-6 z-30 flex h-9 w-9 items-center justify-center rounded-full border border-amber-500/40 bg-zinc-900/95 text-amber-400 shadow-xl backdrop-blur-md transition-all hover:scale-110 active:scale-95 hover:bg-black hover:text-amber-300 cursor-pointer"
             title={isRtl ? 'الانتقال لآخر رسالة' : 'Jump to latest message'}
           >
             <ChevronDown className="h-4 w-4" />
           </button>
         )}
 
-        {/* Floating Restore Bar Button when Peeking */}
-        {isDockPeeking && (
-          <button
-            type="button"
-            onClick={() => setIsDockPeeking(false)}
-            className="fixed bottom-28 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full border border-amber-500 bg-black/90 px-4 py-2 text-xs font-black text-amber-400 shadow-2xl backdrop-blur-md transition hover:scale-105 active:scale-95 animate-bounce"
-            title={isRtl ? 'إعادة إظهار وتثبيت شريط الشات' : 'Restore chat input dock'}
-          >
-            <EyeOff className="h-4 w-4 text-amber-400" />
-            <span>{isRtl ? '👁️ إعادة تثبيت شريط الشات' : 'Restore Chat Bar'}</span>
-          </button>
-        )}
-
-        {/* Floating Input Area (ChatGPT Style) */}
+        {/* Chat Input Dock in document flow (shrink-0) - Physically never covers chat messages! */}
         <div
-          className={`absolute inset-x-0 bottom-0 pt-6 pb-4 px-4 sm:px-6 md:px-8 z-20 transition-opacity duration-300 ${
-            isDockPeeking ? 'opacity-15 hover:opacity-95' : 'opacity-100'
-          } ${
+          className={`relative shrink-0 pt-2 pb-3 px-3 sm:px-6 md:px-8 z-20 transition-all ${
             wallpaperId === 'watermelon'
               ? 'chat-dock-watermelon'
               : wallpaperId === 'arabesque'
               ? 'chat-dock-arabesque'
               : wallpaperId === 'architectural' || wallpaperId === 'whatsapp'
               ? 'chat-dock-architectural'
+              : wallpaperId === 'blueprint_grid'
+              ? 'chat-dock-blueprint_grid'
+              : wallpaperId === 'dots'
+              ? 'chat-dock-dots'
+              : wallpaperId === 'solid_oled'
+              ? 'chat-dock-solid_oled'
               : 'bg-gradient-to-t from-white via-white/95 to-transparent dark:from-zinc-950 dark:via-zinc-950/95'
           }`}
         >
@@ -1428,19 +1464,7 @@ export default function SkanybotChatPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setIsDockPeeking(!isDockPeeking)}
-                        className={`flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold transition ${
-                          isDockPeeking
-                            ? 'bg-amber-500 text-black'
-                            : 'text-slate-600 hover:bg-slate-200 dark:text-zinc-300 dark:hover:bg-zinc-800'
-                        }`}
-                        title={isRtl ? 'معاينة ما خلف الشريط (جعل الشريط شفافاً لرؤية ما خلفه في الشات)' : 'Peek behind bar (translucent)'}
-                      >
-                        {isDockPeeking ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                        <span className="hidden sm:inline">{isRtl ? 'إظهار ما خلفه' : 'Peek'}</span>
-                      </button>
+
                       <button
                         type="button"
                         onClick={() => setIsReferencedCollapsed(!isReferencedCollapsed)}
@@ -1564,7 +1588,7 @@ export default function SkanybotChatPage() {
             </p>
           </div>
         </div>
-      </>
+      </div>
     )}
   </main>
 
@@ -1636,6 +1660,58 @@ export default function SkanybotChatPage() {
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
+      />
+
+      {/* Lead Quota Unlock Modal (+50 queries with phone number for serious buyers) */}
+      <LeadQuotaUnlockModal
+        isOpen={leadUnlockModalOpen}
+        onClose={() => setLeadUnlockModalOpen(false)}
+        onUnlocked={(newLimit, newRemaining) => {
+          setUsage(prev => ({
+            ...prev,
+            limit: newLimit,
+            remaining: newRemaining,
+            hasUnlockedBonus: true,
+            bonusAmount: 50,
+          }));
+        }}
+      />
+
+      {/* Buyer Advisor Handover Modal (When 70 queries are completed) */}
+      <BuyerAdvisorHandoverModal
+        isOpen={handoverModalOpen}
+        onClose={() => setHandoverModalOpen(false)}
+        onOpenBooking={() => {
+          setHandoverModalOpen(false);
+          setSelectedPropertyForLead(null);
+          setBookingModalOpen(true);
+        }}
+        onOpenPricing={() => {
+          setHandoverModalOpen(false);
+          setPricingModalOpen(true);
+        }}
+      />
+
+      {/* Commercial Broker / Agency Pro Plan Modal */}
+      <PricingModal
+        isOpen={pricingModalOpen}
+        onClose={() => setPricingModalOpen(false)}
+        currentPlan={usage.plan === 'pro' ? 'pro' : 'free'}
+        usedCount={usage.used}
+        limitCount={usage.limit}
+        onUpgradeSuccess={(newPlan, newLimit) => {
+          setUsage(prev => ({
+            ...prev,
+            plan: newPlan,
+            limit: newLimit,
+            remaining: Math.max(0, newLimit - prev.used),
+          }));
+          setPricingModalOpen(false);
+        }}
+        onOpenAuthModal={() => {
+          setPricingModalOpen(false);
+          setAuthModalOpen(true);
+        }}
       />
 
       {/* Real Estate Blueprint / Heritage Chat Wallpaper Modal (EGX Style - Centered & Responsive) */}
