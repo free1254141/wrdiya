@@ -37,7 +37,7 @@ export default function BuyerAdvisorHandoverModal({
     'مرحباً، استكملت أكثر من 50 استشارة على منصة سكنى بوت وأرغب في استشارة استشاري عقاري معتمد وتنسيق معاينة ميدانية للمشاريع المناسبة.'
   );
   // Default support phone (or configurable)
-  const advisorWhatsAppUrl = `https://wa.me/201011883399?text=${defaultWhatsAppMsg}`;
+  const advisorWhatsAppUrl = `https://wa.me/201024359109?text=${defaultWhatsAppMsg}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
