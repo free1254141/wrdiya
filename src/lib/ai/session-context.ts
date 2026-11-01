@@ -22,6 +22,7 @@ export function emptySessionContext(): SessionContext {
     pending_images: [],
     pending_seller_form_offer: false,
     seller_prefill: null,
+    user_persona: null,
     turns: 0,
   };
 }
@@ -120,6 +121,7 @@ export function sanitizeSessionContext(raw: any): SessionContext {
     pending_images: (Array.isArray(raw.pending_images) ? raw.pending_images : []).filter((x: any) => typeof x === 'string' && x.length > 5).slice(0, 6),
     pending_seller_form_offer: Boolean(raw.pending_seller_form_offer),
     seller_prefill: sanitizeSellerPrefill(raw.seller_prefill),
+    user_persona: (['buyer', 'seller', 'broker'].includes(raw.user_persona) ? raw.user_persona : null),
     turns: Math.min(num(raw.turns) || 0, 10_000),
   };
 }
@@ -127,6 +129,14 @@ export function sanitizeSessionContext(raw: any): SessionContext {
 /** The system message handed to the model on every turn (data, not instructions). */
 export function buildContextSystemMessage(ctx: SessionContext, myListings: ShownUnit[] = []): string {
   const view = {
+    user_declared_persona: ctx.user_persona ? {
+      role: ctx.user_persona,
+      guidance: ctx.user_persona === 'seller'
+        ? 'العميل حدد هويته كـ (بائع/صاحب عقار): اعرض عليه تقييم وحدته بالذكاء الاصطناعي (AVM) أو فتح فورم إدراج وحدته للبيع فوراً.'
+        : ctx.user_persona === 'broker'
+        ? 'العميل حدد هويته كـ (سمسار/بروكر عقاري): وفّر له أدوات مقارنة الأسعار، سكور الصفقات، حسابات الأقساط الدقيقة، وإحصائيات السوق.'
+        : 'العميل حدد هويته كـ (مشتري/باحث عن عقار): وجّهه لأفضل الفرص المطابقة لميزانيته، نظم السداد، وعروض الاستلام الفوري.'
+    } : null,
     seller_own_listed_units_for_sale: myListings,
     bot_just_offered_to_open_seller_form: Boolean(ctx.pending_seller_form_offer),
     seller_form_prefill_so_far: ctx.seller_prefill || null,
@@ -150,10 +160,12 @@ export interface ContextUpdateInput {
   pendingImages?: string[];
   pendingSellerFormOffer?: boolean;
   sellerPrefill?: SellerFormPrefill | null;
+  userPersona?: 'buyer' | 'seller' | 'broker' | null;
 }
 
 export function updateSessionContext(prev: SessionContext, input: ContextUpdateInput): SessionContext {
   const next: SessionContext = { ...prev, profile: { ...prev.profile }, turns: prev.turns + 1 };
+  if (input.userPersona !== undefined) next.user_persona = input.userPersona;
 
   if (input.searchArgs) {
     const clean: Record<string, any> = {};

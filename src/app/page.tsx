@@ -50,6 +50,7 @@ import LanguageSelector from '@/components/LanguageSelector';
 import UsagePill from '@/components/UsagePill';
 import AuthModal from '@/components/AuthModal';
 import PricingModal from '@/components/PricingModal';
+import UserPersonaModal, { UserPersona } from '@/components/UserPersonaModal';
 import LeadQuotaUnlockModal from '@/components/LeadQuotaUnlockModal';
 import BuyerAdvisorHandoverModal from '@/components/BuyerAdvisorHandoverModal';
 import PropertyDetailsModal from '@/components/PropertyDetailsModal';
@@ -151,6 +152,8 @@ export default function SkanybotChatPage() {
   const [leadUnlockModalOpen, setLeadUnlockModalOpen] = useState(false);
   const [handoverModalOpen, setHandoverModalOpen] = useState(false);
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
+  const [personaModalOpen, setPersonaModalOpen] = useState(false);
+  const [currentPersona, setCurrentPersona] = useState<UserPersona | null>(null);
 
   // Daily Free Quota — enforced on the server to protect AI costs and keep service fast
   // Guest: 3 free trials · Registered: 20 free inquiries / day (resets daily at midnight)
@@ -506,8 +509,31 @@ export default function SkanybotChatPage() {
   useEffect(() => {
     try { localStorage.removeItem('skanybot_guest_msgs'); } catch (e) {}
     refreshUsage();
+
+    // Check user persona upon login / identity change
+    try {
+      const savedPersona = localStorage.getItem('skanybot_user_persona') as UserPersona | null;
+      if (savedPersona) {
+        setCurrentPersona(savedPersona);
+        setSessionContext(prev => ({ ...prev, user_persona: savedPersona }));
+      } else if (user) {
+        // If authenticated user hasn't chosen a persona yet, present the onboarding dialog
+        setPersonaModalOpen(true);
+      }
+    } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, session?.access_token]);
+
+  const handleSelectPersona = (persona: UserPersona) => {
+    setCurrentPersona(persona);
+    try {
+      localStorage.setItem('skanybot_user_persona', persona);
+    } catch {}
+    setSessionContext(prev => ({
+      ...prev,
+      user_persona: persona,
+    }));
+  };
 
   const loadSessionMessages = (sessionId: string) => {
     try {
@@ -1039,6 +1065,20 @@ export default function SkanybotChatPage() {
 
           {/* Quick Header Controls (Streamlined: wallpaper & contact broker moved to sidebar) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* User Persona Pill (Buyer / Seller / Broker) */}
+            {user && (
+              <button
+                type="button"
+                onClick={() => setPersonaModalOpen(true)}
+                className="flex items-center gap-1 rounded-xl border border-slate-200/80 bg-slate-50/90 dark:border-zinc-800/80 dark:bg-zinc-900/90 px-2 sm:px-2.5 py-1 text-xs font-bold text-slate-700 dark:text-zinc-200 shadow-2xs hover:border-amber-500/50 hover:bg-amber-500/10 transition cursor-pointer whitespace-nowrap"
+                title={isRtl ? 'صفتك العقارية (اضغط للتغيير: مشتري / بائع / بروكر)' : 'Your Real Estate Persona (Click to switch)'}
+              >
+                <span>
+                  {currentPersona === 'seller' ? '🏷️ بائع' : currentPersona === 'broker' ? '💼 بروكر' : '🏠 مشتري'}
+                </span>
+              </button>
+            )}
+
             {/* Daily Protection Quota Pill & Bonus Unlock Pill */}
             {user ? (
               <div className="flex items-center gap-1.5">
@@ -1326,7 +1366,7 @@ export default function SkanybotChatPage() {
                           {/* Suggested Action Chips */}
                           {msg.suggested_actions && msg.suggested_actions.length > 0 && (
                             <div className="mt-4 flex flex-wrap gap-2 pt-2">
-                              {msg.suggested_actions.map((act, idx) => (
+                              {msg.suggested_actions.filter((act) => !act.includes('دبي') && !act.includes('الإمارات')).map((act, idx) => (
                                 <button
                                   key={idx}
                                   onClick={() => handleSendMessage(act)}
@@ -1712,6 +1752,14 @@ export default function SkanybotChatPage() {
           setPricingModalOpen(false);
           setAuthModalOpen(true);
         }}
+      />
+
+      {/* Onboarding Persona Dialog (Buyer / Seller / Broker) */}
+      <UserPersonaModal
+        isOpen={personaModalOpen}
+        onClose={() => setPersonaModalOpen(false)}
+        onSelectPersona={handleSelectPersona}
+        userName={user?.name || user?.email?.split('@')[0] || null}
       />
 
       {/* Real Estate Blueprint / Heritage Chat Wallpaper Modal (EGX Style - Centered & Responsive) */}

@@ -137,11 +137,20 @@ export function getPropertyPortalBrand(property: Property): {
     };
   }
 
+  if (u.includes('nawy_unit') || u.includes('nawy.com')) {
+    return {
+      nameAr: 'ناوي Nawy',
+      nameEn: 'Nawy',
+      buttonLabelAr: 'فتح الإعلان الرسمي بالوحدة ↗',
+      buttonLabelEn: 'View Verified Unit Listing ↗',
+    };
+  }
+
   return {
     nameAr: 'الموقع الرسمي',
     nameEn: 'Official Listing',
-    buttonLabelAr: 'الموقع الرسمي للإعلان ↗',
-    buttonLabelEn: 'Official Listing ↗',
+    buttonLabelAr: 'رابط الإعلان المباشر ↗',
+    buttonLabelEn: 'Direct Listing Link ↗',
   };
 }
 

@@ -185,6 +185,7 @@ export interface SessionContext {
   pending_images?: string[];
   pending_seller_form_offer?: boolean;
   seller_prefill?: SellerFormPrefill | null;
+  user_persona?: 'buyer' | 'seller' | 'broker' | null;
   turns: number;
 }
 
