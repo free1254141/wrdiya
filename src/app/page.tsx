@@ -976,6 +976,7 @@ export default function SkanybotChatPage() {
           setSelectedPropertyForLead(null);
           setBookingModalOpen(true);
         }}
+        onOpenPricing={() => setPricingModalOpen(true)}
         onOpenWallpaperModal={() => setShowWallpaperModal(true)}
         onOpenAuthModal={() => setAuthModalOpen(true)}
         wallpaper={wallpaperId as any}
@@ -1067,16 +1068,30 @@ export default function SkanybotChatPage() {
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* User Persona Pill (Buyer / Seller / Broker) */}
             {user && (
-              <button
-                type="button"
-                onClick={() => setPersonaModalOpen(true)}
-                className="flex items-center gap-1 rounded-xl border border-slate-200/80 bg-slate-50/90 dark:border-zinc-800/80 dark:bg-zinc-900/90 px-2 sm:px-2.5 py-1 text-xs font-bold text-slate-700 dark:text-zinc-200 shadow-2xs hover:border-amber-500/50 hover:bg-amber-500/10 transition cursor-pointer whitespace-nowrap"
-                title={isRtl ? 'صفتك العقارية (اضغط للتغيير: مشتري / بائع / بروكر)' : 'Your Real Estate Persona (Click to switch)'}
-              >
-                <span>
-                  {currentPersona === 'seller' ? '🏷️ بائع' : currentPersona === 'broker' ? '💼 بروكر' : '🏠 مشتري'}
-                </span>
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPersonaModalOpen(true)}
+                  className="flex items-center gap-1 rounded-xl border border-slate-200/80 bg-slate-50/90 dark:border-zinc-800/80 dark:bg-zinc-900/90 px-2 sm:px-2.5 py-1 text-xs font-bold text-slate-700 dark:text-zinc-200 shadow-2xs hover:border-amber-500/50 hover:bg-amber-500/10 transition cursor-pointer whitespace-nowrap"
+                  title={isRtl ? 'صفتك العقارية (اضغط للتغيير: مشتري / بائع / بروكر)' : 'Your Real Estate Persona (Click to switch)'}
+                >
+                  <span>
+                    {currentPersona === 'seller' ? '🏷️ بائع' : currentPersona === 'broker' ? '💼 بروكر' : '🏠 مشتري'}
+                  </span>
+                </button>
+
+                {currentPersona === 'broker' && (
+                  <button
+                    type="button"
+                    onClick={() => setPricingModalOpen(true)}
+                    className="flex items-center gap-1 rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-amber-500/15 px-2 sm:px-2.5 py-1 text-xs font-black text-amber-700 dark:text-amber-300 shadow-2xs hover:scale-105 active:scale-95 transition cursor-pointer whitespace-nowrap"
+                    title={isRtl ? 'عرض باقة البروكر (Pro) - 250 ج.م' : 'Broker Pro Plan (250 EGP)'}
+                  >
+                    <Zap className="h-3 w-3 text-amber-500 fill-amber-500" />
+                    <span>{isRtl ? 'باقة البروكر ⚡' : 'Broker Pro ⚡'}</span>
+                  </button>
+                )}
+              </div>
             )}
 
             {/* Daily Protection Quota Pill & Bonus Unlock Pill */}
@@ -1760,6 +1775,7 @@ export default function SkanybotChatPage() {
         isOpen={personaModalOpen}
         onClose={() => setPersonaModalOpen(false)}
         onSelectPersona={handleSelectPersona}
+        onOpenPricing={() => setPricingModalOpen(true)}
         userName={user?.name || user?.email?.split('@')[0] || null}
       />
 

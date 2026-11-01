@@ -10,6 +10,7 @@ interface UserPersonaModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectPersona: (persona: UserPersona) => void;
+  onOpenPricing?: () => void;
   userName?: string | null;
 }
 
@@ -17,6 +18,7 @@ export default function UserPersonaModal({
   isOpen,
   onClose,
   onSelectPersona,
+  onOpenPricing,
   userName,
 }: UserPersonaModalProps) {
   const { locale, isRtl } = useLanguage();
@@ -122,6 +124,9 @@ export default function UserPersonaModal({
                 onClick={() => {
                   onSelectPersona(p.id);
                   onClose();
+                  if (p.id === 'broker' && onOpenPricing) {
+                    onOpenPricing();
+                  }
                 }}
                 className={`group w-full flex items-center justify-between gap-3.5 rounded-2xl border border-slate-200 bg-slate-50/60 dark:border-zinc-800 dark:bg-zinc-900/40 p-4 text-start transition duration-150 shadow-2xs hover:bg-white dark:hover:bg-zinc-900 ${p.borderHover} hover:scale-[1.01] active:scale-[0.99]`}
               >

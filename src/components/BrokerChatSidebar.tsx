@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   PhoneCall,
   Palette,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,6 +45,7 @@ interface BrokerChatSidebarProps {
   myListings?: Property[];
   onOpenSellerModal?: (mode?: 'list' | 'create', editProp?: Property | null) => void;
   onOpenContactBroker?: () => void;
+  onOpenPricing?: () => void;
   onOpenWallpaperModal?: () => void;
   onOpenAuthModal?: () => void;
   wallpaper?: ChatWallpaper;
@@ -113,6 +115,7 @@ export default function BrokerChatSidebar({
   myListings = [],
   onOpenSellerModal,
   onOpenContactBroker,
+  onOpenPricing,
   onOpenWallpaperModal,
   onOpenAuthModal,
   wallpaper,
@@ -229,6 +232,28 @@ export default function BrokerChatSidebar({
               </span>
               <span className="rounded-md bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
                 {isRtl ? 'مستشار معتمد' : 'Advisor'}
+              </span>
+            </button>
+          )}
+
+          {/* Dedicated Broker Pro Plan Button */}
+          {onOpenPricing && (
+            <button
+              onClick={() => {
+                onOpenPricing();
+                if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                  onToggle();
+                }
+              }}
+              className="flex w-full items-center justify-between rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 px-3 py-2 text-xs font-black text-amber-800 transition hover:bg-amber-500/25 dark:border-amber-400/40 dark:text-amber-300 shadow-2xs group"
+              title={isRtl ? 'صفحة باقة البروكر والمحترفين (Pro)' : 'Broker Pro Plan'}
+            >
+              <span className="flex items-center gap-2">
+                <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500 group-hover:scale-110 transition" />
+                <span>{isRtl ? 'باقة البروكر والمحترفين (Pro)' : 'Broker Pro Plan'}</span>
+              </span>
+              <span className="rounded-md bg-amber-500/30 px-1.5 py-0.5 text-[10px] font-black text-amber-900 dark:text-amber-100">
+                {isRtl ? '250 ج.م ⚡' : '250 EGP ⚡'}
               </span>
             </button>
           )}
