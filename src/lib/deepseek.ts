@@ -346,16 +346,25 @@ export async function runDeepSeekAgenticChat(
                 const all = await getAllCachedProperties();
                 const targetBudget = args.asking_price || (args.area_sqm ? args.area_sqm * 35000 : 0);
                 const loc = (args.location || '').toLowerCase();
+                const isCommercialQuery = /مكتب|إداري|اداري|تجاري|عيادة|محل|office|commercial|clinic/i.test(
+                  `${userPrompt} ${args.unit_type || ''} ${args.property_title || ''}`
+                );
                 const alternatives = all
                   .filter(p => {
                     const pLoc = `${p.compound?.city || ''} ${p.compound?.area_name || ''} ${p.title} ${(p as any).location_text || ''}`.toLowerCase();
                     const locMatch = loc.includes('تجمع') || loc.includes('cairo') ? (pLoc.includes('تجمع') || pLoc.includes('cairo')) : true;
                     const priceMatch = targetBudget > 0 ? (p.total_price <= targetBudget * 1.25 && p.total_price >= targetBudget * 0.45) : true;
-                    return locMatch && priceMatch;
+                    const isCommercialUnit = /مكتب|إداري|اداري|تجاري|عيادة|محل|office|commercial|clinic/i.test(
+                      `${p.unit_type || ''} ${p.title || ''}`
+                    );
+                    const typeMatch = isCommercialQuery ? isCommercialUnit : !isCommercialUnit;
+                    return locMatch && priceMatch && typeMatch;
                   })
                   .slice(0, 2);
-                if (alternatives.length > 0) {
-                  detailCards.push(...alternatives);
+                for (const alt of alternatives) {
+                  if (!detailCards.some(d => d.id === alt.id || d.title === alt.title)) {
+                    detailCards.push(alt);
+                  }
                 }
               } catch {}
             }
@@ -369,16 +378,25 @@ export async function runDeepSeekAgenticChat(
                 const all = await getAllCachedProperties();
                 const targetBudget = args.unit_price || 0;
                 const loc = (args.location || '').toLowerCase();
+                const isCommercialQuery = /مكتب|إداري|اداري|تجاري|عيادة|محل|office|commercial|clinic/i.test(
+                  `${userPrompt} ${args.unit_type || ''} ${args.property_title || ''}`
+                );
                 const alternatives = all
                   .filter(p => {
                     const pLoc = `${p.compound?.city || ''} ${p.compound?.area_name || ''} ${p.title} ${(p as any).location_text || ''}`.toLowerCase();
                     const locMatch = loc.includes('تجمع') || loc.includes('cairo') ? (pLoc.includes('تجمع') || pLoc.includes('cairo')) : true;
                     const priceMatch = targetBudget > 0 ? (p.total_price <= targetBudget * 1.25 && p.total_price >= targetBudget * 0.45) : true;
-                    return locMatch && priceMatch;
+                    const isCommercialUnit = /مكتب|إداري|اداري|تجاري|عيادة|محل|office|commercial|clinic/i.test(
+                      `${p.unit_type || ''} ${p.title || ''}`
+                    );
+                    const typeMatch = isCommercialQuery ? isCommercialUnit : !isCommercialUnit;
+                    return locMatch && priceMatch && typeMatch;
                   })
                   .slice(0, 2);
-                if (alternatives.length > 0) {
-                  detailCards.push(...alternatives);
+                for (const alt of alternatives) {
+                  if (!detailCards.some(d => d.id === alt.id || d.title === alt.title)) {
+                    detailCards.push(alt);
+                  }
                 }
               } catch {}
             }
@@ -403,7 +421,17 @@ export async function runDeepSeekAgenticChat(
   }
 
   const searched = lastSearchArgs !== null;
-  const cards = searched ? searchCards : detailCards.slice(0, CARDS_PER_REPLY);
+  const rawCards = searched ? searchCards : detailCards;
+  const seenCardKeys = new Set<string>();
+  const uniqueCards: Property[] = [];
+  for (const c of rawCards) {
+    const key = c.id || c.title;
+    if (!seenCardKeys.has(key)) {
+      seenCardKeys.add(key);
+      uniqueCards.push(c);
+    }
+  }
+  const cards = uniqueCards.slice(0, CARDS_PER_REPLY);
 
   if (!finalContent) {
     if (openSellerModal) {

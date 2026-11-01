@@ -68,6 +68,30 @@ export default function PropertyCard({
 
   const compound = property.compound;
   const developer = compound?.developer;
+
+  // Resolve genuine compound and developer name from property title (prevents generic Mountain View fallback)
+  const resolvedHeader = React.useMemo(() => {
+    const rawTitle = property.title || '';
+    let extractedDev = developer?.name;
+    if (rawTitle.includes('|')) {
+      const parts = rawTitle.split('|').map((s) => s.trim());
+      if (parts[1] && parts[1].length > 2) {
+        extractedDev = parts[1];
+      }
+    }
+
+    let extractedCompound = compound?.name;
+    const match = rawTitle.match(/(?:في\s+)?(كمبوند\s+[^\-|()،,]+|مول\s+[^\-|()،,]+|مشروع\s+[^\-|()،,]+)/i);
+    if (match && match[1]) {
+      extractedCompound = match[1].trim();
+    }
+
+    return {
+      compoundName: extractedCompound || (isAr ? 'مشروع سكني معتمد' : 'Verified Project'),
+      developerName: extractedDev,
+    };
+  }, [property.title, compound?.name, developer?.name, isAr]);
+
   const curr = property.currency || (isAr ? 'ج.م' : 'EGP');
   const isTekce = property.platform === 'TEKCE';
 
@@ -259,11 +283,11 @@ export default function PropertyCard({
         <div className="absolute bottom-2.5 right-2.5 left-2.5 text-white pointer-events-none">
           <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 truncate">
             <Building2 className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{compound?.name || (isAr ? 'مشروع سكني معتمد' : 'Verified Project')}</span>
-            {developer?.name && (
+            <span className="truncate">{resolvedHeader.compoundName}</span>
+            {resolvedHeader.developerName && (
               <>
                 <span className="text-white/50">•</span>
-                <span className="truncate text-white/80 font-normal">{developer.name}</span>
+                <span className="truncate text-white/80 font-normal">{resolvedHeader.developerName}</span>
               </>
             )}
           </div>
