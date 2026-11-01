@@ -18,6 +18,7 @@ import { isAllowedAdminEmail } from '@/lib/admin-auth-client';
 export const GUEST_LIMIT = 3;
 export const GUEST_IP_LIMIT = 15;
 export const DAILY_LIMIT = 20;
+export const LEAD_BONUS_LIMIT = 50;
 export const PRO_PERIOD_LIMIT = 300;
 export const PRO_DAILY_CAP = 60;
 export const PRO_PERIOD_DAYS = 30;
@@ -34,11 +35,13 @@ export interface UsageState {
   window: 'day' | 'period';
   resetDate: string;
   proUntil?: string | null;
+  hasUnlockedBonus?: boolean;
+  bonusAmount?: number;
 }
 
 export interface ConsumeResult extends UsageState {
   allowed: boolean;
-  reason?: 'login_required' | 'daily_limit_reached' | 'pro_limit_reached';
+  reason?: 'login_required' | 'daily_limit_reached' | 'pro_limit_reached' | 'buyer_consultant_handover';
   /** Give the consumed unit(s) back, e.g. when the AI call crashed. */
   refund: () => Promise<void>;
 }
@@ -176,6 +179,11 @@ function proPeriodKey(periodStart: string | null): string {
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 
+/** Helper to get bonus key for an identity */
+function getBonusKey(id: QuotaIdentity): string {
+  return id.userId ? `bonus:user:${id.userId}` : `bonus:guest:${id.guestId || id.ipHash}`;
+}
+
 /** Read-only status for the UI (does NOT consume). */
 export async function getUsageStatus(id: QuotaIdentity): Promise<UsageState> {
   // ── Admin: Unlimited inquiries lifetime ──
@@ -188,16 +196,31 @@ export async function getUsageStatus(id: QuotaIdentity): Promise<UsageState> {
       window: 'period',
       resetDate: '∞',
       proUntil: null,
+      hasUnlockedBonus: true,
+      bonusAmount: 0,
     };
   }
 
   const today = cairoDateKey();
+  const bonusKey = getBonusKey(id);
+  const bonusAmount = await readCount(bonusKey, today);
+  const hasUnlockedBonus = bonusAmount > 0;
 
   if (!id.userId) {
     const guestKey = `guest:${id.guestId || id.ipHash}`;
+    const effectiveLimit = GUEST_LIMIT + bonusAmount;
     const [byGuest, byIp] = await Promise.all([readCount(guestKey, today), readCount(`ip:${id.ipHash}`, today)]);
-    const remaining = Math.max(0, Math.min(GUEST_LIMIT - byGuest, GUEST_IP_LIMIT - byIp));
-    return { plan: 'guest', used: GUEST_LIMIT - remaining, limit: GUEST_LIMIT, remaining, window: 'day', resetDate: tomorrowKey() };
+    const remaining = Math.max(0, Math.min(effectiveLimit - byGuest, GUEST_IP_LIMIT + bonusAmount - byIp));
+    return {
+      plan: 'guest',
+      used: Math.max(0, effectiveLimit - remaining),
+      limit: effectiveLimit,
+      remaining,
+      window: 'day',
+      resetDate: tomorrowKey(),
+      hasUnlockedBonus,
+      bonusAmount,
+    };
   }
 
   const plan = await getActivePlan(id.userId);
@@ -211,11 +234,85 @@ export async function getUsageStatus(id: QuotaIdentity): Promise<UsageState> {
       window: 'period',
       resetDate: (plan.proUntil || '').slice(0, 10),
       proUntil: plan.proUntil,
+      hasUnlockedBonus: true,
+      bonusAmount: 0,
     };
   }
 
+  const effectiveLimit = DAILY_LIMIT + bonusAmount;
   const used = await readCount(`user:${id.userId}`, today);
-  return { plan: 'free', used, limit: DAILY_LIMIT, remaining: Math.max(0, DAILY_LIMIT - used), window: 'day', resetDate: tomorrowKey() };
+  return {
+    plan: 'free',
+    used,
+    limit: effectiveLimit,
+    remaining: Math.max(0, effectiveLimit - used),
+    window: 'day',
+    resetDate: tomorrowKey(),
+    hasUnlockedBonus,
+    bonusAmount,
+  };
+}
+
+/**
+ * Unlocks 50 bonus inquiries for a serious buyer upon submitting their contact phone number.
+ * Records the lead into `leads_inquiries` so the admin team can follow up directly.
+ */
+export async function unlockLeadBonus(
+  id: QuotaIdentity,
+  phone: string,
+  name?: string,
+  preferredLocation?: string
+): Promise<{ success: boolean; limit: number; remaining: number; bonusAdded: number; error?: string }> {
+  if (!phone || phone.replace(/\D/g, '').length < 8) {
+    return { success: false, limit: 0, remaining: 0, bonusAdded: 0, error: 'رقم الهاتف غير صالح' };
+  }
+
+  const cleanPhone = phone.trim();
+  const cleanName = (name || '').trim() || 'مشتري جاد (طلب تمديد استشارات)';
+  const today = cairoDateKey();
+  const bonusKey = getBonusKey(id);
+
+  const admin = getSupabaseAdmin();
+  if (admin) {
+    // 1. Record hot buyer lead in Supabase
+    try {
+      await admin.from('leads_inquiries').insert([{
+        user_name: cleanName,
+        phone: cleanPhone,
+        preferred_location: preferredLocation?.trim() || null,
+        source: 'lead_quota_unlock',
+        status: 'جديد',
+        user_id: id.userId || null,
+        notes: `طلب فتح حصة الـ 50 استشارة إضافية (مشتري جاد يبحث بالمنصة)`,
+      }]);
+    } catch (e: any) {
+      console.warn('[usage] Failed to record lead in leads_inquiries:', e.message);
+    }
+
+    // 2. Persist bonus quota in usage_counters
+    try {
+      await admin.from('usage_counters').upsert({
+        key: bonusKey,
+        period: today,
+        count: LEAD_BONUS_LIMIT,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'key,period' });
+    } catch (e: any) {
+      console.warn('[usage] Failed to persist bonus in usage_counters:', e.message);
+    }
+  }
+
+  // Memory fallback store
+  memoryStore.set(`${bonusKey}|${today}`, LEAD_BONUS_LIMIT);
+
+  // Return fresh updated usage status
+  const updatedStatus = await getUsageStatus(id);
+  return {
+    success: true,
+    limit: updatedStatus.limit,
+    remaining: updatedStatus.remaining,
+    bonusAdded: LEAD_BONUS_LIMIT,
+  };
 }
 
 /** Atomically consume one query for this identity. */
@@ -231,11 +328,17 @@ export async function consumeQuery(id: QuotaIdentity): Promise<ConsumeResult> {
       window: 'period',
       resetDate: '∞',
       proUntil: null,
+      hasUnlockedBonus: true,
+      bonusAmount: 0,
       refund: async () => {},
     };
   }
 
   const today = cairoDateKey();
+  const bonusKey = getBonusKey(id);
+  const bonusAmount = await readCount(bonusKey, today);
+  const hasUnlockedBonus = bonusAmount > 0;
+
   const consumed: Array<[string, string]> = [];
   const doRefund = async () => {
     await Promise.all(consumed.map(([k, p]) => refund(k, p)));
@@ -245,23 +348,33 @@ export async function consumeQuery(id: QuotaIdentity): Promise<ConsumeResult> {
   // ── Guest ──
   if (!id.userId) {
     const guestKey = `guest:${id.guestId || id.ipHash}`;
-    const base = { plan: 'guest' as const, limit: GUEST_LIMIT, window: 'day' as const, resetDate: tomorrowKey() };
+    const effectiveLimit = GUEST_LIMIT + bonusAmount;
+    const base = {
+      plan: 'guest' as const,
+      limit: effectiveLimit,
+      window: 'day' as const,
+      resetDate: tomorrowKey(),
+      hasUnlockedBonus,
+      bonusAmount,
+    };
 
-    const byGuest = await consume(guestKey, today, GUEST_LIMIT);
+    const byGuest = await consume(guestKey, today, effectiveLimit);
     if (byGuest === null) {
-      return { ...base, allowed: false, reason: 'login_required', used: GUEST_LIMIT, remaining: 0, refund: doRefund };
+      const reason = hasUnlockedBonus ? 'buyer_consultant_handover' : 'login_required';
+      return { ...base, allowed: false, reason, used: effectiveLimit, remaining: 0, refund: doRefund };
     }
     consumed.push([guestKey, today]);
 
-    const byIp = await consume(`ip:${id.ipHash}`, today, GUEST_IP_LIMIT);
+    const byIp = await consume(`ip:${id.ipHash}`, today, GUEST_IP_LIMIT + bonusAmount);
     if (byIp === null) {
       await doRefund();
-      return { ...base, allowed: false, reason: 'login_required', used: GUEST_LIMIT, remaining: 0, refund: doRefund };
+      const reason = hasUnlockedBonus ? 'buyer_consultant_handover' : 'login_required';
+      return { ...base, allowed: false, reason, used: effectiveLimit, remaining: 0, refund: doRefund };
     }
     consumed.push([`ip:${id.ipHash}`, today]);
 
-    const remaining = Math.max(0, Math.min(GUEST_LIMIT - byGuest, GUEST_IP_LIMIT - byIp));
-    return { ...base, allowed: true, used: GUEST_LIMIT - remaining, remaining, refund: doRefund };
+    const remaining = Math.max(0, Math.min(effectiveLimit - byGuest, GUEST_IP_LIMIT + bonusAmount - byIp));
+    return { ...base, allowed: true, used: effectiveLimit - remaining, remaining, refund: doRefund };
   }
 
   const plan = await getActivePlan(id.userId);
@@ -275,6 +388,8 @@ export async function consumeQuery(id: QuotaIdentity): Promise<ConsumeResult> {
       window: 'period' as const,
       resetDate: (plan.proUntil || '').slice(0, 10),
       proUntil: plan.proUntil,
+      hasUnlockedBonus: true,
+      bonusAmount: 0,
     };
 
     const daily = await consume(`pro-day:${id.userId}`, today, PRO_DAILY_CAP);
@@ -293,14 +408,25 @@ export async function consumeQuery(id: QuotaIdentity): Promise<ConsumeResult> {
     return { ...base, allowed: true, used, remaining: Math.max(0, PRO_PERIOD_LIMIT - used), refund: doRefund };
   }
 
-  // ── Free ──
-  const base = { plan: 'free' as const, limit: DAILY_LIMIT, window: 'day' as const, resetDate: tomorrowKey() };
-  const used = await consume(`user:${id.userId}`, today, DAILY_LIMIT);
+  // ── Free (Registered) ──
+  const effectiveLimit = DAILY_LIMIT + bonusAmount;
+  const base = {
+    plan: 'free' as const,
+    limit: effectiveLimit,
+    window: 'day' as const,
+    resetDate: tomorrowKey(),
+    hasUnlockedBonus,
+    bonusAmount,
+  };
+
+  const used = await consume(`user:${id.userId}`, today, effectiveLimit);
   if (used === null) {
-    return { ...base, allowed: false, reason: 'daily_limit_reached', used: DAILY_LIMIT, remaining: 0, refund: doRefund };
+    // If user already used their 20 + 50 = 70 messages, prompt the direct consultant handover!
+    const reason = hasUnlockedBonus ? 'buyer_consultant_handover' : 'daily_limit_reached';
+    return { ...base, allowed: false, reason, used: effectiveLimit, remaining: 0, refund: doRefund };
   }
   consumed.push([`user:${id.userId}`, today]);
-  return { ...base, allowed: true, used, remaining: Math.max(0, DAILY_LIMIT - used), refund: doRefund };
+  return { ...base, allowed: true, used, remaining: Math.max(0, effectiveLimit - used), refund: doRefund };
 }
 
 /** Strip the non-serializable refund fn before sending to the client. */
@@ -313,5 +439,7 @@ export function toPublicUsage(u: UsageState | ConsumeResult): UsageState {
     window: u.window,
     resetDate: u.resetDate,
     proUntil: u.proUntil ?? null,
+    hasUnlockedBonus: u.hasUnlockedBonus ?? false,
+    bonusAmount: u.bonusAmount ?? 0,
   };
 }

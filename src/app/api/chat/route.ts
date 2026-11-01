@@ -154,13 +154,32 @@ export async function POST(req: NextRequest) {
           { status: 401 }
         ));
       }
+      if (usage.reason === 'buyer_consultant_handover') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'buyer_consultant_handover',
+            message: locale === 'ar'
+              ? 'لقد استهلكت كامل حصة اليوم (70 استشارة عقارية)! 🏆\n\nواضح إنك جمعت معلومات كافية ومستعد للخطوة الجادة. مستشارك العقاري الشخصي جاهز للتواصل المباشر معك الآن لتنسيق معاينات ميدانية مجانية والتفاوض على أعلى نسبة خصم من المطور، أو يتجدد رصيدك تلقائياً كل ليلة الساعة 12 منتصف الليل.'
+              : 'You have completed 70 property queries today! Our personal real estate consultant is ready to assist you directly with free field viewings and developer negotiation.',
+            usage: publicUsage,
+          },
+          { status: 429 }
+        );
+      }
+
       return NextResponse.json(
         {
           success: false,
           error: usage.reason || 'daily_limit_reached',
+          canUnlockBonus: !publicUsage.hasUnlockedBonus,
           message: locale === 'ar'
-            ? 'وصلت للحد الأقصى اليومي (20 استفساراً مجانياً). يتجدد رصيدك تلقائياً عند منتصف الليل لضمان جودة وسرعة الخدمة للجميع!'
-            : 'You have reached your daily limit of 20 free queries. Your quota resets automatically tomorrow at midnight!',
+            ? (!publicUsage.hasUnlockedBonus
+                ? 'وصلت لحد الـ 20 استفساراً مجانياً 🎯. سجّل رقم هاتفك/الواتساب لفتح 50 استشارة ذكية إضافية فوراً ومواصلة مقارنة الصفقات!'
+                : 'وصلت للحد الأقصى اليومي للاستشارات. يتجدد رصيدك تلقائياً عند منتصف الليل (12:00 ص بتوقيت القاهرة) لضمان جودة وسرعة الخدمة للجميع!')
+            : (!publicUsage.hasUnlockedBonus
+                ? 'You reached the 20 free inquiries limit. Enter your phone number to unlock 50 extra bonus queries instantly!'
+                : 'You have reached your daily limit of free queries. Your quota resets automatically tomorrow at midnight!'),
           usage: publicUsage,
         },
         { status: 429 }

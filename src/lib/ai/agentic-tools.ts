@@ -2,6 +2,8 @@ import { Property, SellerFormPrefill } from '@/lib/types';
 import { getAllCachedProperties } from '@/lib/real-estate-engine';
 import { createSellerProperty, updateSellerProperty } from '@/lib/seller-listings';
 import { notifyNewLead } from '@/lib/notify';
+import { getUnifiedPropertyValuation, findSmartCounterOffer } from '../engine/unified-valuation';
+import { getBudgetRecommendations2026 } from '../knowledge/budget-matrix-2026';
 import { calculateAnalyticalValuation } from '../engine/valuation-model';
 import { calculatePropertyDealScore } from '../engine/deal-scoring';
 import { getAreaIntelligence, compareTwoAreas } from '../knowledge/area-intelligence';
@@ -426,6 +428,28 @@ export const AGENTIC_TOOLS_SCHEMA = [
   {
     type: 'function',
     function: {
+      name: 'get_budget_matrix_2026',
+      description: 'خريطة ومصفوفة الميزانيات العقارية لمصر 2026/2027: استدعِ هذه الأداة فوراً عندما يسأل العميل عن ميزانية عامة (مثال: "معايا مليون جنيه أعمل إيه؟"، "معايا 500 ألف مقدم أشتري فين؟"). توفر ترشيحاً حقيقياً للبدائل المتاحة كاش واستلام فوري أو مقدم وتقسيط مع أمثلة مشاريع واقعية في 12 منطقة.',
+      parameters: {
+        type: 'object',
+        properties: {
+          budget: {
+            type: 'number',
+            description: 'الميزانية الإجمالية المتوفرة مع العميل بالجنيه المصري (مثال: 1000000)',
+          },
+          mode: {
+            type: 'string',
+            enum: ['cash', 'down_payment', 'both'],
+            description: 'طبيعة الشراء: كاش واستلام فوري، أو مقدم وتقسيط، أو مقارنة الاثنين',
+          },
+        },
+        required: ['budget'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'get_market_legal_and_investment_guide',
       description: 'استشارة الدليل القانوني والاستثماري وشبكة النقل والمحاور في السوق العقاري المصري. استخدم هذه الأداة للإجابة عن: صحة التوقيع مقابل التسجيل بالشهر العقاري (قانون 9 لسنة 2022)، توكيلات البيع والشراء غير القابلة للإلغاء، قانون التصالح الجديد 187 لسنة 2023 ونموذج 8، وديعة وفروق الصيانة، رسوم التنازل للمطور (Transfer Fees)، ضريبة التصرفات العقارية 2.5%، خصومات الكاش الحقيقي (35%-45%)، العائد الإيجاري الصافي، الأوفر برايس، غرامات تأخير التسليم، ومحطات المونوريل والقطار السريع LRT.',
       parameters: {
@@ -447,8 +471,12 @@ export const AGENTIC_TOOLS_SCHEMA = [
  */
 const LOCATION_SYNONYMS: Record<string, string[]> = {
   'التجمع': ['التجمع', 'new cairo', 'القاهرة الجديدة', 'tagamoa', 'icity', 'mivida', 'zed east', 'fifth square', 'galleria', 'نرجس', 'أندلس', 'لوتس', 'بنفسج', 'بيت الوطن'],
-  'الشيخ زايد': ['زايد', 'zayed', 'sheikh zayed', 'أكتوبر', 'october', '6 أكتوبر', 'badya', 'بادية', 'westown'],
-  'أكتوبر': ['أكتوبر', 'اكتوبر', 'october', '6 أكتوبر', 'حدائق أكتوبر', 'حدائق اكتوبر', 'o west', 'بيفرلي', 'بادية', 'badya'],
+  'الشيخ زايد': ['الشيخ زايد', 'زايد', 'zayed', 'sheikh zayed', 'زايد الجديدة', 'الحزام الأخضر', 'westown'],
+  'أكتوبر': ['أكتوبر', 'اكتوبر', 'october', '6 أكتوبر', 'الحي المتميز', 'التوسعات الشمالية', 'o west', 'بادية', 'badya'],
+  'حدائق أكتوبر': ['حدائق أكتوبر', 'حدائق اكتوبر', 'أكتوبر الجديدة', 'اكتوبر الجديدة', 'دجلة بالمز', 'كنز', 'ديار التعمير', 'صن كابيتال'],
+  'الشروق': ['الشروق', 'شروق', 'shorouk', 'سوديك إيست', 'البروج', 'كليوباترا بالاس'],
+  'بدر': ['بدر', 'مدينة بدر', 'badr city'],
+  'العبور': ['العبور', 'مدينة العبور', 'obour'],
   'العاصمة الإدارية': ['العاصمة', 'new capital', 'العاصمه', 'bosco', 'البوسكو', 'r7', 'r8'],
   'مدينتي': ['مدينتي', 'madinaty', 'rehab', 'الرحاب'],
   'الساحل الشمالي': ['الساحل', 'ساحل', 'north coast', 'رأس الحكمة', 'راس الحكمة', 'مراسي', 'marassi', 'هاسيندا', 'hacienda', 'العلمين', 'alamein', 'سيدي عبدالرحمن'],
@@ -548,6 +576,16 @@ export async function executePropertySearch(args: SearchPropertiesArgs): Promise
 
     if (locFiltered.length > 0) {
       results = locFiltered;
+    } else {
+      // Strict Location Filter: Do NOT leak units from unrelated cities!
+      return {
+        found: 0,
+        total_matches: 0,
+        all_matches: [],
+        message: `لم نجد حالياً وحدات معروضة مطابقة تماماً لمدينة أو منطقة "${args.location}". حرصاً على الدقة والأمانة، لم نعرض وحدات من مدن أخرى غير مطابقة، ولكن أقرب البدائل بنفس النطاق السعري هي: حدائق أكتوبر، مدينة الشروق، أو العاصمة الإدارية. هل تود أن أعرض لك بدائل ممتازة في إحدى هذه المناطق؟`,
+        properties: [],
+        filtersApplied: { location: args.location }
+      };
     }
   }
 
@@ -741,10 +779,55 @@ export async function executePropertyDetails(args: { property_id: string }): Pro
   const all = await getAllCachedProperties();
   const p = all.find(x => x.id === args.property_id);
   if (!p) return { found: false };
+
+  // Calculate Unified Valuation & Math Sanity Check
+  const unifiedVal = getUnifiedPropertyValuation({
+    propertyId: p.id,
+    unitPrice: p.total_price,
+    areaSqm: p.area_sqm,
+    locationOrArea: p.compound?.area_name || p.compound?.city || (p as any).location_text || 'القاهرة الجديدة',
+    unitType: p.unit_type,
+    installmentYears: p.installment_years,
+    downPaymentPct: p.down_payment_pct,
+    downPayment: p.down_payment_amount,
+    advertisedMonthly: p.monthly_installment,
+    advertisedQuarterly: p.quarterly_installment,
+    developerName: p.compound?.developer?.name,
+    finishingType: p.finishing_type,
+  });
+
+  // Auto Counter-Offer for Sub-65 properties
+  let smartAlternative: any = null;
+  if (unifiedVal.isSub65Score) {
+    const counter = findSmartCounterOffer(p, all);
+    if (counter.found && counter.alternative) {
+      smartAlternative = {
+        id: counter.alternative.id,
+        title: counter.alternative.title,
+        price: `${counter.alternative.total_price.toLocaleString()} ${counter.alternative.currency}`,
+        score: counter.alternativeScore,
+        recommendation: counter.recommendationReason,
+        affiliate_url: counter.alternative.affiliate_url || 'https://sakanybot.vercel.app?ref=759279',
+      };
+    }
+  }
+
   return {
     found: true,
     property: p,
     details: {
+      unified_valuation: {
+        score: unifiedVal.totalScore,
+        verdict: unifiedVal.verdictLabel,
+        fair_market_value: unifiedVal.fairMarketTotal,
+        fast_sale_value: unifiedVal.fastSaleTotal,
+        installment_gap: unifiedVal.installmentGap,
+        pros: unifiedVal.prosList,
+        risks: unifiedVal.risksList,
+        report: unifiedVal.unifiedBrokerReport,
+      },
+      smart_counter_offer: smartAlternative,
+
       id: p.id,
       title: p.title,
       type: p.unit_type,
@@ -1188,15 +1271,21 @@ export async function executePropertyValuation(args: {
   floor?: string;
   payment_method?: string;
   asking_price?: number;
+  installment_years?: number;
+  down_payment_pct?: number;
+  advertised_monthly?: number;
 }) {
-  const valuation = calculateAnalyticalValuation({
+  const unified = getUnifiedPropertyValuation({
+    unitPrice: args.asking_price || 0,
     areaSqm: args.area_sqm,
-    areaNameOrSlug: args.location,
-    bedrooms: args.bedrooms,
-    finishing: args.finishing_type,
+    locationOrArea: args.location,
+    unitType: args.unit_type,
+    finishingType: args.finishing_type,
     floor: args.floor,
-    paymentMethod: args.payment_method?.includes('كاش') ? 'كاش' : 'تقسيط',
-    askingPrice: args.asking_price,
+    paymentType: args.payment_method,
+    installmentYears: args.installment_years,
+    downPaymentPct: args.down_payment_pct,
+    advertisedMonthly: args.advertised_monthly,
   });
 
   // Pull top 3 real comparable listings from cache for proof
@@ -1223,8 +1312,16 @@ export async function executePropertyValuation(args: {
 
   return {
     success: true,
-    valuation,
+    deal_score: unified.totalScore,
+    verdict: unified.verdictLabel,
+    fair_market_value: unified.fairMarketTotal,
+    fast_sale_value: unified.fastSaleTotal,
+    price_diff_percentage: unified.priceDiffFromMarketPct,
+    installment_gap_check: unified.installmentGap,
+    pros: unified.prosList,
+    risks: unified.risksList,
     comparable_market_units: comps,
+    unified_report: unified.unifiedBrokerReport,
   };
 }
 
@@ -1255,19 +1352,34 @@ export function executeDealScoring(args: {
   location: string;
   installment_years?: number;
   down_payment_pct?: number;
+  down_payment?: number;
+  advertised_monthly?: number;
   finishing_type?: string;
   developer_name?: string;
 }) {
-  const result = calculatePropertyDealScore({
+  const unified = getUnifiedPropertyValuation({
     unitPrice: args.unit_price,
     areaSqm: args.area_sqm,
     locationOrArea: args.location,
     installmentYears: args.installment_years,
     downPaymentPct: args.down_payment_pct,
+    downPayment: args.down_payment,
+    advertisedMonthly: args.advertised_monthly,
     finishingType: args.finishing_type,
     developerName: args.developer_name,
   });
-  return { success: true, deal_score_result: result };
+
+  return {
+    success: true,
+    total_score: unified.totalScore,
+    verdict: unified.verdictLabel,
+    fair_market_price: unified.fairMarketTotal,
+    fast_sale_price: unified.fastSaleTotal,
+    installment_gap_check: unified.installmentGap,
+    pros: unified.prosList,
+    risks: unified.risksList,
+    summary_arabic: unified.unifiedBrokerReport,
+  };
 }
 
 /**
@@ -1285,5 +1397,22 @@ export function executeLegalAndInvestmentGuide(args: { query: string }) {
     investment_insights: investment,
     transport_insights: transport,
     summary: `تم استخراج ${legal.length} نصيحة قانونية و ${investment.length} استشارة استثمارية و ${transport.length} معلومة مواصلات ذات صلة بـ "${args.query}".`,
+  };
+}
+
+
+/**
+ * Execute 2026/2027 Budget Matrix Guide across 12 zones
+ */
+export function executeBudgetMatrixGuide(args: { budget: number; mode?: 'cash' | 'down_payment' | 'both' }) {
+  const rec = getBudgetRecommendations2026(args.budget, args.mode || 'both');
+  return {
+    success: true,
+    budget: args.budget,
+    tier_label: rec.tier.labelAr,
+    cash_options: rec.tier.cashBuyingPower,
+    down_payment_options: rec.tier.downPaymentLeverage,
+    broker_honest_verdict: rec.tier.brokerAdvice2026,
+    formatted_report: rec.summaryText,
   };
 }

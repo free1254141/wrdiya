@@ -197,4 +197,6 @@ export interface UsageInfo {
   window: 'day' | 'period';
   resetDate: string;
   proUntil?: string | null;
+  hasUnlockedBonus?: boolean;
+  bonusAmount?: number;
 }
