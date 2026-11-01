@@ -10,6 +10,7 @@
  */
 
 import { Property, SellerFormPrefill, SessionContext } from '@/lib/types';
+import { getAllCachedProperties } from './real-estate-engine';
 import {
   AGENTIC_TOOLS_SCHEMA,
   executePropertySearch,
@@ -110,7 +111,9 @@ const SYSTEM_PROMPT = `أنت "سكنى بوت" (sakanybot) — مستشارك �
      أ) خيار الشراء كاش واستلام فوري (في حدائق أكتوبر، أكتوبر الجديدة، بدر، الشروق، العبور).
      ب) خيار استخدام المبلغ كمقدم لشراء وحدة أرقى بالتقسيط (في المستقبل سيتي، العاصمة الإدارية، التجمع، الساحل، السخنة) مع ذكر أسماء المشاريع.
 4. **البديل الأذكى تلقائياً (Auto Counter-Offer):**
-   - إذا كان سكور الوحدة أقل من 65/100 وظهر في البيانات بديل ذكي (smart_counter_offer)، انتقد الوحدة بصراحة ثم اقترح فوراً البديل الأذكى قائلاً: *"إذا كنت تبحث عن صفقة أفضل بنفس الميزانية، أرشح لك [اسم البديل] بـ سكور [score]/100"* مع إبراز ميزاته.
+   - إذا كان سكور الوحدة أقل من 65/100، يقوم النظام برمجياً بإرفاق كروت أفضل الوحدات البديلة تلقائياً تحت ردك مباشرةً. لذلك انتقد الوحدة بصراحة واختم ردك بعبارة توجيهية صريحة: *"ولأن هذه الوحدة مبالغ في سعرها، رشحت لك بالأسفل مباشرة كروت أفضل البدائل الحقيقية بنفس الميزانية وبسكور أعلى بكثير، يمكنك فتح الإعلان أو طلب معاينتها مباشرة"*.
+5. **التفريق بين كمبوندات التجمع وعمارات بيت الوطن/الأهالي:**
+   - عند تقييم أي شقة في التجمع الخامس، فرّق بوضوح في تحليلك: السعر العادل المعياري خارج الكمبوند (بيت الوطن/الأندلس/النرجس) هو ~26,000 إلى ~30,000 ج/م² نصف تشطيب؛ أما داخل الكمبوندات المتكاملة الكبرى (مثل هايد بارك، ميفيدا، الجولدن سكوير) فالسعر العادل يرتفع إلى ~42,000 إلى ~55,000 ج/م².
 5. **فلتر البحث المكاني الصارم (Strict Location):**
    - إذا طلب العميل مدينة معينة وكانت النتائج فارغة، لا تعرض وحدات من مدن أخرى غير مطابقة، بل اذكر له بأمانة عدم وجود وحدات حالياً في تلك المدينة واقترح أقرب 3 بدائل جغرافية وسعرية.`;
 
@@ -144,7 +147,7 @@ async function callDeepSeek(apiKey: string, body: Record<string, any>): Promise<
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey.trim()}`,
     },
-    body: JSON.stringify({ model: 'deepseek-chat', temperature: 0.3, max_tokens: 700, ...body }),
+    body: JSON.stringify({ model: 'deepseek-chat', temperature: 0.3, max_tokens: 1500, ...body }),
   });
   if (!res.ok) {
     console.warn('[DeepSeek Agentic] HTTP Error:', res.status, await res.text());
@@ -332,10 +335,48 @@ export async function runDeepSeekAgenticChat(
             output = res.success ? res.summary : { error: res.error };
           } else if (fnName === 'valuate_property') {
             output = await executePropertyValuation(args);
+            // Auto Counter-Offer Card Attachment for sub-65 units
+            if (output.deal_score && output.deal_score < 65) {
+              try {
+                const all = await getAllCachedProperties();
+                const targetBudget = args.asking_price || (args.area_sqm ? args.area_sqm * 35000 : 0);
+                const loc = (args.location || '').toLowerCase();
+                const alternatives = all
+                  .filter(p => {
+                    const pLoc = `${p.compound?.city || ''} ${p.compound?.area_name || ''} ${p.title} ${(p as any).location_text || ''}`.toLowerCase();
+                    const locMatch = loc.includes('تجمع') || loc.includes('cairo') ? (pLoc.includes('تجمع') || pLoc.includes('cairo')) : true;
+                    const priceMatch = targetBudget > 0 ? (p.total_price <= targetBudget * 1.25 && p.total_price >= targetBudget * 0.45) : true;
+                    return locMatch && priceMatch;
+                  })
+                  .slice(0, 2);
+                if (alternatives.length > 0) {
+                  detailCards.push(...alternatives);
+                }
+              } catch {}
+            }
           } else if (fnName === 'get_area_intelligence') {
             output = executeAreaIntelligence(args);
           } else if (fnName === 'calculate_property_deal_score') {
             output = executeDealScoring(args);
+            // Auto Counter-Offer Card Attachment for sub-65 units
+            if (output.total_score && output.total_score < 65) {
+              try {
+                const all = await getAllCachedProperties();
+                const targetBudget = args.unit_price || 0;
+                const loc = (args.location || '').toLowerCase();
+                const alternatives = all
+                  .filter(p => {
+                    const pLoc = `${p.compound?.city || ''} ${p.compound?.area_name || ''} ${p.title} ${(p as any).location_text || ''}`.toLowerCase();
+                    const locMatch = loc.includes('تجمع') || loc.includes('cairo') ? (pLoc.includes('تجمع') || pLoc.includes('cairo')) : true;
+                    const priceMatch = targetBudget > 0 ? (p.total_price <= targetBudget * 1.25 && p.total_price >= targetBudget * 0.45) : true;
+                    return locMatch && priceMatch;
+                  })
+                  .slice(0, 2);
+                if (alternatives.length > 0) {
+                  detailCards.push(...alternatives);
+                }
+              } catch {}
+            }
           } else if (fnName === 'get_market_legal_and_investment_guide') {
             output = executeLegalAndInvestmentGuide(args);
           } else if (fnName === 'get_budget_matrix_2026') {

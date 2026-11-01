@@ -126,10 +126,17 @@ export function getUnifiedPropertyValuation(input: UnifiedValuationInput): Unifi
   const formattedDiff = Math.abs(Math.round(priceDiffPct));
   const diffSignText = priceDiffPct < 0 ? `أرخص من القيمة العادلة بـ ${formattedDiff}% (ميزة سعرية)` : `أعلى من القيمة العادلة بـ ${formattedDiff}% (سعر مبالغ فيه)`;
 
+  const locLower = (input.locationOrArea || '').toLowerCase();
+  const isNewCairo = locLower.includes('تجمع') || locLower.includes('cairo') || locLower.includes('قاهرة جديدة');
+  const twoTierNote = isNewCairo
+    ? `• **فروق أسعار التجمع الخامس الدقيقة:**\n  - خارج الكمبوند (شقق منفصلة عمارات في بيت الوطن، الأندلس، النرجس): السعر العادل المعياري هو ~26,000 إلى ~30,000 ج/م² نصف تشطيب.\n  - داخل كمبوندات التجمع الكبرى (الجولدن سكوير، هايد بارك، ميفيدا): السعر العادل يرتفع إلى ~42,000 إلى ~55,000 ج/م² نصف تشطيب.`
+    : '';
+
   const unifiedReport = [
     `📊 **التقييم الشامل الموحد للصفقة (سكنى بوت):**`,
     `• **سكور الصفقة النهائي:** **${finalScore}/100** — (${dealResult.verdictLabel})`,
     `• **السعر السوقي العادل (AVM):** ${formattedFair} ج.م (${avmResult.fairMarketValue.pricePerSqm.toLocaleString('ar-EG')} ج/م²)`,
+    twoTierNote,
     `• **سعر البيع السريع (تسييل):** ${formattedFast} ج.م`,
     `• **مقارنة السعر المطلوب:** ${diffSignText}`,
     gapResult.hasGap ? `• **فحص الأقساط:** ${gapResult.warningMessage}` : '',

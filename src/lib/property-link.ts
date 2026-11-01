@@ -170,8 +170,15 @@ export function getDirectPropertyUrl(property: Property): string {
 
   const affiliateUrl = property.affiliate_url || '';
 
-  // b) Direct Aqarmap Listing (e.g. /ar/listing/... or /en/listing/...)
-  // This lands directly on the exact listing page without any redirect
+  // b) Check if URL has nawy_unit parameter (e.g. from partner affiliate link or AVM data)
+  // This immediately resolves directly to the exact unit page without generic directory landing
+  const nawyUnitMatch = affiliateUrl.match(/[?&]nawy_unit=(\d+)/);
+  if (nawyUnitMatch && nawyUnitMatch[1]) {
+    return `https://www.nawy.com/ar/compound/any/property/${nawyUnitMatch[1]}`;
+  }
+
+  // c) Direct Aqarmap Listing (e.g. /ar/listing/... or /en/listing/...)
+  // This lands directly on the exact verified listing page
   if (
     affiliateUrl.startsWith('https://aqarmap.com.eg/ar/listing/') ||
     affiliateUrl.startsWith('https://aqarmap.com.eg/en/listing/')
@@ -179,25 +186,27 @@ export function getDirectPropertyUrl(property: Property): string {
     return attachAqarmapPartnerParams(affiliateUrl);
   }
 
-  // c) Direct canonical Nawy unit or compound link
+  // d) Direct canonical Nawy unit or compound link
   if (
     affiliateUrl.includes('nawy.com/compound/') ||
     affiliateUrl.includes('nawy.com/ar/compound/') ||
+    affiliateUrl.includes('nawy.com/property/') ||
+    affiliateUrl.includes('nawy.com/ar/property/') ||
     affiliateUrl.includes('nawy.com/ar/search')
   ) {
     // If it's a broken aqarmap search query that was mistakenly in affiliate_url, skip it
-    if (!affiliateUrl.includes('for-sale/property/all/egypt')) {
+    if (!affiliateUrl.includes('for-sale/property/all/egypt') && !affiliateUrl.includes('aqarmap.com.eg')) {
       return affiliateUrl;
     }
   }
 
-  // d) Extract direct unit ID from S3 image CDN path if present
+  // e) Extract direct unit ID from S3 image CDN path if present
   const nawyId = extractDirectNawyId(property.images);
   if (nawyId) {
     return `https://www.nawy.com/ar/compound/any/property/${nawyId}`;
   }
 
-  // e) If affiliateUrl already has a valid direct nawy URL
+  // f) If affiliateUrl already has a valid direct nawy URL
   if (affiliateUrl.includes('nawy.com') && !affiliateUrl.includes('for-sale/property/all/egypt')) {
     return affiliateUrl;
   }
