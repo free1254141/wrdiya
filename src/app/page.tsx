@@ -79,7 +79,7 @@ const OPEN_FORM_BTN_LABELS: Record<Locale, string> = {
   es: '🏠 Abrir formulario de propiedad',
 };
 
-export default function SkanybotChatPage() {
+export default function EwanbotChatPage() {
   const { locale, t, dir, isRtl } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const { user, session, signOut } = useAuth();
@@ -1020,7 +1020,7 @@ export default function SkanybotChatPage() {
               <div className="relative grid h-8 w-8 place-items-center overflow-hidden rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 p-0.5 shadow-2xs">
                 <img 
                   src="/logo.png" 
-                  alt="sakanybot" 
+                  alt="ewanbot" 
                   className="h-full w-full object-cover rounded-lg"
                   onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
                 />
@@ -1241,14 +1241,14 @@ export default function SkanybotChatPage() {
                 <div className="mx-auto mb-4 relative grid h-16 w-16 place-items-center overflow-hidden rounded-3xl border-2 border-amber-400/40 bg-gradient-to-tr from-amber-500 to-yellow-400 p-1 shadow-lg shadow-amber-500/25">
                   <img 
                     src="/logo.png" 
-                    alt="Skanybot" 
+                    alt="Ewanbot" 
                     className="h-full w-full object-cover rounded-2xl"
                     onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
                   />
                 </div>
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center justify-center gap-2">
-                  <span className="text-amber-500 font-sans tracking-tight">sakanybot</span>
-                  <span>سكنى بوت</span>
+                  <span className="text-amber-500 font-sans tracking-tight">ewanbot</span>
+                  <span>إيوان بوت</span>
                 </h2>
                 <p className="mx-auto mt-2 max-w-md text-xs sm:text-sm text-slate-500 dark:text-zinc-400 leading-relaxed font-medium">
                   {t.subtitle}
@@ -1314,7 +1314,7 @@ export default function SkanybotChatPage() {
                           <div className="relative grid h-8 w-8 place-items-center overflow-hidden rounded-xl border border-amber-500/30 bg-gradient-to-tr from-amber-500 to-yellow-400 p-0.5 shadow-xs">
                             <img 
                               src="/logo.png" 
-                              alt="Skanybot" 
+                              alt="Ewanbot" 
                               className="h-full w-full object-cover rounded-lg"
                               onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
                             />
