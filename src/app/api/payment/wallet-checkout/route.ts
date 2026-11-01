@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getVerifiedUser, getGuestId, getClientIpHash } from '@/lib/server-auth';
-import { grantPro, getActivePlan, toPublicUsage } from '@/lib/usage-manager';
+import { grantPro } from '@/lib/usage-manager';
 import { sendTelegramMessage } from '@/lib/notify';
 import { createClient } from '@supabase/supabase-js';
 
@@ -24,19 +24,14 @@ function esc(s: any): string {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { 
-      senderPhone, 
-      transferMethod = 'فودافون كاش', 
-      senderName, 
-      notes 
-    } = body || {};
+    const { senderPhone } = body || {};
 
     const cleanSenderPhone = String(senderPhone || '').trim();
     const phoneDigits = cleanSenderPhone.replace(/\D/g, '');
 
     if (phoneDigits.length < 8) {
       return NextResponse.json(
-        { error: 'يرجى إدخال رقم المحفظة أو الحساب المحول منه بشكل صحيح' },
+        { error: 'يرجى إدخال رقم الهاتف أو المحفظة المحول منها بشكل صحيح' },
         { status: 400 }
       );
     }
@@ -45,10 +40,10 @@ export async function POST(req: NextRequest) {
     const { guestId } = getGuestId(req);
     const ipHash = getClientIpHash(req);
 
-    // User identifier for Pro subscription
+    // Target User ID for Pro plan allocation
     const targetUserId = user?.id || `guest_${guestId || ipHash}`;
     const userEmail = user?.email || null;
-    const clientName = (senderName || (user as any)?.name || userEmail || '').trim() || 'مشترك برو (تحويل محفظة)';
+    const clientName = ((user as any)?.name || userEmail?.split('@')[0] || '').trim() || 'مشترك برو (تحويل فوري)';
 
     // 1. Instantly activate Pro plan for the user (30 days, 300 queries)
     let proResult;
@@ -56,7 +51,6 @@ export async function POST(req: NextRequest) {
       proResult = await grantPro(targetUserId, 30);
     } catch (grantErr: any) {
       console.error('[wallet-checkout] grantPro error:', grantErr);
-      // Fallback: If guest or constraint error, persist in usage_counters
       try {
         await supabaseAdmin.from('user_plans').upsert({
           user_id: targetUserId,
@@ -70,7 +64,28 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Record payment inquiry / audit in Supabase
+    // 2. Bind phone number to user profile and account if authenticated
+    if (user?.id) {
+      try {
+        await supabaseAdmin.from('user_profiles').upsert({
+          id: user.id,
+          phone: cleanSenderPhone,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'id' });
+      } catch (profileErr) {
+        // non-blocking
+      }
+
+      try {
+        await supabaseAdmin.auth.admin.updateUserById(user.id, {
+          user_metadata: { phone: cleanSenderPhone },
+        });
+      } catch (metaErr) {
+        // non-blocking
+      }
+    }
+
+    // 3. Record payment inquiry / audit in Supabase
     try {
       await supabaseAdmin.from('leads_inquiries').insert([{
         user_name: clientName,
@@ -80,14 +95,14 @@ export async function POST(req: NextRequest) {
         status: 'مكتمل - تفعيل فوري',
         user_id: user?.id || null,
         budget_max: PRO_PRICE_EGP,
-        payment_method: `${transferMethod} -> ${OFFICIAL_WALLET_NUMBER}`,
-        notes: `تحويل محفظة/إنستاباي لرقم ${OFFICIAL_WALLET_NUMBER} بمبلغ ${PRO_PRICE_EGP} ج.م. تفعيل فوري لباقة Pro. ملاحظات العميل: ${notes || 'لا يوجد'}`,
+        payment_method: `تحويل محفظة/إنستاباي -> ${OFFICIAL_WALLET_NUMBER}`,
+        notes: `تحويل مبلغ ${PRO_PRICE_EGP} ج.م لرقم ${OFFICIAL_WALLET_NUMBER}. تم ربط الهاتف بحساب العميل وتفعيل باقة Pro فوراً.`,
       }]);
     } catch (dbErr) {
       console.warn('[wallet-checkout] Failed to log lead in Supabase:', dbErr);
     }
 
-    // 3. Dispatch instant Telegram alert to the support channel
+    // 4. Dispatch instant Telegram alert to the support channel
     const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
     const nowDate = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' });
     
@@ -95,22 +110,20 @@ export async function POST(req: NextRequest) {
     if (waPhone.startsWith('0') && waPhone.length === 11) {
       waPhone = `2${waPhone}`;
     }
-    const waLink = `https://wa.me/${waPhone}?text=${encodeURIComponent(`مرحباً أستاذ ${clientName}، شكراً لاشتراكك في باقة Pro على منصة سكنى بوت، تم تفعيل باقتك فوراً بنجاح.`)}`;
+    const waLink = `https://wa.me/${waPhone}?text=${encodeURIComponent(`مرحباً أستاذ ${clientName}، شكراً لتحويلك على سكنى بوت، تم تفعيل باقة Pro وربط رقم هاتفك بحسابك فوراً بنجاح.`)}`;
 
     const telegramMsg = [
-      '💎 <b>طلب اشتراك Pro جديد وتفعيل فوري!</b>',
+      '💎 <b>اشتراك Pro جديد — تفعيل فوري وربط هاتف!</b>',
       '━━━━━━━━━━━━━━━━━━',
-      `👤 <b>الاسم:</b> ${esc(clientName)}`,
+      `👤 <b>المستخدم:</b> ${esc(clientName)}`,
       userEmail ? `✉️ <b>البريد الإلكتروني:</b> <code>${esc(userEmail)}</code>` : '',
-      `📱 <b>رقم المحفظة المحول منها:</b> <code>${esc(cleanSenderPhone)}</code>`,
-      `💳 <b>طريقة التحويل:</b> ${esc(transferMethod)}`,
+      `📱 <b>رقم هاتف العميل:</b> <code>${esc(cleanSenderPhone)}</code>`,
       `🎯 <b>المحفظة المستلمة:</b> <code>${OFFICIAL_WALLET_NUMBER}</code>`,
-      `💰 <b>المبلغ المطلوب:</b> ${PRO_PRICE_EGP} ج.م`,
-      `⚡ <b>حالة الباقة:</b> <b>تم التفعيل فوراً للعميل الآن (300 استفسار Pro) ✅</b>`,
-      `📅 <b>التاريخ والتوقيت:</b> ${nowDate} - ${nowTime}`,
-      notes ? `📝 <b>ملاحظة العميل / كود العملية:</b> ${esc(notes)}` : '',
+      `💰 <b>المبلغ:</b> ${PRO_PRICE_EGP} ج.م`,
+      `⚡ <b>الحالة:</b> <b>تم ربط الهاتف بحسابه وتفعيل باقة Pro فوراً (300 استفسار) ✅</b>`,
+      `📅 <b>التوقيت:</b> ${nowDate} - ${nowTime}`,
       '━━━━━━━━━━━━━━━━━━',
-      `💬 <a href="${waLink}"><b>فتح محادثة واتساب فوري مع العميل للتحقق</b></a>`,
+      `💬 <a href="${waLink}"><b>فتح محادثة واتساب فوري مع العميل</b></a>`,
       `📋 <a href="https://sakanybot.vercel.app/admin"><b>لوحة تحكم الإدارة</b></a>`,
     ].filter(Boolean).join('\n');
 
@@ -120,10 +133,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'مبروك! تم تفعيل باقة برو (Pro) فوراً لحسابك بنجاح 🚀',
+      message: 'مبروك! تم ربط رقم هاتفك وتفعيل باقة برو (Pro) فوراً لحسابك 🚀',
       plan: 'pro',
       limit: 300,
       remaining: 300,
+      phone: cleanSenderPhone,
       proUntil: proResult?.proUntil || new Date(Date.now() + 30 * 86400000).toISOString(),
     });
   } catch (error: any) {
