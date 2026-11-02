@@ -12,7 +12,7 @@ const cairo = Cairo({
   display: "swap",
 });
 
-const siteUrl = "https://sakanybot.vercel.app";
+const siteUrl = "https://ewanbot.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

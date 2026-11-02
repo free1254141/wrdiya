@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://sakanybot.vercel.app';
+  const baseUrl = 'https://ewanbot.com';
   const now = new Date();
 
   // Supported languages
