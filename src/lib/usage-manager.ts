@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { isAllowedAdminEmail } from '@/lib/admin-auth-client';
 
 /**
- * sakanybot Usage & Quota Manager (persistent, server-enforced)
+ * ewanbot Usage & Quota Manager (persistent, server-enforced)
  *
  * Limits (protect AI costs + push serious users to Pro):
  * - Guest      : 3 queries / day per browser, max 15 / day per IP (shared mobile IPs)

@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
       `📅 <b>التوقيت:</b> ${nowDate} - ${nowTime}`,
       '━━━━━━━━━━━━━━━━━━',
       `💬 <a href="${waLink}"><b>فتح محادثة واتساب فوري مع العميل</b></a>`,
-      `📋 <a href="https://sakanybot.vercel.app/admin"><b>لوحة تحكم الإدارة</b></a>`,
+      `📋 <a href="https://ewanbot.com/admin"><b>لوحة تحكم الإدارة</b></a>`,
     ].filter(Boolean).join('\n');
 
     await sendTelegramMessage(telegramMsg).catch((tErr) => {

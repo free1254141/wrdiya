@@ -32,11 +32,11 @@ export async function POST(req: NextRequest) {
             reference_id: 'pro_plan',
             custom_id: user.id, // verified on capture
             amount: { currency_code: 'USD', value: PRO_PRICE_USD },
-            description: `sakanybot Pro - ${PRO_PERIOD_LIMIT} queries / ${PRO_PERIOD_DAYS} days`,
+            description: `ewanbot Pro - ${PRO_PERIOD_LIMIT} queries / ${PRO_PERIOD_DAYS} days`,
           },
         ],
         application_context: {
-          brand_name: 'sakanybot',
+          brand_name: 'ewanbot',
           landing_page: 'NO_PREFERENCE',
           shipping_preference: 'NO_SHIPPING',
           user_action: 'PAY_NOW',

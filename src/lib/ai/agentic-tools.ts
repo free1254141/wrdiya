@@ -853,7 +853,7 @@ export async function executePropertyDetails(args: { property_id: string }): Pro
         price: `${counter.alternative.total_price.toLocaleString()} ${counter.alternative.currency}`,
         score: counter.alternativeScore,
         recommendation: counter.recommendationReason,
-        affiliate_url: counter.alternative.affiliate_url || 'https://sakanybot.vercel.app?ref=759279',
+        affiliate_url: counter.alternative.affiliate_url || 'https://ewanbot.com?ref=759279',
       };
     }
   }

@@ -215,7 +215,7 @@ export async function notifyNewLead(lead: LeadNotification): Promise<void> {
     `⏰ <b>التوقيت:</b> ${now}`,
     '━━━━━━━━━━━━━━━━━━',
     waLink ? `💬 <a href="${waLink}"><b>فتح محادثة واتساب فوري مع العميل</b></a>` : '',
-    `📋 <a href="https://sakanybot.vercel.app/admin"><b>عرض الطلب في لوحة الإدارة</b></a>`,
+    `📋 <a href="https://ewanbot.com/admin"><b>عرض الطلب في لوحة الإدارة</b></a>`,
   ].filter(Boolean);
 
   await sendTelegramMessage(lines.join('\n'));
@@ -242,7 +242,7 @@ export async function notifyWishlistAlert(alert: WishlistAlertNotification): Pro
     `⏰ <b>التوقيت:</b> ${now}`,
     '━━━━━━━━━━━━━━━━━━',
     waLink ? `💬 <a href="${waLink}"><b>محادثة العميل عبر واتساب فوراً</b></a>` : '',
-    `📋 <a href="https://sakanybot.vercel.app/admin"><b>متابعة في لوحة الإدارة</b></a>`,
+    `📋 <a href="https://ewanbot.com/admin"><b>متابعة في لوحة الإدارة</b></a>`,
   ].filter(Boolean);
 
   await sendTelegramMessage(lines.join('\n'));
@@ -306,7 +306,7 @@ export async function notifySellerListing(property: SellerPropertyNotification):
     `⏰ <b>التوقيت:</b> ${now}`,
     '━━━━━━━━━━━━━━━━━━',
     waLink ? `💬 <a href="${waLink}"><b>تواصل واتساب مع المالك مباشرة</b></a>` : '',
-    `⚡ <a href="https://sakanybot.vercel.app/admin"><b>مراجعة واعتماد الوحدة من لوحة الإدارة</b></a>`,
+    `⚡ <a href="https://ewanbot.com/admin"><b>مراجعة واعتماد الوحدة من لوحة الإدارة</b></a>`,
   ].filter(Boolean);
 
   await sendTelegramMessage(lines.join('\n'));

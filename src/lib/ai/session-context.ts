@@ -1,7 +1,7 @@
 import { Property, SellerFormPrefill, SessionContext, ShownUnit } from '@/lib/types';
 
 /**
- * Conversation memory for sakanybot, modelled on stokscan_AI's session-state + session-summary design:
+ * Conversation memory for ewanbot, modelled on stokscan_AI's session-state + session-summary design:
  *  - what the buyer is looking for (last_search / profile)
  *  - which units were just shown (so "التانية", "دي", "الأرخص" can be resolved)
  *  - which unit the buyer is currently focused on (opened in the details modal)
