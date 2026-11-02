@@ -110,7 +110,7 @@ export default function UserPersonaModal({
           <p className="mt-1.5 text-xs text-slate-500 dark:text-zinc-400 leading-relaxed max-w-sm mx-auto">
             {isAr
               ? 'اختر صفتك لنقوم بتوجيه ردود وتحليلات سكنى بوت بما يناسب هدفك بدقة:'
-              : 'Select your role so Sakanybot can tailor recommendations and analysis to your goals:'}
+              : 'Select your role so Ewanbot can tailor recommendations and analysis to your goals:'}
           </p>
         </div>
 
@@ -162,7 +162,7 @@ export default function UserPersonaModal({
         <p className="mt-5 text-center text-[10px] text-slate-400 dark:text-zinc-500">
           {isAr
             ? '💡 يمكنك تغيير اختيارك في أي وقت لاحقاً؛ سكنى بوت يتكيف دائماً مع احتياجك الفعلي.'
-            : '💡 You can switch anytime; Sakanybot adapts intelligently to your ongoing queries.'}
+            : '💡 You can switch anytime; Ewanbot adapts intelligently to your ongoing queries.'}
         </p>
       </div>
     </div>

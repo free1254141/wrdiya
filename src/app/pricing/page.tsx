@@ -94,7 +94,7 @@ export default function PricingPage() {
             <span className="grid h-8 w-8 place-items-center rounded-xl bg-amber-500 text-black font-black text-sm">
               S
             </span>
-            <span>سكنى بوت | Sakanybot</span>
+            <span>إيوان بوت | Ewanbot</span>
           </Link>
 
           <Link

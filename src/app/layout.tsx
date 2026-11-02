@@ -17,20 +17,20 @@ const siteUrl = "https://sakanybot.vercel.app";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "إيوان بوت | Sakanybot — مستشارك العقاري الذكي للشراء والبيع في مصر",
-    template: "%s | إيوان بوت Sakanybot",
+    default: "إيوان بوت | Ewanbot — مستشارك العقاري الذكي للشراء والبيع في مصر",
+    template: "%s | إيوان بوت Ewanbot",
   },
   description:
-    "إيوان بوت (Sakanybot): مستشارك العقاري بالذكاء الاصطناعي وبحث مباشر في أكثر من 980 وحدة موثقة. ابحث عن شقق وفيلات وأراضي للبيع كاش أو بالتقسيط في التجمع الخامس، الشيخ زايد، العاصمة الإدارية، 6 أكتوبر، المستقبل سيتي، والساحل الشمالي، أو اعرض وحدتك للبيع مجاناً للمشترين الجادين بدون مكالمات سيلز مزعجة.",
-  applicationName: "Sakanybot | إيوان بوت",
-  authors: [{ name: "Sakanybot AI", url: siteUrl }],
-  creator: "Sakanybot Real Estate AI",
-  publisher: "Sakanybot",
+    "إيوان بوت (Ewanbot): مستشارك العقاري بالذكاء الاصطناعي وبحث مباشر في أكثر من 980 وحدة موثقة. ابحث عن شقق وفيلات وأراضي للبيع كاش أو بالتقسيط في التجمع الخامس، الشيخ زايد، العاصمة الإدارية، 6 أكتوبر، المستقبل سيتي، والساحل الشمالي، أو اعرض وحدتك للبيع مجاناً للمشترين الجادين بدون مكالمات سيلز مزعجة.",
+  applicationName: "Ewanbot | إيوان بوت",
+  authors: [{ name: "Ewanbot AI", url: siteUrl }],
+  creator: "Ewanbot Real Estate AI",
+  publisher: "Ewanbot",
   keywords: [
     // الهوية والعلامة التجارية
     "إيوان بوت",
     "سكاني بوت",
-    "Sakanybot",
+    "Ewanbot",
     "Ewanbot",
     // عقارات مصر (شراء وتقسيط)
     "عقارات مصر",
@@ -80,17 +80,17 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "إيوان بوت | Sakanybot — مستشارك العقاري الذكي للشراء والبيع",
+    title: "إيوان بوت | Ewanbot — مستشارك العقاري الذكي للشراء والبيع",
     description:
       "تصفح وقارن أكثر من 980 عقار حقيقي موثق بالأسعار وخطط الأقساط في مصر ومختلف المدن والمحافظات، أو اعرض وحدتك للبيع مباشرة للمشترين الجادين.",
     url: siteUrl,
-    siteName: "إيوان بوت | Sakanybot",
+    siteName: "إيوان بوت | Ewanbot",
     images: [
       {
         url: "/web-app-manifest-512x512.png",
         width: 512,
         height: 512,
-        alt: "إيوان بوت Sakanybot - مستشارك العقاري الذكي",
+        alt: "إيوان بوت Ewanbot - مستشارك العقاري الذكي",
       },
     ],
     locale: "ar_EG",
@@ -99,7 +99,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "إيوان بوت | Sakanybot — مستشارك العقاري الذكي",
+    title: "إيوان بوت | Ewanbot — مستشارك العقاري الذكي",
     description:
       "ابحث عن شقتك أو اعرض وحدتك للبيع بالذكاء الاصطناعي والبحث المباشر في مصر ومختلف المدن والمحافظات بدون مكالمات سيلز مزعجة.",
     images: ["/web-app-manifest-512x512.png"],
@@ -169,8 +169,8 @@ const jsonLdData = {
       "@type": "WebSite",
       "@id": `${siteUrl}/#website`,
       url: siteUrl,
-      name: "إيوان بوت | Sakanybot",
-      alternateName: ["Ewanbot", "سكاني بوت", "Sakanybot AI Real Estate"],
+      name: "إيوان بوت | Ewanbot",
+      alternateName: ["Ewanbot", "سكاني بوت", "Ewanbot AI Real Estate"],
       inLanguage: ["ar", "en", "tr", "ru", "de", "fr", "es"],
       publisher: { "@id": `${siteUrl}/#agent` },
       potentialAction: {
@@ -185,7 +185,7 @@ const jsonLdData = {
     {
       "@type": ["RealEstateAgent", "LocalBusiness", "Organization"],
       "@id": `${siteUrl}/#agent`,
-      name: "إيوان بوت | Sakanybot",
+      name: "إيوان بوت | Ewanbot",
       alternateName: ["Ewanbot AI", "سكاني بوت العقاري"],
       url: siteUrl,
       logo: `${siteUrl}/logo.png`,
@@ -256,7 +256,7 @@ const jsonLdData = {
     {
       "@type": "WebApplication",
       "@id": `${siteUrl}/#webapp`,
-      name: "إيوان بوت | Sakanybot",
+      name: "إيوان بوت | Ewanbot",
       applicationCategory: "RealEstateApplication",
       operatingSystem: "All",
       url: siteUrl,
@@ -279,7 +279,7 @@ const jsonLdData = {
       mainEntity: [
         {
           "@type": "Question",
-          name: "ما هو إيوان بوت (Sakanybot) وكيف يساعدني في شراء أو بيع العقارات؟",
+          name: "ما هو إيوان بوت (Ewanbot) وكيف يساعدني في شراء أو بيع العقارات؟",
           acceptedAnswer: {
             "@type": "Answer",
             text: "إيوان بوت هو مستشارك العقاري بالذكاء الاصطناعي ومنصة بحث مباشر تضم أكثر من 980 وحدة سكنية وتجارية موثقة في مصر (التجمع الخامس، الشيخ زايد، العاصمة الإدارية، أكتوبر) وكافة المدن والمجتمعات العمرانية الجديدة. يساعد المشترين في مقارنة الأسعار وحساب الأقساط بدقة، كما يتيح للملاك عرض وحداتهم وأراضيهم للبيع مجاناً للمشترين الجادين بدون مكالمات سيلز مزعجة.",

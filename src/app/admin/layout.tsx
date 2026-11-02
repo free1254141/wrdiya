@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import AdminAuthGuard from './AdminAuthGuard';
 
 export const metadata: Metadata = {
-  title: 'Sakanybot - لوحة التحكم والإدارة',
+  title: 'Ewanbot - لوحة التحكم والإدارة',
   robots: {
     index: false,
     follow: false,
