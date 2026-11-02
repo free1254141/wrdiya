@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s | إيوان بوت Ewanbot",
   },
   description:
-    "إيوان بوت (Ewanbot): مستشارك العقاري بالذكاء الاصطناعي وبحث مباشر في أكثر من 980 وحدة موثقة. ابحث عن شقق وفيلات وأراضي للبيع كاش أو بالتقسيط في التجمع الخامس، الشيخ زايد، العاصمة الإدارية، 6 أكتوبر، المستقبل سيتي، والساحل الشمالي، أو اعرض وحدتك للبيع مجاناً للمشترين الجادين بدون مكالمات سيلز مزعجة.",
+    "إيوان بوت (Ewanbot): مستشارك العقاري بالذكاء الاصطناعي وبحث مباشر في أكثر من 2,800 وحدة وكمبوند معتمد. ابحث عن شقق وفيلات وأراضي للبيع كاش أو بالتقسيط في التجمع الخامس، الشيخ زايد، العاصمة الإدارية، 6 أكتوبر، المستقبل سيتي، والساحل الشمالي، أو اعرض وحدتك للبيع مجاناً للمشترين الجادين بدون مكالمات سيلز مزعجة.",
   applicationName: "Ewanbot | إيوان بوت",
   authors: [{ name: "Ewanbot AI", url: siteUrl }],
   creator: "Ewanbot Real Estate AI",
@@ -80,30 +80,40 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "إيوان بوت | Ewanbot — مستشارك العقاري الذكي للشراء والبيع",
+    title: "إيوان بوت | Ewanbot — مستشارك العقاري الذكي في مصر",
     description:
-      "تصفح وقارن أكثر من 980 عقار حقيقي موثق بالأسعار وخطط الأقساط في مصر ومختلف المدن والمحافظات، أو اعرض وحدتك للبيع مباشرة للمشترين الجادين.",
+      "تصفح وقارن أكثر من 2,800 عقار وكمبوند معتمد في مصر بالأسعار وخطط التقسيط الرسمية بدون مكالمات سيلز، أو اعرض وحدتك للبيع مجاناً.",
     url: siteUrl,
     siteName: "إيوان بوت | Ewanbot",
     images: [
       {
-        url: "/web-app-manifest-512x512.png",
+        url: `${siteUrl}/og-image.png`,
+        secureUrl: `${siteUrl}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: "إيوان بوت Ewanbot - مستشارك العقاري الذكي في مصر",
+        type: "image/png",
+      },
+      {
+        url: `${siteUrl}/logo.png`,
+        secureUrl: `${siteUrl}/logo.png`,
         width: 512,
         height: 512,
-        alt: "إيوان بوت Ewanbot - مستشارك العقاري الذكي",
+        alt: "لوجو إيوان بوت Ewanbot",
+        type: "image/png",
       },
     ],
     locale: "ar_EG",
-    alternateLocale: ["en_US", "tr_TR", "ru_RU", "de_DE", "fr_FR", "es_ES"],
+    alternateLocale: ["en_US"],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "إيوان بوت | Ewanbot — مستشارك العقاري الذكي",
+    title: "إيوان بوت | Ewanbot — مستشارك العقاري الذكي في مصر",
     description:
-      "ابحث عن شقتك أو اعرض وحدتك للبيع بالذكاء الاصطناعي والبحث المباشر في مصر ومختلف المدن والمحافظات بدون مكالمات سيلز مزعجة.",
-    images: ["/web-app-manifest-512x512.png"],
-    creator: "@skanybot",
+      "تصفح وقارن أكثر من 2,800 عقار وكمبوند معتمد في مصر بالأسعار وخطط التقسيط الرسمية بدون مكالمات سيلز مزعجة.",
+    images: [`${siteUrl}/og-image.png`],
+    creator: "@ewanbot",
   },
   robots: {
     index: true,
