@@ -1025,9 +1025,7 @@ export default function EwanbotChatPage() {
                   onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
                 />
               </div>
-              <span className="hidden lg:inline text-base font-black tracking-tight text-slate-900 dark:text-white font-sans">
-                sakany<span className="text-amber-500">bot</span>
-              </span>
+              
             </div>
 
             {/* Dual Mode Switcher for Desktop (>= lg) */}
