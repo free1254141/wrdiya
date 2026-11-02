@@ -47,9 +47,9 @@ export default function InlinePropertiesTable({
   return (
     <div
       dir={isRtl ? 'rtl' : 'ltr'}
-      className="mt-5 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/90"
+      className="mt-5 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-amber-500/25 dark:bg-zinc-900/95"
     >
-      {/* Table Header Bar */}
+      {/* Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 bg-slate-50/80 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex items-center gap-2">
           <div className="grid h-7 w-7 place-items-center rounded-lg bg-amber-500/15 text-amber-500">
@@ -57,7 +57,7 @@ export default function InlinePropertiesTable({
           </div>
           <div>
             <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-              {isRtl ? 'جدول نتائج البحث المطابقة' : 'Matching Search Results'}
+              {isRtl ? 'أبرز نتائج البحث المطابقة' : 'Matching Search Results'}
               <span className="mx-1.5 inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-black text-amber-600 dark:text-amber-400">
                 {sorted.length} {isRtl ? 'نتيجة' : 'results'}
               </span>
@@ -95,8 +95,109 @@ export default function InlinePropertiesTable({
         )}
       </div>
 
-      {/* Responsive Table */}
-      <div className="overflow-x-auto">
+      {/* Mobile Feed View (sm:hidden) - Super Clean & Native Look on Phones */}
+      <div className="divide-y divide-slate-100 dark:divide-zinc-800/80 sm:hidden">
+        {visibleRows.map((p, idx) => (
+          <div
+            key={p.id || idx}
+            onClick={() => onViewDetails(p)}
+            className="flex flex-col gap-2.5 p-3.5 transition hover:bg-amber-500/5 active:bg-amber-500/10 cursor-pointer"
+          >
+            <div className="flex items-start gap-3">
+              {/* Thumbnail */}
+              <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-xl border border-slate-200 dark:border-zinc-700 bg-zinc-800">
+                {p.images?.[0] ? (
+                  <img
+                    src={p.images[0]}
+                    alt={p.title}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="grid h-full w-full place-items-center text-xs font-bold text-amber-500">
+                    🏢
+                  </div>
+                )}
+                <span className="absolute top-1 right-1 rounded-md bg-black/75 px-1.5 py-0.5 text-[9px] font-black text-amber-400 backdrop-blur-xs">
+                  #{idx + 1}
+                </span>
+              </div>
+
+              {/* Main Info */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-1">
+                  <h5 className="font-bold text-xs text-slate-900 dark:text-white line-clamp-1">
+                    {p.title}
+                  </h5>
+                  {p.unit_type && (
+                    <span className="shrink-0 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                      {p.unit_type}
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-0.5 text-[11px] text-slate-500 dark:text-zinc-400 line-clamp-1">
+                  {p.compound?.name || p.compound?.area_name || p.compound?.city || 'مصر'}
+                </div>
+
+                {/* Specs */}
+                <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600 dark:text-zinc-300 font-medium">
+                  <span>{fmt(p.area_sqm)} {isRtl ? 'م²' : 'm²'}</span>
+                  {p.bedrooms ? <span>• {p.bedrooms} {isRtl ? 'غرف' : 'bd'}</span> : null}
+                  {p.bathrooms ? <span>• {p.bathrooms} {isRtl ? 'حمام' : 'ba'}</span> : null}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Row: Price & Action Buttons */}
+            <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-zinc-800/60">
+              <div>
+                <div className="font-black text-xs sm:text-sm text-amber-600 dark:text-amber-400">
+                  {fmt(p.total_price)} <span className="text-[10px] font-bold">{p.currency}</span>
+                </div>
+                {p.monthly_installment ? (
+                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                    {fmt(p.monthly_installment)} {p.currency}/{isRtl ? 'شهرياً' : 'mo'}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewDetails(p);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 px-2.5 py-1 text-[11px] font-bold text-slate-800 dark:text-zinc-200 transition active:scale-95 shadow-2xs"
+                >
+                  <Eye className="h-3 w-3" />
+                  <span>{isRtl ? 'التفاصيل' : 'Details'}</span>
+                </button>
+                {onSendToChat && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSendToChat(p);
+                    }}
+                    className="inline-flex items-center gap-1 rounded-xl bg-amber-500 hover:bg-amber-400 text-black px-2.5 py-1 text-[11px] font-black transition active:scale-95 shadow-2xs"
+                    title={isRtl ? 'استشارة وتقييم هذه الوحدة في الشات' : 'Ask AI to evaluate this unit'}
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    <span>{isAr ? 'تقييم' : 'AI'}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop Responsive Table View (hidden sm:block) */}
+      <div className="hidden sm:block overflow-x-auto">
         <table className="w-full border-collapse text-xs">
           <thead className="bg-slate-100/70 text-[11px] font-bold text-slate-600 dark:bg-zinc-950/60 dark:text-zinc-400">
             <tr className="border-b border-slate-200/70 dark:border-zinc-800">
