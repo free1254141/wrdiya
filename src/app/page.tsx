@@ -1025,6 +1025,9 @@ export default function EwanbotChatPage() {
                   onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
                 />
               </div>
+              <span className="hidden sm:inline text-base font-black tracking-tight text-slate-900 dark:text-white font-sans">
+                ewan<span className="text-amber-500">bot</span>
+              </span>
               
             </div>
 
