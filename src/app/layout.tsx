@@ -338,7 +338,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ar" dir="rtl" className={`h-full antialiased dark ${cairo.variable}`} suppressHydrationWarning>
+    <html lang="ar" dir="rtl" className={`min-h-screen antialiased dark ${cairo.variable}`} suppressHydrationWarning>
       <head>
         <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM Summary Documentation" />
         <link rel="alternate" type="text/plain" href="/llms-full.txt" title="LLM Full Reference Documentation" />
@@ -347,7 +347,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdData) }}
         />
       </head>
-      <body className={`h-full w-full overflow-hidden ${cairo.className} transition-colors duration-200 bg-white dark:bg-black`} suppressHydrationWarning>
+      <body className={`min-h-screen w-full ${cairo.className} transition-colors duration-200 bg-white dark:bg-black`} suppressHydrationWarning>
         <ThemeProvider>
           <LanguageProvider>
             <AuthProvider>
