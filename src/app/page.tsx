@@ -498,6 +498,17 @@ export default function EwanbotChatPage() {
       console.error('Failed to init local state:', e);
       createNewChat();
     }
+
+    // Prefill query if coming from calculator or compounds pages (?chat=... or ?q=...)
+    try {
+      if (typeof window !== 'undefined') {
+        const sp = new URLSearchParams(window.location.search);
+        const incomingQuery = sp.get('chat') || sp.get('q');
+        if (incomingQuery && incomingQuery.trim()) {
+          setInputText(incomingQuery.trim());
+        }
+      }
+    } catch {}
   }, []);
 
   // Auto-scroll on new messages
@@ -1064,7 +1075,21 @@ export default function EwanbotChatPage() {
           </div>
 
           {/* Quick Header Controls (Streamlined: wallpaper & contact broker moved to sidebar) */}
-          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          <div className="hidden xl:flex items-center gap-2 me-2">
+              <Link
+                href="/calculator"
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-100/90 dark:border-zinc-800/80 dark:bg-zinc-900/90 px-2.5 py-1 text-xs font-bold text-slate-700 dark:text-zinc-200 shadow-2xs hover:border-amber-500/50 hover:text-amber-500 transition"
+              >
+                <span>🧮 حاسبة الميزانية</span>
+              </Link>
+              <Link
+                href="/compounds"
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-100/90 dark:border-zinc-800/80 dark:bg-zinc-900/90 px-2.5 py-1 text-xs font-bold text-slate-700 dark:text-zinc-200 shadow-2xs hover:border-amber-500/50 hover:text-amber-500 transition"
+              >
+                <span>🏢 دليل الكمبوندات</span>
+              </Link>
+            </div>
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {/* User Persona Pill (Buyer / Seller / Broker) */}
             {user && (
               <div className="flex items-center gap-1 shrink-0">

@@ -20,6 +20,7 @@ import {
   PhoneCall,
   Palette,
   Zap,
+  Calculator,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -257,6 +258,43 @@ export default function BrokerChatSidebar({
               </span>
             </button>
           )}
+
+          {/* Quick Real Estate Tools Links (Calculator & Compounds Directory) */}
+          <Link
+            href="/calculator"
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                onToggle();
+              }
+            }}
+            className="flex w-full items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 hover:text-black dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white shadow-2xs"
+          >
+            <span className="flex items-center gap-2">
+              <Calculator className="h-3.5 w-3.5 text-amber-500" />
+              <span>{isRtl ? 'حاسبة الميزانية والأقساط' : 'Budget Calculator'}</span>
+            </span>
+            <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+              {isRtl ? 'أداة مجانية' : 'Free Tool'}
+            </span>
+          </Link>
+
+          <Link
+            href="/compounds"
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                onToggle();
+              }
+            }}
+            className="flex w-full items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 hover:text-black dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white shadow-2xs"
+          >
+            <span className="flex items-center gap-2">
+              <Building2 className="h-3.5 w-3.5 text-amber-500" />
+              <span>{isRtl ? 'دليل أسعار الكمبوندات' : 'Compounds Directory'}</span>
+            </span>
+            <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+              600+
+            </span>
+          </Link>
 
           {/* User's Own Listed Units for Sale (بروفايل البائع) */}
           {onOpenSellerModal && (

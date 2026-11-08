@@ -1,4 +1,5 @@
 import { MetadataRoute } from 'next';
+import { getAllCompounds } from '@/lib/compounds-data';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://ewanbot.com';
@@ -32,6 +33,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
           languages.map((lang) => [lang, `${baseUrl}?lang=${lang}`])
         ),
       },
+    },
+    {
+      url: `${baseUrl}/calculator`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.95,
+    },
+    {
+      url: `${baseUrl}/compounds`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.95,
     },
     {
       url: `${baseUrl}/llms.txt`,
@@ -68,6 +81,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
       });
     }
   });
+
+  // Add all 600+ Programmatic SEO Compound Landing Pages for Google Indexing
+  try {
+    const compounds = getAllCompounds();
+    compounds.forEach((c) => {
+      routes.push({
+        url: `${baseUrl}/compounds/${encodeURIComponent(c.slug)}`,
+        lastModified: now,
+        changeFrequency: 'weekly',
+        priority: 0.8,
+      });
+    });
+  } catch (err) {
+    console.error('Failed to append compounds to sitemap:', err);
+  }
 
   return routes;
 }
