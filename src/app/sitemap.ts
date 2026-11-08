@@ -7,17 +7,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Supported languages
   const languages = ['ar', 'en', 'tr', 'ru', 'de', 'fr', 'es'];
 
-  // Geographic regional landing targets
+  // Geographic Egyptian regional landing targets
   const regions = [
     'new-cairo',
     'sheikh-zayed',
     'new-capital',
-    'madinaty',
     'october',
     'north-coast',
-    'dubai',
-    'istanbul',
-    'spain-malaga',
+    'ain-sokhna',
+    'mostakbal-city',
+    'madinaty',
+    'el-gouna',
+    'alexandria',
   ];
 
   const routes: MetadataRoute.Sitemap = [
@@ -46,7 +47,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  // Add regional landing URLs
+  // Add Egyptian regional landing URLs
   regions.forEach((region) => {
     routes.push({
       url: `${baseUrl}?region=${region}`,
