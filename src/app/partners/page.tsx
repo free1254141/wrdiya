@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import SubpageSidebarShell from '@/components/SubpageSidebarShell';
 import {
   Building2,
   Code2,
@@ -58,6 +59,7 @@ export default function PartnersPage() {
   };
 
   return (
+    <SubpageSidebarShell>
     <div
       className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-amber-500 selection:text-black"
       dir="rtl"
@@ -335,5 +337,6 @@ export default function PartnersPage() {
         </div>
       </main>
     </div>
+    </SubpageSidebarShell>
   );
 }

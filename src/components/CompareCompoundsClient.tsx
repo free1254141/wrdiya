@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import SubpageSidebarShell from '@/components/SubpageSidebarShell';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Scale,
@@ -240,6 +241,7 @@ export default function CompareCompoundsClient() {
   );
 
   return (
+    <SubpageSidebarShell>
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-amber-500 selection:text-black print:bg-white print:text-black">
       {/* Background Decor (hidden when printing) */}
       <div className="fixed inset-0 pointer-events-none opacity-20 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:24px_24px] print:hidden" />
@@ -740,5 +742,6 @@ export default function CompareCompoundsClient() {
         </div>
       </main>
     </div>
+    </SubpageSidebarShell>
   );
 }

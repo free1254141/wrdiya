@@ -14,6 +14,7 @@ import { getMonthlyMarketIndex } from '@/lib/demand-analytics';
 import { DEVELOPER_RELIABILITY_INDEX } from '@/lib/developer-reliability';
 import { queryNewsDisclosures } from '@/lib/news-disclosures';
 import NewsDisclosuresFeed from '@/components/NewsDisclosuresFeed';
+import SubpageSidebarShell from '@/components/SubpageSidebarShell';
 
 export const metadata: Metadata = {
   title: 'مؤشر إيوان لأسعار العقارات في مصر 2026 | متوسط سعر المتر والأقساط',
@@ -59,6 +60,7 @@ export default function MarketIndexPage() {
     (n / 1_000_000).toLocaleString('ar-EG', { maximumFractionDigits: 2 });
 
   return (
+    <SubpageSidebarShell>
     <div
       className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-amber-500 selection:text-black"
       dir="rtl"
@@ -300,5 +302,6 @@ export default function MarketIndexPage() {
         </div>
       </main>
     </div>
+    </SubpageSidebarShell>
   );
 }

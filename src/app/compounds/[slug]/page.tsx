@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import SubpageSidebarShell from '@/components/SubpageSidebarShell';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { 
@@ -126,6 +127,7 @@ export default async function SingleCompoundPage({ params }: Props) {
   };
 
   return (
+    <SubpageSidebarShell>
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-amber-500 selection:text-black">
       {/* JSON-LD Schema */}
       <script
@@ -382,5 +384,6 @@ export default async function SingleCompoundPage({ params }: Props) {
         <p>© 2026 إيوان بوت (Ewanbot) — المنصة الذكية المعتمدة لعقارات مصر.</p>
       </footer>
     </div>
+    </SubpageSidebarShell>
   );
 }

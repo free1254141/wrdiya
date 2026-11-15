@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { Building2, Search, ArrowLeft, ShieldCheck, Sparkles, Calculator, MapPin, TrendingUp } from 'lucide-react';
 import { getAllCompounds } from '@/lib/compounds-data';
+import SubpageSidebarShell from '@/components/SubpageSidebarShell';
 
 export const metadata: Metadata = {
   title: 'دليل أسعار وجداول أقساط كمبوندات مصر 2026 | إيوان بوت Ewanbot',
@@ -33,6 +34,7 @@ export default function CompoundsIndexPage() {
     (n / 1_000_000).toLocaleString('ar-EG', { maximumFractionDigits: 2 });
 
   return (
+    <SubpageSidebarShell>
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-amber-500 selection:text-black">
       {/* Background Decor */}
       <div className="fixed inset-0 pointer-events-none opacity-20 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:24px_24px]" />
@@ -167,5 +169,6 @@ export default function CompoundsIndexPage() {
         <p>© 2026 إيوان بوت (Ewanbot) — المنصة الذكية المعتمدة لعقارات مصر.</p>
       </footer>
     </div>
+    </SubpageSidebarShell>
   );
 }

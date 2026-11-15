@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import SubpageSidebarShell from '@/components/SubpageSidebarShell';
 import { 
   Calculator, 
   Sparkles, 
@@ -113,6 +114,7 @@ export default function BudgetCalculatorPage() {
   const chatPrompt = encodeURIComponent(`معايا مقدم ${fmt(downPayment)} جنيه، وقسط شهري في حدود ${fmt(monthlyInstallment)} جنيه، وعايز أفضل الخيارات والشقق المتاحة المناسبة ليا في ${areaLabel}`);
 
   return (
+    <SubpageSidebarShell>
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-amber-500 selection:text-black print:bg-white print:text-black">
       {/* Background Glow */}
       <div className="fixed inset-0 pointer-events-none opacity-20 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:24px_24px] print:hidden" />
@@ -411,5 +413,6 @@ export default function BudgetCalculatorPage() {
         <p>© 2026 إيوان بوت (Ewanbot) — المنصة الذكية المعتمدة لعقارات مصر.</p>
       </footer>
     </div>
+    </SubpageSidebarShell>
   );
 }
