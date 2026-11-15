@@ -26,6 +26,8 @@ import {
   executeBudgetMatrixGuide,
   executeSubscribePropertyAlert,
 } from './ai/agentic-tools';
+import { queryNewsDisclosures } from './news-disclosures';
+import { DEVELOPER_RELIABILITY_INDEX } from './developer-reliability';
 import {
   buildContextSystemMessage,
   emptySessionContext,
@@ -109,7 +111,9 @@ const SYSTEM_PROMPT = `أنت "إيوان بوت" (Ewanbot) — مستشارك �
 11. "get_market_legal_and_investment_guide": للرجوع الفوري للدليل القانوني والاستثماري وشبكة النقل والمحاور القومية (الشهر العقاري، التوكيلات، التصالح، وديعة وفروق الصيانة، رسوم التنازل، ضريبة التصرفات 2.5%، خصومات الكاش، العوائد الإيجارية، المونوريل والقطار السريع).
 12. "get_budget_matrix_2026": خريطة ومصفوفة الميزانيات العقارية لمصر 2026/2027 (استدعِها فوراً عندما يسأل العميل عن ميزانية عامة مثل: "معايا مليون جنيه"، "معايا 500 ألف"، "أشتري إيه بميزانيتي"). ترشح فوراً خيارات الكاش والاستلام الفوري وخيارات التقسيط الحقيقية مع أسماء مشاريع واقعية في 12 منطقة.
 13. "subscribe_property_alert": تسجيل وتفعيل التنبيهات العقارية وقائمة الانتظار للعميل (استدعِها فوراً عندما يوافق العميل على ترك هاتفه أو واتسابه أو إيميله ومواصفات طلبه ليتم إخطاره فور توفر أو عرض وحدة مناسبة له في المنطقة المطلوبة).
-14. التحية والدردشة العامة: أجب بإيجاز وود بدون استدعاء أدوات.
+14. "search_real_estate_news": البحث في أحدث أخبار السوق العقاري المصري، طروحات أراضي هيئة المجتمعات العمرانية، وقرارات البنك المركزي والفائدة المسحوبة لحظياً (استدعِها عندما يسأل العميل عن أخبار السوق، طروحات أراضي، قرارات الفائدة، أو مخاطر السوق).
+15. "get_developer_disclosures": جلب أحدث إفصاحات البورصة المصرية (EGX) وأخبار المطورين وتقييم ملاءتهم وسكور التسليم (استدعِها فوراً عند السؤال عن موثوقية مطور مثل طلعت مصطفى أو بالم هيلز أو سوديك أو أوراسكوم أو إعمار أو مدينة مصر).
+16. التحية والدردشة العامة: أجب بإيجاز وود بدون استدعاء أدوات.
 
 القواعد الاحترافية الحاسمة لإجابات إيوان بوت (Data & Math Intelligence):
 1. **كشف الأقساط المخفية (Hidden Installment Gap):**
@@ -421,6 +425,54 @@ export async function runDeepSeekAgenticChat(
             output = executeBudgetMatrixGuide(args);
           } else if (fnName === 'subscribe_property_alert') {
             output = await executeSubscribePropertyAlert(args);
+          } else if (fnName === 'search_real_estate_news') {
+            const res = await queryNewsDisclosures({
+              query: args.query,
+              category: args.category || 'all',
+              sentiment: args.sentiment || 'all',
+              limit: args.limit || 6,
+            });
+            output = {
+              total_database_records: res.totalAvailable,
+              matched_count: res.items.length,
+              items: res.items.map((n) => ({
+                title: n.title,
+                source: n.source_name,
+                published_at: n.published_at,
+                category: n.category,
+                developer: n.developer_name,
+                egx_ticker: n.egx_ticker,
+                sentiment: n.impact_sentiment,
+                impact_summary: n.impact_summary,
+                url: n.url,
+              })),
+            };
+          } else if (fnName === 'get_developer_disclosures') {
+            const devQuery = String(args.developer_name || '').trim();
+            const devLower = devQuery.toLowerCase();
+            const devProfile = DEVELOPER_RELIABILITY_INDEX.find(
+              (d) =>
+                d.nameAr.toLowerCase().includes(devLower) ||
+                d.nameEn.toLowerCase().includes(devLower) ||
+                (d.egxTicker && d.egxTicker.toLowerCase().includes(devLower))
+            );
+            const res = await queryNewsDisclosures({
+              developer: devProfile?.nameEn || devQuery,
+              limit: args.limit || 6,
+            });
+            output = {
+              developer_profile: devProfile || null,
+              disclosures_and_news_count: res.items.length,
+              items: res.items.map((n) => ({
+                title: n.title,
+                source: n.source_name,
+                published_at: n.published_at,
+                category: n.category,
+                sentiment: n.impact_sentiment,
+                impact_summary: n.impact_summary,
+                url: n.url,
+              })),
+            };
           } else {
             output = { error: `Tool ${fnName} not recognized` };
           }

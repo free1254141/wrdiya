@@ -509,7 +509,58 @@ export const AGENTIC_TOOLS_SCHEMA = [
         required: ['query'],
       },
     },
-  }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'search_real_estate_news',
+      description: 'البحث في أحدث أخبار السوق العقاري المصري، طروحات أراضي هيئة المجتمعات العمرانية (NUCA)، وقرارات البنك المركزي وسعر الفائدة والتمويل العقاري المسحوبة لحظياً. استدعِها عندما يسأل العميل عن أخبار السوق، طرح أراضي، قرارات الفائدة، أسعار مواد البناء، أو توقعات السوق.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'كلمة مفتاحية للبحث (مثال: "المجتمعات العمرانية", "طرح أراضي", "الفائدة", "العاصمة الإدارية", "الحديد")',
+          },
+          category: {
+            type: 'string',
+            enum: ['all', 'egx_disclosure', 'nuca_policy', 'macro_cbe', 'developer_news'],
+            description: 'تصنيف الأخبار المطلوب',
+          },
+          sentiment: {
+            type: 'string',
+            enum: ['all', 'positive', 'warning', 'neutral'],
+            description: 'تصفية حسب التأثير (إيجابي، تحذير/مخاطر، أو الكل)',
+          },
+          limit: {
+            type: 'number',
+            description: 'عدد النتائج (افتراضي 6)',
+          },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_developer_disclosures',
+      description: 'جلب أحدث إفصاحات البورصة المصرية (EGX)، نتائج الأعمال، التمويلات، ومؤشر الملاءة والمصداقية لمطور عقاري محدد (مثل: طلعت مصطفى، بالم هيلز، مدينة مصر، إعمار مصر، سوديك، أوراسكوم، ماونتن فيو، تطوير مصر). استدعِها فوراً عندما يسأل العميل عن سمعة مطور أو أمان الشراء معه أو أرباحه أو تأخيراته.',
+      parameters: {
+        type: 'object',
+        properties: {
+          developer_name: {
+            type: 'string',
+            description: 'اسم المطور العقاري بالعربية أو الإنجليزية أو كود البورصة (مثال: "طلعت مصطفى", "بالم هيلز", "أوراسكوم", "TMGH.CA")',
+          },
+          limit: {
+            type: 'number',
+            description: 'عدد الإفصاحات المطلوبة (افتراضي 6)',
+          },
+        },
+        required: ['developer_name'],
+      },
+    },
+  },
 ];
 
 /**

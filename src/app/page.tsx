@@ -1346,6 +1346,12 @@ export default function EwanbotChatPage() {
                     >
                       <span>🧮 حاسبة الميزانية</span>
                     </Link>
+                    <Link
+                      href="/market-index#news-radar"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-sky-500/40 bg-sky-500/10 px-3.5 py-1.5 text-xs font-bold text-sky-700 dark:text-sky-400 hover:bg-sky-500/20 transition"
+                    >
+                      <span>📰 أخبار وإفصاحات البورصة</span>
+                    </Link>
                   </div>
                 )}
               </div>

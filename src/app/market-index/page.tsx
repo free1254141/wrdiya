@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import Link from 'next/link';
 import { Metadata } from 'next';
 import {
@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { getMonthlyMarketIndex } from '@/lib/demand-analytics';
 import { DEVELOPER_RELIABILITY_INDEX } from '@/lib/developer-reliability';
+import { queryNewsDisclosures } from '@/lib/news-disclosures';
+import NewsDisclosuresFeed from '@/components/NewsDisclosuresFeed';
 
 export const metadata: Metadata = {
   title: 'مؤشر إيوان لأسعار العقارات في مصر 2026 | متوسط سعر المتر والأقساط',
@@ -36,6 +38,18 @@ export const metadata: Metadata = {
     ],
   },
 };
+
+async function NewsRadarSection() {
+  const newsData = await queryNewsDisclosures({ limit: 60 });
+  return (
+    <NewsDisclosuresFeed
+      initialItems={newsData.items}
+      totalAvailable={newsData.totalAvailable}
+      byCategory={newsData.byCategory}
+      bySentiment={newsData.bySentiment}
+    />
+  );
+}
 
 export default function MarketIndexPage() {
   const index = getMonthlyMarketIndex();
@@ -245,6 +259,17 @@ export default function MarketIndexPage() {
             </table>
           </div>
         </div>
+
+        {/* Live News & EGX Disclosures Radar */}
+        <Suspense
+          fallback={
+            <div className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-8 text-center text-sm text-zinc-400 mb-10">
+              جاري تحميل رادار الأخبار وإفصاحات البورصة المصرية...
+            </div>
+          }
+        >
+          <NewsRadarSection />
+        </Suspense>
 
         {/* B2B / Press CTA */}
         <div className="rounded-3xl border border-emerald-500/35 bg-gradient-to-br from-emerald-500/10 via-zinc-900 to-amber-500/10 p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
