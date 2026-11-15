@@ -58,6 +58,16 @@ export default function CompareCompoundsClient() {
     if (initialC2) setC2(initialC2);
   }, [initialC1, initialC2]);
 
+  // Close dropdown on Escape key
+  useEffect(() => {
+    if (!openDropdown) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpenDropdown(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [openDropdown]);
+
   const updateSelection = (slot: 1 | 2, compound: CompoundSEOData) => {
     const next1 = slot === 1 ? compound : c1;
     const next2 = slot === 2 ? compound : c2;
@@ -154,19 +164,37 @@ export default function CompareCompoundsClient() {
   const fmtM = (n: number) =>
     (n / 1_000_000).toLocaleString('ar-EG', { maximumFractionDigits: 2 });
 
-  // Determine objective winners per metric
+  // Determine objective winners per metric (only when both have valid > 0 values)
   const cheaperPerSqm =
     m1.avgPricePerSqm > 0 && m2.avgPricePerSqm > 0
       ? m1.avgPricePerSqm <= m2.avgPricePerSqm
         ? 1
         : 2
       : 0;
-  const lowerMinPrice = c1.min_price <= c2.min_price ? 1 : 2;
-  const lowerDownPayment = m1.minDownPaymentEgp <= m2.minDownPaymentEgp ? 1 : 2;
+  const lowerMinPrice =
+    c1.min_price > 0 && c2.min_price > 0
+      ? c1.min_price <= c2.min_price
+        ? 1
+        : 2
+      : 0;
+  const lowerDownPayment =
+    m1.minDownPaymentEgp > 0 && m2.minDownPaymentEgp > 0
+      ? m1.minDownPaymentEgp <= m2.minDownPaymentEgp
+        ? 1
+        : 2
+      : 0;
   const longerInstallment =
-    c1.max_installment_years >= c2.max_installment_years ? 1 : 2;
+    c1.max_installment_years > 0 && c2.max_installment_years > 0
+      ? c1.max_installment_years >= c2.max_installment_years
+        ? 1
+        : 2
+      : 0;
   const lowerMonthly =
-    c1.min_monthly_installment <= c2.min_monthly_installment ? 1 : 2;
+    c1.min_monthly_installment > 0 && c2.min_monthly_installment > 0
+      ? c1.min_monthly_installment <= c2.min_monthly_installment
+        ? 1
+        : 2
+      : 0;
 
   const score1 =
     (cheaperPerSqm === 1 ? 1 : 0) +
