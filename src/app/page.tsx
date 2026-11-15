@@ -502,6 +502,22 @@ export default function EwanbotChatPage() {
     }
   }, []);
 
+  // Prefill chat input when navigated from subpages via /?chat=... or /?q=...
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      const sp = new URLSearchParams(window.location.search);
+      const incomingQuery = sp.get('chat') || sp.get('q');
+      if (incomingQuery && incomingQuery.trim()) {
+        setAppMode('chat');
+        setInputText(incomingQuery.trim());
+        setTimeout(() => {
+          textareaRef.current?.focus();
+        }, 120);
+      }
+    } catch {}
+  }, []);
+
   // Auto-scroll on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

@@ -706,7 +706,7 @@ export default function CompareCompoundsClient() {
           {/* Deep AI Chat CTA */}
           <div className="mt-5 text-center print:hidden">
             <Link
-              href="/"
+              href={`/?chat=${chatPrompt}`}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-sm shadow-lg transition"
             >
               <Sparkles className="h-4 w-4" />

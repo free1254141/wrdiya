@@ -370,7 +370,7 @@ export default function BudgetCalculatorPage() {
                       جدول الأقساط الكامل
                     </Link>
                     <Link
-                      href="/"
+                      href={`/?chat=${encodeURIComponent(`عايز أعرف شقة في كمبوند ${c.name} تناسب مقدم ${fmt(downPayment)} وقسط شهري ${fmt(monthlyInstallment)}`)}`}
                       className="flex-1 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black text-center transition"
                     >
                       استشر Ewanbot
@@ -396,7 +396,7 @@ export default function BudgetCalculatorPage() {
               ادخل شات إيوان بوت واطلب مقارنة تفصيلية بين أي كمبوندين أو ابحث عن شقق استلام فوري أو تحت الإنشاء فوراً.
             </p>
             <Link
-              href="/"
+              href={`/?chat=${chatPrompt}`}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-sm shadow-md transition"
             >
               <Sparkles className="h-4 w-4" />
