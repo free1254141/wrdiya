@@ -134,7 +134,7 @@ export default async function SingleCompoundPage({ params }: Props) {
       />
 
       {/* Header */}
-      <header className="border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-20 px-4 py-3">
+      <header className="sticky top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/95 backdrop-blur-md px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-zinc-400">
             <Link href="/" className="hover:text-amber-400 transition">الرئيسية</Link>
@@ -145,7 +145,7 @@ export default async function SingleCompoundPage({ params }: Props) {
           </div>
 
           <Link
-            href={`/?chat=${chatPrompt}`}
+            href="/"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black shadow-md transition"
           >
             <Sparkles className="h-3.5 w-3.5" />
@@ -223,7 +223,7 @@ export default async function SingleCompoundPage({ params }: Props) {
 
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Link
-                href={`/?chat=${chatPrompt}`}
+                href="/"
                 className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-black text-sm sm:text-base shadow-lg shadow-amber-500/30 transition transform hover:-translate-y-0.5"
               >
                 <Sparkles className="h-5 w-5" />
@@ -287,7 +287,7 @@ export default async function SingleCompoundPage({ params }: Props) {
                         </td>
                         <td className="py-3 px-4 text-center whitespace-nowrap">
                           <Link
-                            href={`/?chat=${encodeURIComponent(`عايز أعرف تفاصيل الوحدة رقم ${idx + 1} في كمبوند ${compound.name} بمساحة ${u.area_sqm}م`)}`}
+                            href="/"
                             className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-400 hover:text-black font-bold text-xs transition"
                           >
                             <Eye className="h-3 w-3" />

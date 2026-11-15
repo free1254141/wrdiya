@@ -500,17 +500,6 @@ export default function EwanbotChatPage() {
       console.error('Failed to init local state:', e);
       createNewChat();
     }
-
-    // Prefill query if coming from calculator or compounds pages (?chat=... or ?q=...)
-    try {
-      if (typeof window !== 'undefined') {
-        const sp = new URLSearchParams(window.location.search);
-        const incomingQuery = sp.get('chat') || sp.get('q');
-        if (incomingQuery && incomingQuery.trim()) {
-          setInputText(incomingQuery.trim());
-        }
-      }
-    } catch {}
   }, []);
 
   // Auto-scroll on new messages

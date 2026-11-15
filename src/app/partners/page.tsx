@@ -65,7 +65,7 @@ export default function PartnersPage() {
       <div className="fixed inset-0 pointer-events-none opacity-20 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:24px_24px]" />
 
       {/* Header */}
-      <header className="relative z-10 border-b border-zinc-800/80 bg-zinc-950/85 backdrop-blur-md sticky top-0 px-4 py-3.5">
+      <header className="sticky top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/95 backdrop-blur-md px-4 py-3.5">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
           <Link href="/" className="flex items-center gap-2.5">
             <div className="h-9 w-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">

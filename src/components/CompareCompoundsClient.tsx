@@ -245,7 +245,7 @@ export default function CompareCompoundsClient() {
       <div className="fixed inset-0 pointer-events-none opacity-20 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:24px_24px] print:hidden" />
 
       {/* Header (hidden when printing) */}
-      <header className="relative z-20 border-b border-zinc-800/80 bg-zinc-950/85 backdrop-blur-md sticky top-0 px-4 py-3.5 print:hidden">
+      <header className="sticky top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/95 backdrop-blur-md px-4 py-3.5 print:hidden">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
           <Link href="/" className="flex items-center gap-2.5">
             <div className="h-9 w-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
@@ -706,7 +706,7 @@ export default function CompareCompoundsClient() {
           {/* Deep AI Chat CTA */}
           <div className="mt-5 text-center print:hidden">
             <Link
-              href={`/?chat=${chatPrompt}`}
+              href="/"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-sm shadow-lg transition"
             >
               <Sparkles className="h-4 w-4" />

@@ -38,7 +38,7 @@ export default function CompoundsIndexPage() {
       <div className="fixed inset-0 pointer-events-none opacity-20 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:24px_24px]" />
 
       {/* Navigation Header */}
-      <header className="relative z-10 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md sticky top-0 px-4 py-3.5">
+      <header className="sticky top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/95 backdrop-blur-md px-4 py-3.5">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="h-9 w-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 group-hover:scale-105 transition">
@@ -98,7 +98,7 @@ export default function CompoundsIndexPage() {
             يمكنك مقارنة أي كمبوند وحساب أقساطك الشهرية بالمليم في ثوانٍ معدودة عبر ذكاء إيوان بوت وبدون تسجيل رقم هاتفك.
           </p>
           <Link
-            href="/?chat=عايز%20أقارن%20بين%20أفضل%20كمبوندات%20التجمع%20وزايد%20من%20حيث%20السعر%20والأقساط"
+            href="/"
             className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-sm shadow-md transition transform hover:-translate-y-0.5"
           >
             <Sparkles className="h-4 w-4" />
