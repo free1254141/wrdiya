@@ -43,6 +43,7 @@ import {
   XCircle,
   CheckCircle,
   Home,
+  TrendingUp,
   Bed,
   Bath,
   Images
@@ -124,8 +125,10 @@ export default function AdminDashboardPage() {
   // Fullscreen / Maximize Window Toggle
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Active Tab: 'chats' | 'leads' | 'seller_properties' | 'users'
-  const [activeTab, setActiveTab] = useState<'chats' | 'leads' | 'seller_properties' | 'users'>('chats');
+  // Active Tab: 'chats' | 'leads' | 'seller_properties' | 'users' | 'demand'
+  const [activeTab, setActiveTab] = useState<'chats' | 'leads' | 'seller_properties' | 'users' | 'demand'>('chats');
+  const [demandData, setDemandData] = useState<any>(null);
+  const [demandLoading, setDemandLoading] = useState(false);
 
   // Stats & Users state
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -707,6 +710,27 @@ export default function AdminDashboardPage() {
     }
   }, [selectedSessionId]);
 
+  const fetchDemandIntelligence = async () => {
+    setDemandLoading(true);
+    try {
+      const res = await fetch('/api/admin/demand-intelligence');
+      if (res.ok) {
+        const data = await res.json();
+        setDemandData(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch demand intelligence:', err);
+    } finally {
+      setDemandLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'demand' && !demandData && !demandLoading) {
+      fetchDemandIntelligence();
+    }
+  }, [activeTab]);
+
   // Copy session ID
   const handleCopySessionId = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -1178,6 +1202,22 @@ export default function AdminDashboardPage() {
               }`}
             >
               {usersList.length}
+            </span>
+          </button>
+
+          {/* Tab 5: Demand Intelligence (B2B) */}
+          <button
+            onClick={() => setActiveTab('demand')}
+            className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition whitespace-nowrap shrink-0 ${
+              activeTab === 'demand'
+                ? 'border-emerald-500 text-emerald-400'
+                : 'border-transparent text-zinc-400 hover:text-white'
+            }`}
+          >
+            <TrendingUp className="h-4 w-4" />
+            <span>ذكاء الطلب والسوق (B2B)</span>
+            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-black text-emerald-400">
+              جديد
             </span>
           </button>
         </div>
@@ -2254,7 +2294,7 @@ export default function AdminDashboardPage() {
               </div>
             )}
           </div>
-        ) : (
+        ) : activeTab === 'users' ? (
           /* ============================================================== */
           /* TAB 2: REGISTERED USERS & ANALYTICS                            */
           /* ============================================================== */
@@ -2374,6 +2414,124 @@ export default function AdminDashboardPage() {
                 </table>
               </div>
             </div>
+          </div>
+        ) : (
+          /* ============================================================== */
+          /* TAB 5: B2B DEMAND INTELLIGENCE & BUYER INTENT SCORING          */
+          /* ============================================================== */
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                  📊 ذكاء الطلب العقاري المجهّل (متوافق مع قانون حماية البيانات 151/2020)
+                </h2>
+                <p className="text-xs text-zinc-400">
+                  تحليل اتجاهات الشراء والميزانيات وفجوة العرض والطلب في رسائل المستخدمين وسكور جدية الليدز
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={fetchDemandIntelligence}
+                disabled={demandLoading}
+                className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 px-3.5 py-2 text-xs font-bold text-emerald-400 transition"
+              >
+                {demandLoading ? 'جاري التحديث...' : 'تحديث التحليل ↻'}
+              </button>
+            </div>
+
+            {demandLoading && !demandData ? (
+              <div className="p-10 text-center text-zinc-400 text-sm">جاري تحليل إشارات الطلب في المحادثات...</div>
+            ) : demandData?.demandReport ? (
+              <>
+                {/* Top Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className={`rounded-2xl border p-4 ${isDark ? 'border-zinc-800 bg-zinc-950' : 'border-zinc-200 bg-white'}`}>
+                    <div className="text-xs text-zinc-400">الرسائل المحللة</div>
+                    <div className="text-2xl font-black text-amber-400 mt-1">
+                      {demandData.demandReport.analyzedMessages}
+                    </div>
+                  </div>
+                  <div className={`rounded-2xl border p-4 ${isDark ? 'border-zinc-800 bg-zinc-950' : 'border-zinc-200 bg-white'}`}>
+                    <div className="text-xs text-zinc-400">ليدز جادة جداً (Score ≥ 70)</div>
+                    <div className="text-2xl font-black text-emerald-400 mt-1">
+                      {demandData.leadsSummary?.hotLeadsCount ?? 0}
+                    </div>
+                  </div>
+                  <div className={`rounded-2xl border p-4 ${isDark ? 'border-zinc-800 bg-zinc-950' : 'border-zinc-200 bg-white'}`}>
+                    <div className="text-xs text-zinc-400">ليدز دافئة (Score 45–69)</div>
+                    <div className="text-2xl font-black text-cyan-400 mt-1">
+                      {demandData.leadsSummary?.warmLeadsCount ?? 0}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Region Supply vs Demand Gap */}
+                <div className={`rounded-2xl border overflow-hidden ${isDark ? 'border-zinc-800 bg-zinc-950' : 'border-zinc-200 bg-white'}`}>
+                  <div className="p-4 border-b border-zinc-800 font-bold text-sm">
+                    فجوة العرض والطلب حسب المنطقة (أغلى بيانات للمطورين)
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-right text-xs">
+                      <thead className={isDark ? 'bg-zinc-900 text-zinc-400' : 'bg-zinc-100 text-zinc-600'}>
+                        <tr>
+                          <th className="p-3">المنطقة</th>
+                          <th className="p-3">حصة الطلب من الشات</th>
+                          <th className="p-3">حصة المعروض</th>
+                          <th className="p-3">مؤشر الفجوة</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-800/70">
+                        {demandData.demandReport.regionStats.map((r: any) => (
+                          <tr key={r.region}>
+                            <td className="p-3 font-bold">{r.region}</td>
+                            <td className="p-3 text-amber-400 font-black">{r.demandSharePct}% ({r.demandCount})</td>
+                            <td className="p-3 text-zinc-300">{r.supplySharePct}% ({r.supplyCompoundsCount} كمبوند)</td>
+                            <td className="p-3 text-emerald-400 font-semibold">{r.gapNote}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Budget & Unit Types */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className={`rounded-2xl border p-4 ${isDark ? 'border-zinc-800 bg-zinc-950' : 'border-zinc-200 bg-white'}`}>
+                    <h3 className="font-bold text-sm mb-3">توزيع ميزانيات الباحثين</h3>
+                    <div className="space-y-2.5">
+                      {demandData.demandReport.budgetBuckets.map((b: any) => (
+                        <div key={b.label}>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span>{b.label}</span>
+                            <span className="font-bold text-amber-400">{b.sharePct}% ({b.count})</span>
+                          </div>
+                          <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
+                            <div className="h-full bg-amber-500" style={{ width: `${b.sharePct}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className={`rounded-2xl border p-4 ${isDark ? 'border-zinc-800 bg-zinc-950' : 'border-zinc-200 bg-white'}`}>
+                    <h3 className="font-bold text-sm mb-3">أنواع الوحدات الأكثر طلباً</h3>
+                    <div className="space-y-2.5">
+                      {demandData.demandReport.unitTypes.map((u: any) => (
+                        <div key={u.type}>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span>{u.type}</span>
+                            <span className="font-bold text-emerald-400">{u.sharePct}% ({u.count})</span>
+                          </div>
+                          <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
+                            <div className="h-full bg-emerald-500" style={{ width: `${u.sharePct}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : null}
           </div>
         )}
       </main>

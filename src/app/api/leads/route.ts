@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getVerifiedUser } from '@/lib/server-auth';
 import { notifyNewLead } from '@/lib/notify';
+import { calculateBuyerIntentScore } from '@/lib/demand-analytics';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://csuifvyghfsibkrnxrby.supabase.co';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -26,7 +27,8 @@ export async function POST(req: NextRequest) {
       developerName,
       sessionId,
       notes,
-      source = 'chatbot'
+      source = 'chatbot',
+      optInConsent = true,
     } = body;
 
     if (!userName || !userName.trim()) {
@@ -38,6 +40,15 @@ export async function POST(req: NextRequest) {
     }
 
     const verifiedUser = await getVerifiedUser(req);
+
+    // Calculate Buyer Intent Score (0-100) for qualified B2B routing
+    const intent = calculateBuyerIntentScore({
+      text: `${unitTitle || ''} ${preferredLocation || ''} ${preferredUnitType || ''} ${notes || ''}`,
+      hasPhoneOptIn: Boolean(optInConsent),
+      budgetMax: budgetMax ? Number(budgetMax) : null,
+      preferredLocation,
+    });
+    const enrichedNotes = `[Intent Score: ${intent.score}/100 - ${intent.labelAr}]${optInConsent ? ' [Opt-In Consent: YES]' : ''}${notes ? ` | ${notes}` : ''}`;
 
     // Insert lead into Supabase
     const { data, error } = await supabaseAdmin
@@ -56,7 +67,7 @@ export async function POST(req: NextRequest) {
           developer_name: developerName || null,
           user_id: verifiedUser?.id || null,
           session_id: sessionId || null,
-          notes: notes || null,
+          notes: enrichedNotes,
           source,
           status: 'جديد'
         }
@@ -77,12 +88,14 @@ export async function POST(req: NextRequest) {
       developer: developerName || null,
       location: preferredLocation || null,
       budget: budgetMax || null,
-      notes: notes || null,
+      notes: enrichedNotes,
       source: String(source),
     });
 
     return NextResponse.json({
       success: true,
+      intentScore: intent.score,
+      intentLabel: intent.labelAr,
       message: 'تم استلام طلب المعاينة بنجاح! سيتواصل معك مستشارك العقاري المعتمد خلال دقائق لتنسيق الزيارة وموافاتك بالتفاصيل.',
       lead: data
     });

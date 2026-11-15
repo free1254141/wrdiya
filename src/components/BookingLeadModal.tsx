@@ -35,6 +35,7 @@ export default function BookingLeadModal({
   const [phone, setPhone] = useState('');
   const [preferredTime, setPreferredTime] = useState(isAr ? 'خلال عطلة نهاية الأسبوع' : 'Weekend');
   const [notes, setNotes] = useState('');
+  const [optInConsent, setOptInConsent] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -72,7 +73,8 @@ export default function BookingLeadModal({
           preferredUnitType: property?.unit_type || 'Apartment',
           budgetMax: property?.total_price,
           notes: `Timing: ${preferredTime}. Notes: ${notes || 'None'}`,
-          source: property ? 'property_card_viewing' : 'direct_advisor_inquiry'
+          source: property ? 'opt_in_property_viewing' : 'opt_in_developer_contact',
+          optInConsent,
         })
       });
 
@@ -236,6 +238,21 @@ export default function BookingLeadModal({
                 className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-900 focus:border-amber-500 focus:outline-hidden dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
               />
             </div>
+
+            <label className="flex items-start gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-2.5 text-[11px] text-slate-700 dark:text-emerald-200 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={optInConsent}
+                onChange={(e) => setOptInConsent(e.target.checked)}
+                required
+                className="mt-0.5 accent-emerald-500"
+              />
+              <span>
+                {isAr
+                  ? 'أوافق بمحض إرادتي على مشاركة رقمي مع المطور العقاري/المستشار المعتمد للتواصل معي بخصوص هذه الوحدة فقط (موافقة صريحة - قانون 151 لسنة 2020).'
+                  : 'I explicitly consent to sharing my phone number with the verified developer/advisor for this inquiry only.'}
+              </span>
+            </label>
 
             <div className="pt-2">
               <button

@@ -314,6 +314,42 @@ export default function BrokerChatSidebar({
             </span>
           </Link>
 
+          <Link
+            href="/market-index"
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                onToggle();
+              }
+            }}
+            className="flex w-full items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 hover:text-black dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white shadow-2xs"
+          >
+            <span className="flex items-center gap-2">
+              <Zap className="h-3.5 w-3.5 text-amber-500" />
+              <span>{isRtl ? 'مؤشر أسعار العقارات' : 'Market Price Index'}</span>
+            </span>
+            <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+              📊
+            </span>
+          </Link>
+
+          <Link
+            href="/partners"
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                onToggle();
+              }
+            }}
+            className="flex w-full items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 transition hover:bg-emerald-500/20 shadow-2xs"
+          >
+            <span className="flex items-center gap-2">
+              <Building2 className="h-3.5 w-3.5 text-emerald-500" />
+              <span>{isRtl ? 'للشركات وويدجت الموقع' : 'B2B & White-Label'}</span>
+            </span>
+            <span className="rounded-md bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-black text-emerald-600 dark:text-emerald-300">
+              B2B
+            </span>
+          </Link>
+
           {/* User's Own Listed Units for Sale (بروفايل البائع) */}
           {onOpenSellerModal && (
             <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-2.5 dark:border-emerald-500/25 dark:bg-emerald-500/10">
