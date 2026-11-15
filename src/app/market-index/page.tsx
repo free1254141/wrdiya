@@ -11,6 +11,7 @@ import {
   Scale,
 } from 'lucide-react';
 import { getMonthlyMarketIndex } from '@/lib/demand-analytics';
+import { DEVELOPER_RELIABILITY_INDEX } from '@/lib/developer-reliability';
 
 export const metadata: Metadata = {
   title: 'مؤشر إيوان لأسعار العقارات في مصر 2026 | متوسط سعر المتر والأقساط',
@@ -180,6 +181,63 @@ export default function MarketIndexPage() {
                       ) : (
                         '—'
                       )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Developer Reliability & EGX Index */}
+        <div className="rounded-3xl border border-zinc-800 bg-zinc-900/70 overflow-hidden shadow-xl mb-10">
+          <div className="p-5 border-b border-zinc-800 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="font-black text-base text-white flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-emerald-400" />
+                <span>مؤشر ملاءة ومصداقية المطورين (البورصة المصرية وسجل التسليم)</span>
+              </h2>
+              <p className="text-[11px] text-zinc-400 mt-1">
+                تقييم استرشادي مبني على الإفصاحات المالية العامة بالبورصة المصرية وسجل التسليمات السابقة
+              </p>
+            </div>
+            <span className="text-[11px] rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 font-bold text-emerald-300">
+              EGX & Delivery Track Record
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-right text-xs sm:text-sm">
+              <thead className="bg-zinc-950/90 text-zinc-400 border-b border-zinc-800">
+                <tr>
+                  <th className="p-4">المطور العقاري</th>
+                  <th className="p-4">التصنيف / البورصة</th>
+                  <th className="p-4">الملاءة</th>
+                  <th className="p-4">سكور التسليم</th>
+                  <th className="p-4">نقطة القوة وملاحظة إيوان بوت</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/70">
+                {DEVELOPER_RELIABILITY_INDEX.map((dev) => (
+                  <tr key={dev.id} className="hover:bg-emerald-500/5 transition">
+                    <td className="p-4 font-bold text-white whitespace-nowrap">
+                      <div>{dev.nameAr}</div>
+                      <div className="text-[11px] text-zinc-400 font-normal">{dev.nameEn}</div>
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
+                      {dev.egxTicker ? (
+                        <span className="rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[11px] font-mono font-bold text-amber-300">
+                          {dev.egxTicker}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-zinc-400">مطور قطاع خاص</span>
+                      )}
+                    </td>
+                    <td className="p-4 font-black text-emerald-400">{dev.solvencyTier}</td>
+                    <td className="p-4 font-black text-white font-mono">{dev.deliveryScore}/100</td>
+                    <td className="p-4 text-xs text-zinc-300 max-w-md">
+                      <div>{dev.keyStrengthAr}</div>
+                      <div className="text-[11px] text-amber-300/90 mt-1">💡 {dev.noteAr}</div>
                     </td>
                   </tr>
                 ))}

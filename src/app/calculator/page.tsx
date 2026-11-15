@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { getAllCompounds, CompoundSEOData } from '@/lib/compounds-data';
 import RealEstateVsGoldVsBank from '@/components/RealEstateVsGoldVsBank';
+import MyPropertyValueCheck from '@/components/MyPropertyValueCheck';
 
 export default function BudgetCalculatorPage() {
   const [downPayment, setDownPayment] = useState<number>(500000);
@@ -382,6 +383,9 @@ export default function BudgetCalculatorPage() {
 
           {/* Real Estate vs Bank CDs vs Gold Simulator */}
           <RealEstateVsGoldVsBank downPayment={downPayment} monthlyInstallment={monthlyInstallment} />
+
+          {/* Crowdsourced Real Transaction Valuation Check */}
+          <MyPropertyValueCheck />
 
           {/* Deep Chat CTA */}
           <div className="mt-8 rounded-2xl border-2 border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-zinc-900 to-amber-500/15 p-6 text-center">

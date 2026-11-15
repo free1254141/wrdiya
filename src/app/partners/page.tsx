@@ -308,6 +308,31 @@ export default function PartnersPage() {
             </div>
           </div>
         </div>
+
+        {/* Banks & Mortgage Valuation API v1 Card */}
+        <div className="mt-10 rounded-3xl border border-amber-500/30 bg-zinc-900/75 p-6 sm:p-8 shadow-xl">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div>
+              <h2 className="text-lg sm:text-xl font-black text-white">
+                🏦 API التقييم العقاري الرسمي للبنوك وشركات التمويل (<span dir="ltr" className="text-amber-400">v1</span>)
+              </h2>
+              <p className="text-xs text-zinc-400 mt-1">
+                نقطة اتصال برمجية سريعة لإرجاع القيمة السوقية العادلة، سعر البيع السريع، وسكور الخدمات من OpenStreetMap.
+              </p>
+            </div>
+            <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-3 py-1 text-[11px] font-mono font-bold text-amber-300">
+              Sandbox Key: ewan_sandbox_demo
+            </span>
+          </div>
+
+          <pre
+            dir="ltr"
+            className="rounded-2xl border border-zinc-800 bg-black p-4 text-[11px] text-amber-300 overflow-x-auto leading-relaxed"
+          >{`curl -X POST https://ewanbot.com/api/v1/valuate \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: ewan_sandbox_demo" \\
+  -d '{"location":"التجمع الخامس","area_sqm":150,"asking_price":7200000}'`}</pre>
+        </div>
       </main>
     </div>
   );
