@@ -17,6 +17,7 @@ import {
   Scale
 } from 'lucide-react';
 import { getCompoundBySlug, getTopCompounds, getRelatedCompoundsByLocation } from '@/lib/compounds-data';
+import LocationScoreCard from '@/components/LocationScoreCard';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -239,6 +240,9 @@ export default async function SingleCompoundPage({ params }: Props) {
             </div>
           </div>
         </div>
+
+        {/* OpenStreetMap Live Location & Services Score */}
+        <LocationScoreCard location={compound.location} compoundName={compound.name} />
 
         {/* Live Sample Units Table */}
         {compound.sample_units && compound.sample_units.length > 0 && (
