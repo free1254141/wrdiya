@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import SubpageSidebarShell from '@/components/SubpageSidebarShell';
+import B2BTrialPricingSection from '@/components/B2BTrialPricingSection';
 import {
   Building2,
   Code2,
@@ -310,6 +311,12 @@ export default function PartnersPage() {
             </div>
           </div>
         </div>
+
+        {/* 3-Day Free Trial + Live Pricing Estimator */}
+        <B2BTrialPricingSection
+          defaultCompanyName={brandName}
+          defaultWhatsapp={whatsapp}
+        />
 
         {/* Banks & Mortgage Valuation API v1 Card */}
         <div className="mt-10 rounded-3xl border border-amber-500/30 bg-zinc-900/75 p-6 sm:p-8 shadow-xl">

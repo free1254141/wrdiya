@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import AdminB2BAnalyticsPanel from '@/components/AdminB2BAnalyticsPanel';
 import {
   Users,
   MessageSquare,
@@ -126,7 +127,7 @@ export default function AdminDashboardPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Active Tab: 'chats' | 'leads' | 'seller_properties' | 'users' | 'demand'
-  const [activeTab, setActiveTab] = useState<'chats' | 'leads' | 'seller_properties' | 'users' | 'demand'>('chats');
+  const [activeTab, setActiveTab] = useState<'chats' | 'leads' | 'seller_properties' | 'users' | 'demand' | 'b2b_visitors'>('chats');
   const [demandData, setDemandData] = useState<any>(null);
   const [demandLoading, setDemandLoading] = useState(false);
 
@@ -1219,6 +1220,19 @@ export default function AdminDashboardPage() {
             <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-black text-emerald-400">
               جديد
             </span>
+          </button>
+
+          {/* Tab 6: Visitor Movements, B2B Trials & API Usage */}
+          <button
+            onClick={() => setActiveTab('b2b_visitors')}
+            className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition whitespace-nowrap shrink-0 ${
+              activeTab === 'b2b_visitors'
+                ? 'border-sky-500 text-sky-400'
+                : 'border-transparent text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Sparkles className="h-4 w-4" />
+            <span>تحركات الزوار والشركات والـ API</span>
           </button>
         </div>
       </section>
@@ -2415,7 +2429,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'demand' ? (
           /* ============================================================== */
           /* TAB 5: B2B DEMAND INTELLIGENCE & BUYER INTENT SCORING          */
           /* ============================================================== */
@@ -2533,6 +2547,8 @@ export default function AdminDashboardPage() {
               </>
             ) : null}
           </div>
+        ) : (
+          <AdminB2BAnalyticsPanel />
         )}
       </main>
 

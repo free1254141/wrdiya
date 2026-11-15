@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import PageAnalyticsTracker from "@/components/PageAnalyticsTracker";
 
 const cairo = Cairo({
   subsets: ["arabic", "latin"],
@@ -351,6 +352,7 @@ export default function RootLayout({
         <ThemeProvider>
           <LanguageProvider>
             <AuthProvider>
+              <PageAnalyticsTracker />
               {children}
             </AuthProvider>
           </LanguageProvider>
