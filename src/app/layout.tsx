@@ -13,7 +13,7 @@ const cairo = Cairo({
   display: "swap",
 });
 
-const siteUrl = "https://ewanbot.com";
+const siteUrl = "https://www.ewanbot.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -68,7 +68,6 @@ export const metadata: Metadata = {
     "Egyptian Real Estate AI",
   ],
   alternates: {
-    canonical: siteUrl,
     languages: {
       "ar-EG": siteUrl,
       "en-US": `${siteUrl}?lang=en`,

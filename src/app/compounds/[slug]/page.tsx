@@ -49,7 +49,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title,
     description,
     alternates: {
-      canonical: `https://ewanbot.com/compounds/${encodeURIComponent(compound.slug)}`,
+      canonical: `https://www.ewanbot.com/compounds/${encodeURIComponent(compound.slug)}`,
     },
     openGraph: {
       title,

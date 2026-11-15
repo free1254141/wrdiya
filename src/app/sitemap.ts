@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import { getAllCompounds } from '@/lib/compounds-data';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://ewanbot.com';
+  const baseUrl = 'https://www.ewanbot.com';
   const now = new Date();
 
   // Supported languages

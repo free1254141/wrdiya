@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   description:
     'التقرير الشهري لأسعار العقارات في مصر 2026: متوسط سعر المتر الفعلي، أقل مقدم، وأطول فترة سداد في التجمع الخامس، الشيخ زايد، 6 أكتوبر، العاصمة الإدارية والساحل الشمالي.',
   alternates: {
-    canonical: 'https://ewanbot.com/market-index',
+    canonical: 'https://www.ewanbot.com/market-index',
   },
   openGraph: {
     title: 'مؤشر إيوان لأسعار العقارات في مصر 2026 | Ewanbot Market Index',

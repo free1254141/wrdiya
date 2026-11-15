@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: 'دليل أسعار وجداول أقساط كمبوندات مصر 2026 | إيوان بوت Ewanbot',
   description: 'دليل شامل لأسعار وجداول أقساط أكثر من 600 كمبوند رسمي ومعتمد في التجمع الخامس، الشيخ زايد، العاصمة الإدارية، 6 أكتوبر والساحل الشمالي. احسب قسطك بدون مكالمات سيلز.',
   alternates: {
-    canonical: 'https://ewanbot.com/compounds',
+    canonical: 'https://www.ewanbot.com/compounds',
   },
   openGraph: {
     title: 'دليل أسعار وجداول أقساط كمبوندات مصر 2026 | إيوان بوت',

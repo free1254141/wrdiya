@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description:
     'قارن بصراحة بين أي كمبوندين في التجمع الخامس، الشيخ زايد، 6 أكتوبر، العاصمة الإدارية والساحل الشمالي. اعرف سعر المتر الفعلي، أقل مقدم، والقسط الحقيقي بدون سيلز.',
   alternates: {
-    canonical: 'https://ewanbot.com/compare',
+    canonical: 'https://www.ewanbot.com/compare',
   },
   openGraph: {
     title: 'حلبة مقارنة الكمبوندات وجهاً لوجه 2026 | إيوان بوت',
