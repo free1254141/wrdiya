@@ -29,6 +29,7 @@ interface DirectSearchPanelProps {
   onViewDetails: (property: Property) => void;
   favorites: Property[];
   onSwitchToChat: () => void;
+  onOpenHiddenGapDetector?: () => void;
 }
 
 type RegionKey = 'all' | 'tagamoa' | 'zayed' | 'capital' | 'coast' | 'mostakbal' | 'seller';
@@ -42,7 +43,8 @@ export default function DirectSearchPanel({
   onToggleFavorite,
   onViewDetails,
   favorites,
-  onSwitchToChat
+  onSwitchToChat,
+  onOpenHiddenGapDetector,
 }: DirectSearchPanelProps) {
   const { locale, isRtl } = useLanguage();
   const isAr = locale === 'ar';
@@ -57,6 +59,7 @@ export default function DirectSearchPanel({
   const [selectedBedrooms, setSelectedBedrooms] = useState<string>('all');
   const [paymentMethod, setPaymentMethod] = useState<'all' | 'installment' | 'cash'>('all');
   const [sortBy, setSortBy] = useState<SortKey>('relevance');
+  const [hotDealsOnly, setHotDealsOnly] = useState(false);
 
   // AI Comparison Bucket (up to 3 units)
   const [comparedProperties, setComparedProperties] = useState<Property[]>([]);
@@ -75,8 +78,28 @@ export default function DirectSearchPanel({
     if (selectedBedrooms !== 'all') count++;
     if (paymentMethod !== 'all') count++;
     if (sortBy !== 'relevance') count++;
+    if (hotDealsOnly) count++;
     return count;
-  }, [selectedRegion, selectedType, selectedBedrooms, paymentMethod, sortBy]);
+  }, [selectedRegion, selectedType, selectedBedrooms, paymentMethod, sortBy, hotDealsOnly]);
+
+  // Precompute average price per sqm per city for Hot Deals radar
+  const cityAvgPricePerSqm = useMemo(() => {
+    const sums: Record<string, { total: number; count: number }> = {};
+    for (const p of allProperties) {
+      if (p.total_price > 0 && p.area_sqm > 15) {
+        const cityKey = (p.compound?.city || 'general').trim().toLowerCase();
+        const pps = p.total_price / p.area_sqm;
+        if (!sums[cityKey]) sums[cityKey] = { total: 0, count: 0 };
+        sums[cityKey].total += pps;
+        sums[cityKey].count += 1;
+      }
+    }
+    const avg: Record<string, number> = {};
+    for (const [k, v] of Object.entries(sums)) {
+      if (v.count >= 3) avg[k] = v.total / v.count;
+    }
+    return avg;
+  }, [allProperties]);
 
   const handleResetFilters = () => {
     setSearchQuery('');
@@ -215,6 +238,18 @@ export default function DirectSearchPanel({
       list = list.filter((p) => (p.installment_years || 0) === 0 || (p.down_payment_pct || 0) >= 100);
     }
 
+    // Hot Deals Only (Below market average price/sqm by >= 15%)
+    if (hotDealsOnly) {
+      list = list.filter((p) => {
+        if (!p.total_price || !p.area_sqm || p.area_sqm <= 15) return false;
+        const cityKey = (p.compound?.city || 'general').trim().toLowerCase();
+        const avgPps = cityAvgPricePerSqm[cityKey];
+        if (!avgPps) return false;
+        const pps = p.total_price / p.area_sqm;
+        return pps <= avgPps * 0.85;
+      });
+    }
+
     // Sorting
     if (sortBy === 'price_asc') {
       list.sort((a, b) => a.total_price - b.total_price);
@@ -222,10 +257,18 @@ export default function DirectSearchPanel({
       list.sort((a, b) => b.total_price - a.total_price);
     } else if (sortBy === 'area_desc') {
       list.sort((a, b) => (b.area_sqm || 0) - (a.area_sqm || 0));
+    } else if (hotDealsOnly) {
+      list.sort((a, b) => {
+        const ka = (a.compound?.city || 'general').trim().toLowerCase();
+        const kb = (b.compound?.city || 'general').trim().toLowerCase();
+        const da = (a.total_price / (a.area_sqm || 1)) / (cityAvgPricePerSqm[ka] || 1);
+        const db = (b.total_price / (b.area_sqm || 1)) / (cityAvgPricePerSqm[kb] || 1);
+        return da - db;
+      });
     }
 
     return list;
-  }, [allProperties, searchQuery, selectedRegion, selectedType, selectedBedrooms, paymentMethod, sortBy]);
+  }, [allProperties, searchQuery, selectedRegion, selectedType, selectedBedrooms, paymentMethod, sortBy, hotDealsOnly, cityAvgPricePerSqm]);
 
   const displayedList = filteredProperties.slice(0, visibleCount);
 
@@ -368,8 +411,28 @@ export default function DirectSearchPanel({
             </div>
           </div>
 
-          {/* Region Quick Filters (Touch-scrollable) */}
+          {/* Region Quick Filters + Hot Deals Radar (Touch-scrollable) */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide text-xs">
+            <button
+              type="button"
+              onClick={() => setHotDealsOnly((prev) => !prev)}
+              className={`shrink-0 rounded-full border px-3 py-1 text-[11px] sm:text-xs font-black transition ${
+                hotDealsOnly
+                  ? 'border-red-500 bg-gradient-to-r from-red-500 to-amber-500 text-white shadow-md'
+                  : 'border-red-500/40 bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500/20'
+              }`}
+            >
+              {isAr ? '🔥 لقطات أقل من السوق' : '🔥 Below Market Deals'}
+            </button>
+            {onOpenHiddenGapDetector && (
+              <button
+                type="button"
+                onClick={onOpenHiddenGapDetector}
+                className="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-[11px] sm:text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition"
+              >
+                {isAr ? '🕵️‍♂️ كاشف الأقساط المخفية' : '🕵️‍♂️ Hidden Fee Detector'}
+              </button>
+            )}
             <span className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 shrink-0 ml-1">
               {isAr ? 'الوجهة:' : 'Region:'}
             </span>

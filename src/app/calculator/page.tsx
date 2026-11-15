@@ -13,7 +13,8 @@ import {
   ShieldCheck, 
   Coins, 
   TrendingUp,
-  MessageCircle
+  MessageCircle,
+  Printer
 } from 'lucide-react';
 import { getAllCompounds, CompoundSEOData } from '@/lib/compounds-data';
 
@@ -110,12 +111,22 @@ export default function BudgetCalculatorPage() {
   const chatPrompt = encodeURIComponent(`معايا مقدم ${fmt(downPayment)} جنيه، وقسط شهري في حدود ${fmt(monthlyInstallment)} جنيه، وعايز أفضل الخيارات والشقق المتاحة المناسبة ليا في ${areaLabel}`);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-amber-500 selection:text-black">
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-amber-500 selection:text-black print:bg-white print:text-black">
       {/* Background Glow */}
-      <div className="fixed inset-0 pointer-events-none opacity-20 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:24px_24px]" />
+      <div className="fixed inset-0 pointer-events-none opacity-20 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:24px_24px] print:hidden" />
+
+      {/* Print-only Header */}
+      <div className="hidden print:block border-b-2 border-amber-500 pb-4 mb-6 px-6 pt-6">
+        <h1 className="text-2xl font-black text-black">
+          تقرير الميزانية العقارية والكمبوندات المناسبة — إيوان بوت (Ewanbot)
+        </h1>
+        <p className="text-sm text-gray-600 mt-1">
+          المقدم المتاح: {fmt(downPayment)} ج.م | القسط الشهري: {fmt(monthlyInstallment)} ج.م | القوة الشرائية: {fmtM(totalBuyingPower)} مليون ج.م — ewanbot.com
+        </p>
+      </div>
 
       {/* Header */}
-      <header className="relative z-10 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md sticky top-0 px-4 py-3.5">
+      <header className="relative z-10 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md sticky top-0 px-4 py-3.5 print:hidden">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             <div className="h-9 w-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
@@ -274,7 +285,7 @@ export default function BudgetCalculatorPage() {
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-2 print:hidden">
               <button
                 type="button"
                 onClick={handleShare}
@@ -282,6 +293,14 @@ export default function BudgetCalculatorPage() {
               >
                 {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Share2 className="h-3.5 w-3.5 text-amber-400" />}
                 <span>{copied ? 'تم نسخ الرابط!' : 'شارك نتيجتك'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold transition border border-zinc-700"
+              >
+                <Printer className="h-3.5 w-3.5 text-emerald-400" />
+                <span>تحميل التقرير PDF</span>
               </button>
             </div>
           </div>

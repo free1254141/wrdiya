@@ -58,6 +58,7 @@ import PropertiesTableModal from '@/components/PropertiesTableModal';
 import InlinePropertiesTable from '@/components/InlinePropertiesTable';
 import SellerPropertiesModal from '@/components/SellerPropertiesModal';
 import DirectSearchPanel from '@/components/DirectSearchPanel';
+import HiddenGapDetectorModal from '@/components/HiddenGapDetectorModal';
 import ChatWallpaperModal from '@/components/ChatWallpaperModal';
 import { 
   CHAT_WALLPAPERS, 
@@ -102,6 +103,7 @@ export default function EwanbotChatPage() {
 
   // Application Mode: 'chat' (AI Agent) vs 'direct_search' (Off-Agent Instant Filter)
   const [appMode, setAppMode] = useState<'chat' | 'direct_search'>('chat');
+  const [hiddenGapModalOpen, setHiddenGapModalOpen] = useState(false);
 
   // Chat Wallpaper State with live user-controlled opacity & custom image support
   const [showWallpaperModal, setShowWallpaperModal] = useState<boolean>(false);
@@ -1088,6 +1090,19 @@ export default function EwanbotChatPage() {
               >
                 <span>🏢 دليل الكمبوندات</span>
               </Link>
+              <Link
+                href="/compare"
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-100/90 dark:border-zinc-800/80 dark:bg-zinc-900/90 px-2.5 py-1 text-xs font-bold text-slate-700 dark:text-zinc-200 shadow-2xs hover:border-amber-500/50 hover:text-amber-500 transition"
+              >
+                <span>⚔️ حلبة المقارنة</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => setHiddenGapModalOpen(true)}
+                className="flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400 shadow-2xs hover:bg-amber-500/20 transition cursor-pointer"
+              >
+                <span>🕵️‍♂️ كاشف الأقساط</span>
+              </button>
             </div>
             <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {/* User Persona Pill (Buyer / Seller / Broker) */}
@@ -1238,6 +1253,7 @@ export default function EwanbotChatPage() {
             onViewDetails={(p) => openPropertyDetails(p)}
             favorites={favorites}
             onSwitchToChat={() => setAppMode('chat')}
+            onOpenHiddenGapDetector={() => setHiddenGapModalOpen(true)}
           />
         ) : (
           <div className="relative flex flex-1 flex-col min-h-0 overflow-hidden">
@@ -1300,6 +1316,38 @@ export default function EwanbotChatPage() {
                     </button>
                   ))}
                 </div>
+
+                {/* Smart Interactive Tools Strip */}
+                {isRtl && (
+                  <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                    <Link
+                      href="/compare"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-zinc-300/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/80 px-3.5 py-1.5 text-xs font-bold text-slate-800 dark:text-zinc-200 hover:border-amber-500 transition shadow-2xs"
+                    >
+                      <span>⚔️ قارن كمبوندين وجهاً لوجه</span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setHiddenGapModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-3.5 py-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition cursor-pointer"
+                    >
+                      <span>🕵️‍♂️ كاشف الأقساط المخفية</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAppMode('direct_search')}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-red-500/40 bg-red-500/10 px-3.5 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-500/20 transition cursor-pointer"
+                    >
+                      <span>🔥 تصفح لقطات أقل من السوق</span>
+                    </button>
+                    <Link
+                      href="/calculator"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 transition"
+                    >
+                      <span>🧮 حاسبة الميزانية</span>
+                    </Link>
+                  </div>
+                )}
               </div>
             ) : (
               /* Messages Stream */
@@ -1854,6 +1902,16 @@ export default function EwanbotChatPage() {
           setCustomWallpaperImage(customImg);
         }}
         isAr={isRtl}
+      />
+
+      {/* Interactive Hidden Installment Gap Detector Modal */}
+      <HiddenGapDetectorModal
+        isOpen={hiddenGapModalOpen}
+        onClose={() => setHiddenGapModalOpen(false)}
+        onSendToChat={(prompt) => {
+          setAppMode('chat');
+          handleSendMessage(prompt);
+        }}
       />
     </div>
   );

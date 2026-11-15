@@ -296,6 +296,24 @@ export default function BrokerChatSidebar({
             </span>
           </Link>
 
+          <Link
+            href="/compare"
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                onToggle();
+              }
+            }}
+            className="flex w-full items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 hover:text-black dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white shadow-2xs"
+          >
+            <span className="flex items-center gap-2">
+              <Zap className="h-3.5 w-3.5 text-emerald-500" />
+              <span>{isRtl ? 'حلبة مقارنة الكمبوندات' : 'Compare Compounds'}</span>
+            </span>
+            <span className="rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+              ⚔️
+            </span>
+          </Link>
+
           {/* User's Own Listed Units for Sale (بروفايل البائع) */}
           {onOpenSellerModal && (
             <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-2.5 dark:border-emerald-500/25 dark:bg-emerald-500/10">

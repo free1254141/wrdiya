@@ -13,9 +13,10 @@ import {
   Calculator,
   ChevronRight,
   HelpCircle,
-  Eye
+  Eye,
+  Scale
 } from 'lucide-react';
-import { getCompoundBySlug, getTopCompounds, getAllCompounds } from '@/lib/compounds-data';
+import { getCompoundBySlug, getTopCompounds, getRelatedCompoundsByLocation } from '@/lib/compounds-data';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -79,7 +80,7 @@ export default async function SingleCompoundPage({ params }: Props) {
     notFound();
   }
 
-  const related = getTopCompounds(6).filter((c) => c.slug !== compound.slug);
+  const related = getRelatedCompoundsByLocation(compound, 6);
 
   const fmt = (n?: number) =>
     typeof n === 'number' && Number.isFinite(n)
@@ -219,13 +220,23 @@ export default async function SingleCompoundPage({ params }: Props) {
               لا داعي لتسجيل رقم هاتفك واستقبال عشرات المكالمات من الوسطاء. اسأل إيوان بوت مباشرة واعرف الأقساط الحقيقية وتفاصيل الاستلام والموقع فوراً.
             </p>
 
-            <Link
-              href={`/?chat=${chatPrompt}`}
-              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-black text-sm sm:text-base shadow-lg shadow-amber-500/30 transition transform hover:-translate-y-0.5"
-            >
-              <Sparkles className="h-5 w-5" />
-              <span>احسب قسطك الشهري وقارن الوحدات فوراً مع Ewanbot بدون تسجيل رقم</span>
-            </Link>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href={`/?chat=${chatPrompt}`}
+                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-black text-sm sm:text-base shadow-lg shadow-amber-500/30 transition transform hover:-translate-y-0.5"
+              >
+                <Sparkles className="h-5 w-5" />
+                <span>احسب قسطك الشهري وقارن الوحدات فوراً مع Ewanbot بدون تسجيل رقم</span>
+              </Link>
+
+              <Link
+                href={`/compare?c1=${encodeURIComponent(compound.slug)}`}
+                className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl border border-zinc-700 bg-zinc-900/90 hover:border-amber-500/60 text-white font-bold text-sm transition"
+              >
+                <Scale className="h-4 w-4 text-amber-400" />
+                <span>قارن {compound.name} بمشروع آخر ⚔️</span>
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -325,22 +336,37 @@ export default async function SingleCompoundPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Related Compounds */}
+        {/* Related Compounds & Comparisons */}
         {related.length > 0 && (
           <div>
             <h3 className="text-sm sm:text-base font-bold text-zinc-300 mb-3">
-              كمبوندات أخرى مميزة قد تهمك
+              كمبوندات قريبة ومقارنات مقترحة في {compound.location}
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {related.map((rc) => (
-                <Link
+                <div
                   key={rc.slug}
-                  href={`/compounds/${encodeURIComponent(rc.slug)}`}
-                  className="p-3 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:border-amber-500/40 transition block text-xs"
+                  className="p-3.5 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:border-amber-500/40 transition flex flex-col justify-between gap-2.5 text-xs"
                 >
-                  <span className="font-bold text-white block truncate mb-1">كمبوند {rc.name}</span>
-                  <span className="text-[11px] text-amber-400 block">يبدأ من {fmtM(rc.min_price)} مليون</span>
-                </Link>
+                  <Link href={`/compounds/${encodeURIComponent(rc.slug)}`} className="block">
+                    <span className="font-bold text-white block truncate mb-0.5 hover:text-amber-400 transition">
+                      كمبوند {rc.name}
+                    </span>
+                    <span className="text-[11px] text-zinc-400 block truncate mb-1">
+                      {rc.location}
+                    </span>
+                    <span className="text-[11px] text-amber-400 font-bold block">
+                      يبدأ من {fmtM(rc.min_price)} مليون ج.م
+                    </span>
+                  </Link>
+                  <Link
+                    href={`/compare?c1=${encodeURIComponent(compound.slug)}&c2=${encodeURIComponent(rc.slug)}`}
+                    className="inline-flex items-center justify-center gap-1 py-1.5 px-2.5 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-amber-500/50 text-[11px] font-bold text-zinc-300 hover:text-amber-400 transition"
+                  >
+                    <Scale className="h-3 w-3" />
+                    <span>قارن مع {compound.name} ⚔️</span>
+                  </Link>
+                </div>
               ))}
             </div>
           </div>
