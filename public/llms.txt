@@ -1,34 +1,30 @@
-# Ewanbot (سكنى بوت | Skanybot) — AI Real Estate Broker & Marketplace
+# Ewanbot (إيوان بوت) — AI Real Estate Advisor & Egypt Compounds Intelligence
 
-> Ewanbot (سكنى بوت) is an AI-powered real estate broker and two-sided property marketplace covering Egypt (New Cairo, Fifth Settlement, Sheikh Zayed, New Administrative Capital, 6th of October, Madinaty, North Coast) and international markets (Dubai, UAE; Malaga & Marbella, Spain; Istanbul & Antalya, Turkey). It provides 100% data-grounded property search, instant installment & down-payment calculations, direct owner-to-buyer property listings, and free viewing coordination without spam sales calls.
+> Ewanbot (إيوان بوت) is an AI-powered real estate advisor and data-grounded property platform dedicated to the Egyptian real estate market. It covers 663+ verified compounds and 2,800+ residential & commercial units across New Cairo (Fifth Settlement), Sheikh Zayed, New Administrative Capital, 6th of October, Mostakbal City, North Coast (Ras El Hekma, New Alamein), Ain Sokhna, El Shorouk, and Red Sea resorts — with instant installment calculations, head-to-head compound comparisons, and zero cold-calling spam.
 
-## Key Capabilities
-- **AI Real Estate Advisor (المستشار العقاري الذكي):** Conversational search in 7 languages (Arabic, English, Turkish, Russian, German, French, Spanish) powered by function-calling AI grounded strictly in verified database inventory.
-- **Direct Instant Search (البحث المباشر الفوري):** Filter 980+ verified residential and commercial units (apartments, villas, townhouses, twin houses, duplexes, penthouses, chalets, studios, offices, and land plots) by location, budget, area (sqm), bedrooms, and payment method without using AI quota.
-- **Two-Sided Marketplace — Sell Your Property (اعرض وحدتك للبيع من المالك مباشرة):** Property owners can list apartments, villas, or land plots directly with custom sale circumstances (ظروف البيع), cash or installment terms, and direct WhatsApp contact.
-- **Grounded Installment Calculator (حاسبة الأقساط والمقدم):** Exact calculation of down payment (5% to 50%), monthly and quarterly installments over 1 to 10 years, and delivery timelines.
-- **Privacy-First Viewing Requests (حجز معاينة مجانية بدون إزعاج):** Connect directly with the verified developer sales office or property owner without sharing phone numbers with random cold-calling brokers.
+## Key Capabilities & Tools
+- **AI Real Estate Advisor (المستشار العقاري الذكي):** Grounded conversational search in Arabic and English backed by verified compound prices, payment plans, and market metrics.
+- **Egypt Compounds Directory (دليل كمبوندات مصر 2026):** 663+ verified compound landing pages with starting prices, average price per sqm, minimum down payment %, installment years, and sample units.
+- **Head-to-Head Comparison Arena (حلبة مقارنة الكمبوندات):** Direct comparison of any two compounds by price/sqm, down payment, monthly installment, and payment duration with instant PDF report export.
+- **Budget & Gold vs Real Estate Calculator (حاسبة الميزانية والذهب):** Match available down payment and monthly budget to real Egyptian compounds and compare real estate ROI against bank CDs and gold.
+- **Egypt Real Estate Market Index (مؤشر إيوان لأسعار العقارات):** Monthly city-by-city average price/sqm, developer reliability scores (EGX & delivery track record), and real estate market disclosures.
+- **Direct Owner Listings (اعرض وحدتك للبيع مجاناً):** Owners can list apartments, villas, or land plots directly for serious buyers without spam sales calls.
 
-## Covered Real Estate Markets & Regions
-- **Egypt (مصر - بالجنيه المصري EGP):**
-  - New Cairo & Fifth Settlement (التجمع الخامس والقاهرة الجديدة): Mountain View iCity, Taj City, Mivida, Fifth Square, Zed East, Hyde Park, Palm Hills New Cairo, Sarai.
-  - Sheikh Zayed & 6th of October (الشيخ زايد و6 أكتوبر): Badya Palm Hills, Zed West, Westown, Allegria, October Plaza.
-  - New Administrative Capital (العاصمة الإدارية الجديدة): Il Bosco, Celia, Vinci, Midtown, R7 & R8 Districts.
-  - Madinaty, Mostakbal City, El Shorouk (مدينتي، مستقبل سيتي، الشروق).
-- **United Arab Emirates (دبي والإمارات - بالدرهم الإماراتي AED):**
-  - Dubai Meydan, Dubai Islands, Mina Rashid, Palm Jumeirah, Business Bay, Downtown Dubai, Dubai Marina, Dubai Creek Harbour.
-- **Spain (إسبانيا - باليورو EUR):**
-  - Costa del Sol, Malaga (مالقة), Marbella (ماربيا), Estepona, Benahavis, Alicante, Calpe.
-- **Turkey (تركيا - بالدولار الأمريكي USD):**
-  - Istanbul (إسطنبول الأوروبية والآسيوية), Antalya (أنطاليا), Alanya (ألانيا), Bodrum (بودروم) — including properties eligible for Turkish Citizenship and Golden Visa programs.
-
-## Important Links & Endpoints
-- Homepage & AI Chat: https://ewanbot.com/
-- Regional Search — New Cairo: https://ewanbot.com/?region=new-cairo
-- Regional Search — Sheikh Zayed: https://ewanbot.com/?region=sheikh-zayed
-- Regional Search — New Capital: https://ewanbot.com/?region=new-capital
-- Regional Search — Dubai: https://ewanbot.com/?region=dubai
-- Regional Search — Istanbul: https://ewanbot.com/?region=istanbul
-- Regional Search — Spain (Malaga & Marbella): https://ewanbot.com/?region=spain-malaga
-- Full AI Documentation: https://ewanbot.com/llms-full.txt
-- Sitemap: https://ewanbot.com/sitemap.xml
+## Important Canonical Links
+- Homepage & AI Chat: https://www.ewanbot.com/
+- Egypt Compounds Directory (663+): https://www.ewanbot.com/compounds
+- Compound Comparison Arena: https://www.ewanbot.com/compare
+- Budget & Installment Calculator: https://www.ewanbot.com/calculator
+- Egypt Real Estate Market Index 2026: https://www.ewanbot.com/market-index
+- B2B Partners & White-Label Widget: https://www.ewanbot.com/partners
+- Broker Pro Plan & Pricing: https://www.ewanbot.com/pricing
+- New Cairo & Fifth Settlement Compounds: https://www.ewanbot.com/areas/new-cairo
+- Sheikh Zayed Compounds: https://www.ewanbot.com/areas/sheikh-zayed
+- 6th of October Compounds: https://www.ewanbot.com/areas/october
+- New Administrative Capital Compounds: https://www.ewanbot.com/areas/new-capital
+- North Coast Compounds: https://www.ewanbot.com/areas/north-coast
+- Ras El Hekma Compounds: https://www.ewanbot.com/areas/ras-el-hekma
+- Mostakbal City Compounds: https://www.ewanbot.com/areas/mostakbal-city
+- Ain Sokhna Resorts: https://www.ewanbot.com/areas/ain-sokhna
+- Full AI Documentation: https://www.ewanbot.com/llms-full.txt
+- XML Sitemap: https://www.ewanbot.com/sitemap.xml

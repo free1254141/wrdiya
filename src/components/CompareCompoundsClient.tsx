@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import SubpageSidebarShell from '@/components/SubpageSidebarShell';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
   Scale,
   Search,
@@ -29,35 +29,35 @@ import {
 } from '@/lib/compounds-data';
 
 export default function CompareCompoundsClient() {
-  const searchParams = useSearchParams();
   const router = useRouter();
 
   const allCompounds = useMemo(() => getAllCompounds(), []);
 
-  // Resolve initial slugs from URL or pick top 2 distinct compounds
-  const initialC1 = useMemo(() => {
-    const q1 = searchParams.get('c1');
-    return (q1 && getCompoundBySlug(q1)) || allCompounds[0];
-  }, [searchParams, allCompounds]);
-
-  const initialC2 = useMemo(() => {
-    const q2 = searchParams.get('c2');
-    const found = q2 && getCompoundBySlug(q2);
-    if (found && found.slug !== initialC1?.slug) return found;
-    return allCompounds.find((c) => c.slug !== initialC1?.slug) || allCompounds[1];
-  }, [searchParams, allCompounds, initialC1]);
-
-  const [c1, setC1] = useState<CompoundSEOData>(initialC1);
-  const [c2, setC2] = useState<CompoundSEOData>(initialC2);
+  const [c1, setC1] = useState<CompoundSEOData>(allCompounds[0]);
+  const [c2, setC2] = useState<CompoundSEOData>(allCompounds[1] || allCompounds[0]);
   const [query1, setQuery1] = useState('');
   const [query2, setQuery2] = useState('');
   const [openDropdown, setOpenDropdown] = useState<1 | 2 | null>(null);
   const [copied, setCopied] = useState(false);
+  const [reportDate, setReportDate] = useState('نوفمبر 2026');
 
+  // Sync URL query params (?c1=...&c2=...) and client date without blocking SSR prerendering
   useEffect(() => {
-    if (initialC1) setC1(initialC1);
-    if (initialC2) setC2(initialC2);
-  }, [initialC1, initialC2]);
+    setReportDate(new Date().toLocaleDateString('ar-EG'));
+    if (typeof window === 'undefined') return;
+    const sp = new URLSearchParams(window.location.search);
+    const q1 = sp.get('c1');
+    const q2 = sp.get('c2');
+    const resolved1 = (q1 && getCompoundBySlug(q1)) || allCompounds[0];
+    const found2 = q2 && getCompoundBySlug(q2);
+    const resolved2 =
+      (found2 && found2.slug !== resolved1?.slug ? found2 : null) ||
+      allCompounds.find((c) => c.slug !== resolved1?.slug) ||
+      allCompounds[1];
+
+    if (resolved1) setC1(resolved1);
+    if (resolved2) setC2(resolved2);
+  }, [allCompounds]);
 
   // Close dropdown on Escape key
   useEffect(() => {
@@ -210,7 +210,7 @@ export default function CompareCompoundsClient() {
     (longerInstallment === 2 ? 1 : 0) +
     (lowerMonthly === 2 ? 1 : 0);
 
-  const shareUrl = `https://ewanbot.com/compare?c1=${encodeURIComponent(c1.slug)}&c2=${encodeURIComponent(c2.slug)}`;
+  const shareUrl = `https://www.ewanbot.com/compare?c1=${encodeURIComponent(c1.slug)}&c2=${encodeURIComponent(c2.slug)}`;
 
   const handleShare = async () => {
     const text = `⚔️ مقارنة عقارية من إيوان بوت (Ewanbot):\n\n1️⃣ ${c1.name} (${c1.location})\n- يبدأ من: ${fmtM(c1.min_price)} مليون | قسط شهري: ${fmt(c1.min_monthly_installment)} ج.م\n- سعر المتر: ~${fmt(m1.avgPricePerSqm)} ج.م\n\n2️⃣ ${c2.name} (${c2.location})\n- يبدأ من: ${fmtM(c2.min_price)} مليون | قسط شهري: ${fmt(c2.min_monthly_installment)} ج.م\n- سعر المتر: ~${fmt(m2.avgPricePerSqm)} ج.م\n\n📊 التقرير الكامل هنا:\n${shareUrl}`;
@@ -292,15 +292,15 @@ export default function CompareCompoundsClient() {
       <div className="hidden print:block border-b-2 border-amber-500 pb-4 mb-6 px-6 pt-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-black text-black">
+            <div className="text-2xl font-black text-black">
               تقرير المقارنة العقارية — إيوان بوت (Ewanbot)
-            </h1>
+            </div>
             <p className="text-sm text-gray-600 mt-1">
-              مقارنة موثقة بالأسعار الفعلية وأنظمة السداد — ewanbot.com
+              مقارنة موثقة بالأسعار الفعلية وأنظمة السداد — www.ewanbot.com
             </p>
           </div>
           <div className="text-left text-xs text-gray-500">
-            تاريخ التقرير: {new Date().toLocaleDateString('ar-EG')}
+            تاريخ التقرير: {reportDate}
           </div>
         </div>
       </div>

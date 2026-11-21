@@ -13,30 +13,42 @@ import {
 import { getMonthlyMarketIndex } from '@/lib/demand-analytics';
 import { DEVELOPER_RELIABILITY_INDEX } from '@/lib/developer-reliability';
 import { queryNewsDisclosures } from '@/lib/news-disclosures';
+import { findAreaForLocation } from '@/lib/compounds-data';
 import NewsDisclosuresFeed from '@/components/NewsDisclosuresFeed';
 import SubpageSidebarShell from '@/components/SubpageSidebarShell';
+
+const SITE_URL = 'https://www.ewanbot.com';
 
 export const metadata: Metadata = {
   title: 'مؤشر إيوان لأسعار العقارات في مصر 2026 | متوسط سعر المتر والأقساط',
   description:
     'التقرير الشهري لأسعار العقارات في مصر 2026: متوسط سعر المتر الفعلي، أقل مقدم، وأطول فترة سداد في التجمع الخامس، الشيخ زايد، 6 أكتوبر، العاصمة الإدارية والساحل الشمالي.',
   alternates: {
-    canonical: 'https://www.ewanbot.com/market-index',
+    canonical: `${SITE_URL}/market-index`,
   },
   openGraph: {
     title: 'مؤشر إيوان لأسعار العقارات في مصر 2026 | Ewanbot Market Index',
     description:
-      'بيانات حية من أكثر من 660 كمبوند رسمي في مصر — متوسط أسعار المتر وأنظمة السداد لكل مدينة.',
-    url: 'https://ewanbot.com/market-index',
+      'بيانات حية من أكثر من 663 كمبوند رسمي في مصر — متوسط أسعار المتر وأنظمة السداد لكل مدينة.',
+    url: `${SITE_URL}/market-index`,
     siteName: 'إيوان بوت | Ewanbot',
     images: [
       {
-        url: 'https://ewanbot.com/og-image.png',
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
-        alt: 'مؤشر إيوان لأسعار العقارات في مصر',
+        alt: 'مؤشر إيوان لأسعار العقارات في مصر 2026',
       },
     ],
+    locale: 'ar_EG',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'مؤشر إيوان لأسعار العقارات في مصر 2026',
+    description:
+      'متوسط سعر المتر وأنظمة السداد لكل مدينة في مصر استناداً إلى 663+ كمبوند معتمد.',
+    images: [`${SITE_URL}/og-image.png`],
   },
 };
 
@@ -59,12 +71,38 @@ export default function MarketIndexPage() {
   const fmtM = (n: number) =>
     (n / 1_000_000).toLocaleString('ar-EG', { maximumFractionDigits: 2 });
 
+  const marketIndexJsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'الرئيسية', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'مؤشر أسعار العقارات 2026', item: `${SITE_URL}/market-index` },
+        ],
+      },
+      {
+        '@type': 'Dataset',
+        name: 'مؤشر إيوان لأسعار العقارات في مصر 2026',
+        description: `متوسطات سعر المتر الفعلية وأنظمة السداد في المدن الجديدة المصرية استناداً إلى تحليل ${index.totalCompounds} كمبوند رسمي.`,
+        url: `${SITE_URL}/market-index`,
+        creator: { '@type': 'Organization', name: 'إيوان بوت | Ewanbot', url: SITE_URL },
+        spatialCoverage: 'Egypt',
+        temporalCoverage: '2026',
+      },
+    ],
+  };
+
   return (
     <SubpageSidebarShell>
     <div
       className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-amber-500 selection:text-black"
       dir="rtl"
     >
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(marketIndexJsonLd) }}
+      />
       <div className="fixed inset-0 pointer-events-none opacity-20 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:24px_24px]" />
 
       {/* Header */}
@@ -174,9 +212,22 @@ export default function MarketIndexPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/70">
-                {index.cities.map((c) => (
+                {index.cities.map((c) => {
+                  const matchedArea = findAreaForLocation(c.city);
+                  return (
                   <tr key={c.city} className="hover:bg-amber-500/5 transition">
-                    <td className="p-4 font-bold text-white whitespace-nowrap">{c.city}</td>
+                    <td className="p-4 font-bold text-white whitespace-nowrap">
+                      {matchedArea ? (
+                        <Link
+                          href={`/areas/${matchedArea.slug}`}
+                          className="hover:text-amber-400 hover:underline transition"
+                        >
+                          {c.city}
+                        </Link>
+                      ) : (
+                        c.city
+                      )}
+                    </td>
                     <td className="p-4 text-zinc-300">{c.compoundsCount}</td>
                     <td className="p-4 font-black text-amber-400 whitespace-nowrap">
                       {c.avgPricePerSqm > 0 ? `${fmt(c.avgPricePerSqm)} ج.م` : '—'}
@@ -199,7 +250,8 @@ export default function MarketIndexPage() {
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

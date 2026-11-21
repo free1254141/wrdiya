@@ -7,8 +7,20 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: ['/', '/llms.txt', '/llms-full.txt', '/api/properties'],
-        disallow: ['/api/leads', '/api/admin', '/api/paypal', '/api/webhooks', '/admin'],
+        allow: ['/', '/compounds', '/areas', '/compare', '/calculator', '/market-index', '/partners', '/pricing', '/llms.txt', '/llms-full.txt', '/api/properties'],
+        disallow: [
+          '/api/leads',
+          '/api/admin',
+          '/api/paypal',
+          '/api/payment',
+          '/api/webhooks',
+          '/api/chat',
+          '/api/usage',
+          '/api/analytics',
+          '/admin',
+          '/widget',
+          '/auth',
+        ],
       },
       {
         userAgent: [
@@ -29,8 +41,8 @@ export default function robots(): MetadataRoute.Robots {
           'YouBot',
           'CCBot',
         ],
-        allow: ['/', '/llms.txt', '/llms-full.txt', '/api/properties'],
-        disallow: ['/api/leads', '/api/admin', '/admin'],
+        allow: ['/', '/compounds', '/areas', '/compare', '/calculator', '/market-index', '/llms.txt', '/llms-full.txt', '/api/properties'],
+        disallow: ['/api/leads', '/api/admin', '/api/payment', '/admin', '/widget', '/auth'],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,

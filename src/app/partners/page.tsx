@@ -41,7 +41,7 @@ export default function PartnersPage() {
     return `/widget?${params.toString()}`;
   }, [brandName, accentColor, whatsapp, city]);
 
-  const widgetFullUrl = `https://ewanbot.com${widgetRelativeUrl}`;
+  const widgetFullUrl = `https://www.ewanbot.com${widgetRelativeUrl}`;
 
   const embedCode = `<!-- Ewanbot White-Label Real Estate AI Widget -->
 <iframe

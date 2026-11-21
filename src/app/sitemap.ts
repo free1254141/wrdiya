@@ -1,26 +1,9 @@
 import { MetadataRoute } from 'next';
-import { getAllCompounds } from '@/lib/compounds-data';
+import { getAllCompounds, getAllAreas } from '@/lib/compounds-data';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://www.ewanbot.com';
   const now = new Date();
-
-  // Supported languages
-  const languages = ['ar', 'en', 'tr', 'ru', 'de', 'fr', 'es'];
-
-  // Geographic Egyptian regional landing targets
-  const regions = [
-    'new-cairo',
-    'sheikh-zayed',
-    'new-capital',
-    'october',
-    'north-coast',
-    'ain-sokhna',
-    'mostakbal-city',
-    'madinaty',
-    'el-gouna',
-    'alexandria',
-  ];
 
   const routes: MetadataRoute.Sitemap = [
     {
@@ -28,17 +11,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: 'daily',
       priority: 1.0,
-      alternates: {
-        languages: Object.fromEntries(
-          languages.map((lang) => [lang, `${baseUrl}?lang=${lang}`])
-        ),
-      },
-    },
-    {
-      url: `${baseUrl}/calculator`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.95,
     },
     {
       url: `${baseUrl}/compounds`,
@@ -53,6 +25,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.95,
     },
     {
+      url: `${baseUrl}/calculator`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.95,
+    },
+    {
       url: `${baseUrl}/market-index`,
       lastModified: now,
       changeFrequency: 'weekly',
@@ -61,46 +39,33 @@ export default function sitemap(): MetadataRoute.Sitemap {
     {
       url: `${baseUrl}/partners`,
       lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.85,
+      changeFrequency: 'monthly',
+      priority: 0.8,
     },
     {
-      url: `${baseUrl}/llms.txt`,
+      url: `${baseUrl}/pricing`,
       lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/llms-full.txt`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.9,
+      changeFrequency: 'monthly',
+      priority: 0.75,
     },
   ];
 
-  // Add Egyptian regional landing URLs
-  regions.forEach((region) => {
-    routes.push({
-      url: `${baseUrl}?region=${region}`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.85,
-    });
-  });
-
-  // Add language entry URLs
-  languages.forEach((lang) => {
-    if (lang !== 'ar') {
+  // Add real Programmatic Egyptian Area Landing Pages (/areas/[slug])
+  try {
+    const areas = getAllAreas();
+    areas.forEach((area) => {
       routes.push({
-        url: `${baseUrl}?lang=${lang}`,
+        url: `${baseUrl}/areas/${area.slug}`,
         lastModified: now,
         changeFrequency: 'weekly',
-        priority: 0.8,
+        priority: 0.9,
       });
-    }
-  });
+    });
+  } catch (err) {
+    console.error('Failed to append areas to sitemap:', err);
+  }
 
-  // Add all 600+ Programmatic SEO Compound Landing Pages for Google Indexing
+  // Add all 663 Programmatic SEO Compound Landing Pages (/compounds/[slug])
   try {
     const compounds = getAllCompounds();
     compounds.forEach((c) => {

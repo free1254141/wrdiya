@@ -90,7 +90,7 @@ export default function BudgetCalculatorPage() {
   const fmtM = (n: number) =>
     (n / 1_000_000).toLocaleString('ar-EG', { maximumFractionDigits: 2 });
 
-  const shareText = `معايا مقدم ${fmt(downPayment)} ج.م وقسط شهري ${fmt(monthlyInstallment)} ج.م، وحسبت الكمبوندات المناسبة ليا في مصر عبر حاسبة إيوان بوت وطلعلي ${matchedCompounds.length} كمبوند معتمد! جرب بنفسك: https://ewanbot.com/calculator`;
+  const shareText = `معايا مقدم ${fmt(downPayment)} ج.م وقسط شهري ${fmt(monthlyInstallment)} ج.م، وحسبت الكمبوندات المناسبة ليا في مصر عبر حاسبة إيوان بوت وطلعلي ${matchedCompounds.length} كمبوند معتمد! جرب بنفسك: https://www.ewanbot.com/calculator`;
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -98,7 +98,7 @@ export default function BudgetCalculatorPage() {
         await navigator.share({
           title: 'معاك مقدم كام؟ اعرف الكمبوندات المناسبة لميزانيتك فوراً',
           text: shareText,
-          url: 'https://ewanbot.com/calculator',
+          url: 'https://www.ewanbot.com/calculator',
         });
         return;
       } catch (err) {
@@ -121,11 +121,11 @@ export default function BudgetCalculatorPage() {
 
       {/* Print-only Header */}
       <div className="hidden print:block border-b-2 border-amber-500 pb-4 mb-6 px-6 pt-6">
-        <h1 className="text-2xl font-black text-black">
+        <div className="text-2xl font-black text-black">
           تقرير الميزانية العقارية والكمبوندات المناسبة — إيوان بوت (Ewanbot)
-        </h1>
+        </div>
         <p className="text-sm text-gray-600 mt-1">
-          المقدم المتاح: {fmt(downPayment)} ج.م | القسط الشهري: {fmt(monthlyInstallment)} ج.م | القوة الشرائية: {fmtM(totalBuyingPower)} مليون ج.م — ewanbot.com
+          المقدم المتاح: {fmt(downPayment)} ج.م | القسط الشهري: {fmt(monthlyInstallment)} ج.م | القوة الشرائية: {fmtM(totalBuyingPower)} مليون ج.م — www.ewanbot.com
         </p>
       </div>
 
