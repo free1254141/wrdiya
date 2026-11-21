@@ -25,6 +25,7 @@ import {
   getAllCompounds,
   getCompoundBySlug,
   getCompoundMetrics,
+  getPopularComparisons,
   CompoundSEOData,
 } from '@/lib/compounds-data';
 
@@ -32,6 +33,7 @@ export default function CompareCompoundsClient() {
   const router = useRouter();
 
   const allCompounds = useMemo(() => getAllCompounds(), []);
+  const popularComparisons = useMemo(() => getPopularComparisons(12), []);
 
   const [c1, setC1] = useState<CompoundSEOData>(allCompounds[0]);
   const [c2, setC2] = useState<CompoundSEOData>(allCompounds[1] || allCompounds[0]);
@@ -709,6 +711,7 @@ export default function CompareCompoundsClient() {
           <div className="mt-5 text-center print:hidden">
             <Link
               href={`/?chat=${chatPrompt}`}
+              rel="nofollow"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-sm shadow-lg transition"
             >
               <Sparkles className="h-4 w-4" />
@@ -718,7 +721,7 @@ export default function CompareCompoundsClient() {
         </div>
 
         {/* Links to individual compound pages */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 print:hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-10 print:hidden">
           <Link
             href={`/compounds/${encodeURIComponent(c1.slug)}`}
             className="rounded-2xl border border-zinc-800 bg-zinc-900/60 hover:border-amber-500/50 p-4 flex items-center justify-between transition"
@@ -740,6 +743,35 @@ export default function CompareCompoundsClient() {
             <ArrowLeft className="h-4 w-4 text-emerald-400" />
           </Link>
         </div>
+
+        {/* Popular Pre-Built Comparisons (Internal Linking for SEO) */}
+        <section className="rounded-3xl border border-zinc-800 bg-zinc-900/50 p-5 sm:p-6 print:hidden">
+          <div className="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-zinc-800/80">
+            <h2 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
+              <Scale className="h-4 w-4 text-amber-400" />
+              <span>أشهر مقارنات الكمبوندات في مصر 2026</span>
+            </h2>
+            <span className="text-[11px] text-zinc-400">اضغط للمقارنة الفورية</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-xs">
+            {popularComparisons.map((pair) => (
+              <Link
+                key={`${pair.c1.slug}-${pair.c2.slug}`}
+                href={`/compare?c1=${encodeURIComponent(pair.c1.slug)}&c2=${encodeURIComponent(pair.c2.slug)}`}
+                onClick={() => {
+                  setC1(pair.c1);
+                  setC2(pair.c2);
+                }}
+                className="flex flex-col justify-between gap-1 rounded-xl border border-zinc-800 bg-zinc-950/70 hover:border-amber-500/50 p-3 transition group"
+              >
+                <span className="font-bold text-zinc-100 group-hover:text-amber-400 transition truncate">
+                  {pair.c1.name} ⚔️ {pair.c2.name}
+                </span>
+                <span className="text-[10px] text-zinc-400">{pair.areaLabel}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
       </main>
     </div>
     </SubpageSidebarShell>

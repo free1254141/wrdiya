@@ -186,6 +186,7 @@ export default async function AreaLandingPage({ params }: Props) {
 
             <Link
               href={`/?chat=${chatPrompt}`}
+              rel="nofollow"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black shadow-md transition shrink-0"
             >
               <Sparkles className="h-3.5 w-3.5" />
@@ -255,6 +256,7 @@ export default async function AreaLandingPage({ params }: Props) {
           <div className="flex flex-wrap items-center gap-2.5 mb-8">
             <Link
               href={`/?chat=${chatPrompt}`}
+              rel="nofollow"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs sm:text-sm transition"
             >
               <Sparkles className="h-4 w-4" />

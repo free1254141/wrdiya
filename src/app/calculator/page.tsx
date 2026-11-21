@@ -373,6 +373,7 @@ export default function BudgetCalculatorPage() {
                     </Link>
                     <Link
                       href={`/?chat=${encodeURIComponent(`عايز أعرف شقة في كمبوند ${c.name} تناسب مقدم ${fmt(downPayment)} وقسط شهري ${fmt(monthlyInstallment)}`)}`}
+                      rel="nofollow"
                       className="flex-1 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black text-center transition"
                     >
                       استشر Ewanbot
@@ -399,6 +400,7 @@ export default function BudgetCalculatorPage() {
             </p>
             <Link
               href={`/?chat=${chatPrompt}`}
+              rel="nofollow"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-sm shadow-md transition"
             >
               <Sparkles className="h-4 w-4" />

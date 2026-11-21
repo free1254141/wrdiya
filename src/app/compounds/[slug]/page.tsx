@@ -12,12 +12,14 @@ import {
   HelpCircle,
   Eye,
   Scale,
+  Layers,
 } from 'lucide-react';
 import {
   getCompoundBySlug,
   getAllCompounds,
   getRelatedCompoundsByLocation,
   findAreaForLocation,
+  getCompoundMetrics,
 } from '@/lib/compounds-data';
 import LocationScoreCard from '@/components/LocationScoreCard';
 
@@ -43,15 +45,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
+  const metrics = getCompoundMetrics(compound);
   const minPriceMillion = (compound.min_price / 1_000_000).toFixed(2);
-  const title = `أسعار وجدول أقساط كمبوند ${compound.name} ${compound.location} 2026`;
-  const description = `تعرف على أسعار وحدات كمبوند ${compound.name} (${compound.location}) الرسمية لعام 2026. تبدأ الأسعار من ${minPriceMillion} مليون ج.م بمقدم ${compound.min_down_payment_pct}% وتقسيط حتى ${compound.max_installment_years} سنوات بدون مكالمات سيلز مزعجة.`;
+  const avgPpsText =
+    metrics.avgPricePerSqm > 0
+      ? `متوسط سعر المتر ${metrics.avgPricePerSqm.toLocaleString('ar-EG')} ج.م`
+      : '';
+  const title = `أسعار كمبوند ${compound.name} ${compound.location} 2026 (مقدم ${compound.min_down_payment_pct}% وتقسيط ${compound.max_installment_years} سنوات)`;
+  const description = `تعرف على أسعار كمبوند ${compound.name} (${compound.location}) لعام 2026: تبدأ الأسعار من ${minPriceMillion} مليون ج.م${avgPpsText ? `، ${avgPpsText}` : ''}، بمقدم ${compound.min_down_payment_pct}% وتقسيط حتى ${compound.max_installment_years} سنوات. شاهد المخطط الرئيسي ومساحات الوحدات وأنظمة السداد بدون مكالمات سيلز.`;
   const canonicalUrl = `${SITE_URL}/compounds/${encodeURIComponent(compound.slug)}`;
   const ogImage = compound.images?.[0] || `${SITE_URL}/og-image.png`;
 
   return {
     title,
     description,
+    keywords: [
+      compound.name,
+      `كمبوند ${compound.name}`,
+      `كمباوند ${compound.name}`,
+      `أسعار كمبوند ${compound.name} 2026`,
+      `المخطط الرئيسي في ${compound.name}`,
+      `مخططات ${compound.name}`,
+      `سداد ${compound.name}`,
+    ],
     alternates: {
       canonical: canonicalUrl,
     },
@@ -90,6 +106,10 @@ export default async function SingleCompoundPage({ params }: Props) {
 
   const related = getRelatedCompoundsByLocation(compound, 6);
   const parentArea = findAreaForLocation(compound.location);
+  const metrics = getCompoundMetrics(compound);
+  const unitTypes = Array.from(
+    new Set((compound.sample_units || []).map((u) => u.unit_type).filter(Boolean))
+  );
 
   const fmt = (n?: number) =>
     typeof n === 'number' && Number.isFinite(n)
@@ -133,7 +153,10 @@ export default async function SingleCompoundPage({ params }: Props) {
         ]),
   ];
 
-  // Unified @graph Structured Data (BreadcrumbList + Residence/AggregateOffer + FAQPage)
+  const masterplanQuestion = `ما هي مساحات الوحدات والمخطط الرئيسي في كمبوند ${compound.name}؟`;
+  const masterplanAnswer = `يتضمن المخطط الرئيسي لكمبوند ${compound.name} في ${compound.location} وحدات متنوعة بمساحات تبدأ من ${compound.min_area_sqm} متر مربع وتصل إلى ${compound.max_area_sqm} متر مربع، بمتوسط سعر متر يبلغ حوالي ${fmt(metrics.avgPricePerSqm)} جنيه مصري.`;
+
+  // Unified @graph Structured Data (BreadcrumbList + RealEstateListing/AggregateOffer + FAQPage)
   const compoundJsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -146,7 +169,7 @@ export default async function SingleCompoundPage({ params }: Props) {
         name: `كمبوند ${compound.name} — ${compound.location}`,
         url: canonicalUrl,
         image: compound.images?.[0] || `${SITE_URL}/og-image.png`,
-        description: `أسعار وجدول أقساط وحدات كمبوند ${compound.name} في ${compound.location} لعام 2026.`,
+        description: `أسعار وجدول أقساط ومساحات كمبوند ${compound.name} في ${compound.location} لعام 2026.`,
         offers: {
           '@type': 'AggregateOffer',
           priceCurrency: 'EGP',
@@ -180,6 +203,14 @@ export default async function SingleCompoundPage({ params }: Props) {
             acceptedAnswer: {
               '@type': 'Answer',
               text: `يمكنك استخدام مستشارك العقاري الذكي عبر منصة إيوان بوت (Ewanbot) للحصول على الحسبة الدقيقة والمقارنات الفورية بدون الحاجة لترك رقم هاتفك.`,
+            },
+          },
+          {
+            '@type': 'Question',
+            name: masterplanQuestion,
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: masterplanAnswer,
             },
           },
         ],
@@ -220,6 +251,7 @@ export default async function SingleCompoundPage({ params }: Props) {
 
             <Link
               href={`/?chat=${chatPrompt}`}
+              rel="nofollow"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black shadow-md transition shrink-0"
             >
               <Sparkles className="h-3.5 w-3.5" />
@@ -308,6 +340,7 @@ export default async function SingleCompoundPage({ params }: Props) {
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <Link
                   href={`/?chat=${chatPrompt}`}
+                  rel="nofollow"
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-black text-sm sm:text-base shadow-lg shadow-amber-500/30 transition transform hover:-translate-y-0.5"
                 >
                   <Sparkles className="h-5 w-5" />
@@ -327,6 +360,44 @@ export default async function SingleCompoundPage({ params }: Props) {
 
           {/* OpenStreetMap Live Location & Services Score */}
           <LocationScoreCard location={compound.location} compoundName={compound.name} />
+
+          {/* Masterplan, Areas & Payment Plan Overview (SSR for long-tail queries) */}
+          <section className="mb-10 rounded-2xl border border-zinc-800 bg-zinc-900/65 p-5 sm:p-6">
+            <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2 mb-4">
+              <Layers className="h-4 w-4 text-amber-400" />
+              <span>المخطط الرئيسي (Masterplan) ومساحات وأنظمة سداد كمبوند {compound.name}</span>
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs sm:text-sm">
+              <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/70 p-3.5">
+                <span className="text-zinc-400 text-xs block mb-1">متوسط سعر المتر الفعلي</span>
+                <strong className="text-amber-400 font-black text-base">
+                  {metrics.avgPricePerSqm > 0 ? `${fmt(metrics.avgPricePerSqm)} ج.م/م²` : 'حسب نوع الوحدة'}
+                </strong>
+              </div>
+
+              <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/70 p-3.5">
+                <span className="text-zinc-400 text-xs block mb-1">نطاق المساحات المتاحة</span>
+                <strong className="text-white font-bold text-base">
+                  من {compound.min_area_sqm || '—'} م² حتى {compound.max_area_sqm || '—'} م²
+                </strong>
+              </div>
+
+              <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/70 p-3.5">
+                <span className="text-zinc-400 text-xs block mb-1">قيمة أقل مقدم تعاقد</span>
+                <strong className="text-emerald-400 font-black text-base">
+                  {fmt(metrics.minDownPaymentEgp)} ج.م ({compound.min_down_payment_pct}%)
+                </strong>
+              </div>
+
+              <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/70 p-3.5">
+                <span className="text-zinc-400 text-xs block mb-1">أنواع الوحدات في المخطط</span>
+                <strong className="text-zinc-200 font-bold text-xs sm:text-sm">
+                  {unitTypes.length > 0 ? unitTypes.join(' • ') : 'شقق وفيلات متنوعة'}
+                </strong>
+              </div>
+            </div>
+          </section>
 
           {/* Live Sample Units Table */}
           {compound.sample_units && compound.sample_units.length > 0 && (
@@ -372,6 +443,7 @@ export default async function SingleCompoundPage({ params }: Props) {
                           <td className="py-3 px-4 text-center whitespace-nowrap">
                             <Link
                               href={`/?chat=${encodeURIComponent(`عايز أعرف تفاصيل الوحدة رقم ${idx + 1} في كمبوند ${compound.name} بمساحة ${u.area_sqm}م`)}`}
+                              rel="nofollow"
                               className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-400 hover:text-black font-bold text-xs transition"
                             >
                               <Eye className="h-3 w-3" />
@@ -419,6 +491,15 @@ export default async function SingleCompoundPage({ params }: Props) {
                 </h4>
                 <p className="text-zinc-400 leading-relaxed">
                   لا إطلاقاً، منصة إيوان بوت (Ewanbot) تتيح لك المقارنة والحساب الفوري مجاناً وبدون أي تسجيل رقم هاتف للحفاظ على خصوصيتك ومنع الإزعاج.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80">
+                <h4 className="font-bold text-amber-300 mb-1">
+                  {masterplanQuestion}
+                </h4>
+                <p className="text-zinc-400 leading-relaxed">
+                  {masterplanAnswer}
                 </p>
               </div>
             </div>
